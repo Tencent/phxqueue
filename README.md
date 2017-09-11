@@ -219,6 +219,8 @@ bin/consumer_main -c etc/consumer_server.2.conf -d
 
 Lock is a distributed lock module. You can deploy Lock independently, providing a common distributed lock service.
 
+Set `skip_lock = 1` in `topicconfig.conf` if not use Lock.
+
 Deploy these config to 3 Lock node and start:
 
 ```sh
@@ -232,6 +234,8 @@ bin/lock_main -c etc/lock_server.2.conf -d
 Scheduler gathers global load information from Consumer for disaster tolerance and load balancing. If no Scheduler is deployed, Consumer will be assigned according to the configuration weight.
 
 If you need to deploy Scheduler, deploy Lock first.
+
+Set `use_dynamic_scale = 0` in `topicconfig.conf` if not use Scheduler.
 
 Deploy these config to 3 Scheduler node and start:
 

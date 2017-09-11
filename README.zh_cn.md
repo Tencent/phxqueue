@@ -221,6 +221,8 @@ bin/consumer_main -c etc/consumer_server.2.conf -d
 
 Lock是一个分布式锁，其接口设计非常通用化，使用者可以选择将Lock独立部署，提供通用分布式锁服务。部署Lock可以避免队列的重复消费。
 
+如果不使用Lock，`topicconfig.conf`中需要设置`skip_lock = 1`。
+
 将以下3个配置文件分别部署到3个Lock节点并启动：
 
 ```sh
@@ -234,6 +236,8 @@ bin/lock_main -c etc/lock_server.2.conf -d
 Scheduler收集Consumer全局负载信息, 对Consumer做容灾和负载均衡。当使用者没有这方面的需求时，可以省略部署Scheduler，此时各Consumer根据配置权重决定与队列的处理关系。
 
 Scheduler依赖Lock，如果需要部署Scheduler，请先部署Lock。
+
+如果不使用Scheduler，`topicconfig.conf`中需要设置`use_dynamic_scale = 0`。
 
 将以下3个配置文件分别部署到3个Scheduler节点并启动：
 
