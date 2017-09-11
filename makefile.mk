@@ -25,7 +25,7 @@ PHXPAXOS_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/phxpaxos/lib
 PHXPAXOS_PLUGIN_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/phxpaxos/plugin/lib
 PHXQUEUE_LIB_DIR := $(PHXQUEUE_BASE_DIR)/lib
 
-BOOST_ROOT_DIR := $(PHXQUEUE_BASE_DIR)/third_party/boost
+#BOOST_ROOT_DIR := $(PHXQUEUE_BASE_DIR)/third_party/boost
 
 CXX := g++
 AR := ar cruv

@@ -6,10 +6,9 @@
 
 include ../../../makefile.mk
 
-PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_LIB_DIR) -lphxrpc_plugin_boost \
-		-Wl,--no-whole-archive $(BOOST_ROOT_DIR)/lib/libboost_context.a  #-L$(BOOST_LIB_DIR) -lboost_context
-
-LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS) # for boost
+#PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_LIB_DIR) -lphxrpc_plugin_boost \
+#		-Wl,--no-whole-archive $(BOOST_ROOT_DIR)/lib/libboost_context.a  #-L$(BOOST_LIB_DIR) -lboost_context
+#LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS) # for boost
 
 
 SVR_OBJS = store.pb.o \
