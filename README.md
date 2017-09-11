@@ -49,15 +49,6 @@ Download the [phxqueue_0.8.0.tar.gz]() and un-tar it to `$PHXQUEUE_DIR`.
 	ln -s $DEP_PREFIX $PHXQUEUE_DIR/third_party/glog
 	```
 
-*	Boost
-
-	Build [Boost](http://www.boost.org/) (only version 1.56 is supported) with `./bootstrap.sh --prefix=$DEP_PREFIX`. Then make some links:
-
-	```sh
-	rm -r $PHXQUEUE_DIR/third_party/boost/
-	ln -s $DEP_PREFIX $PHXQUEUE_DIR/third_party/boost
-	```
-
 *	LevelDB
 
 	Build [LevelDB](https://github.com/google/leveldb/releases) in `$PHXQUEUE_DIR/third_party/leveldb/` and `ln -s out-static lib`.
@@ -122,7 +113,7 @@ tail -f log/store.2/store_main.INFO
 
 ### Start Consumer
 
-Now Start 3 Consumer node (add `-d` if run as daemon, not for this test):
+Now Start 3 Consumer node:
 
 ```sh
 bin/consumer_main -c etc/consumer_server.0.conf
@@ -200,7 +191,9 @@ lockconfig.conf ...................Lock config
 
 Deloy and modify these files on all target machine.
 
-### Start Store
+### Deploy Store
+
+Store is the storage module for queue, using the Paxos protocol for replica synchronization.
 
 Deploy these config to 3 Store node and start:
 
@@ -210,7 +203,9 @@ bin/store_main -c etc/store_server.1.conf -d
 bin/store_main -c etc/store_server.2.conf -d
 ```
 
-### Start Consumer
+### Deploy Consumer
+
+Consumer pull and consume data from Store.
 
 Deploy these config to 3 Consumer node and start:
 
@@ -220,7 +215,9 @@ bin/consumer_main -c etc/consumer_server.1.conf -d
 bin/consumer_main -c etc/consumer_server.2.conf -d
 ```
 
-### Start Lock (Optional)
+### Deploy Lock (Optional)
+
+Lock is a distributed lock module. You can deploy Lock independently, providing a common distributed lock service.
 
 Deploy these config to 3 Lock node and start:
 
@@ -230,7 +227,11 @@ bin/lock_main -c etc/lock_server.1.conf -d
 bin/lock_main -c etc/lock_server.2.conf -d
 ```
 
-### Start Scheduler (Optional)
+### Deploy Scheduler (Optional)
+
+Scheduler gathers global load information from Consumer for disaster tolerance and load balancing. If no Scheduler is deployed, Consumer will be assigned according to the configuration weight.
+
+If you need to deploy Scheduler, deploy Lock first.
 
 Deploy these config to 3 Scheduler node and start:
 

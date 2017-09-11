@@ -49,15 +49,6 @@ PhxQueue是微信开源的一款基于Paxos协议实现的高可用、高吞吐�
 	ln -s $DEP_PREFIX $PHXQUEUE_DIR/third_party/glog
 	```
 
-*	Boost
-
-	编译[Boost](http://www.boost.org/)（只支持1.56版本），注意必须使用编译参数`./bootstrap.sh --prefix=$DEP_PREFIX`。然后创建软链接：
-
-	```sh
-	rm -r $PHXQUEUE_DIR/third_party/boost/
-	ln -s $DEP_PREFIX $PHXQUEUE_DIR/third_party/boost
-	```
-
 *	LevelDB
 
 	编译[LevelDB](https://github.com/google/leveldb/releases)到`$PHXQUEUE_DIR/third_party/leveldb/`，然后`ln -s out-static lib`。
@@ -122,7 +113,7 @@ tail -f log/store.2/store_main.INFO
 
 ### 启动Consumer
 
-启动3个Consumer节点（加`-d`参数可以在后台运行，这个测试中先不要在后台）：
+启动3个Consumer节点：
 
 ```sh
 bin/consumer_main -c etc/consumer_server.0.conf
