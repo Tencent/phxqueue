@@ -28,7 +28,7 @@ PhxQueue是微信开源的一款基于Paxos协议实现的高可用、高吞吐�
 
 ### 下载源代码
 
-下载[phxqueue_0.1.0.tar.gz]()并解压到`$PHXQUEUE_DIR`.
+下载[phxqueue_0.8.0.tar.gz]()并解压到`$PHXQUEUE_DIR`.
 
 ### 安装第三方依赖
 
@@ -120,44 +120,6 @@ tail -f log/store.1/store_main.INFO
 tail -f log/store.2/store_main.INFO
 ```
 
-### 启动Lock
-
-启动3个Lock节点（加`-d`参数可以在后台运行）：
-
-```sh
-bin/lock_main -c etc/lock_server.0.conf
-bin/lock_main -c etc/lock_server.1.conf
-bin/lock_main -c etc/lock_server.2.conf
-```
-
-可以查看Lock的日志：
-
-```sh
-ps -ef | grep lock_main
-tail -f log/lock.0/lock_main.INFO
-tail -f log/lock.1/lock_main.INFO
-tail -f log/lock.2/lock_main.INFO
-```
-
-### 启动Scheduler
-
-启动3个Scheduler节点（加`-d`参数可以在后台运行）：
-
-```sh
-bin/scheduler_main -c etc/scheduler_server.0.conf
-bin/scheduler_main -c etc/scheduler_server.1.conf
-bin/scheduler_main -c etc/scheduler_server.2.conf
-```
-
-可以查看Scheduler的日志：
-
-```sh
-ps -ef | grep scheduler_main
-tail -f log/scheduler.0/scheduler_main.INFO
-tail -f log/scheduler.1/scheduler_main.INFO
-tail -f log/scheduler.2/scheduler_main.INFO
-```
-
 ### 启动Consumer
 
 启动3个Consumer节点（加`-d`参数可以在后台运行，这个测试中先不要在后台）：
@@ -225,6 +187,8 @@ INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_curso
 
 通常，每个节点应该部署在一台机器上，针对每个节点修改`etc/*.conf`中的内容。
 
+### 部署全局配置
+
 在`etc/`目录下，有以下这些文件
 
 ```
@@ -237,6 +201,64 @@ lockconfig.conf ...................Lock配置
 ```
 
 将这些文件部署在所有目标机器上，并做相应的修改。
+
+### 部署Store
+
+Store是队列的存储，使用Paxos协议作副本同步。
+
+将以下3个配置文件分别部署到3个Store节点并启动：
+
+```sh
+bin/store_main -c etc/store_server.0.conf -d
+bin/store_main -c etc/store_server.1.conf -d
+bin/store_main -c etc/store_server.2.conf -d
+```
+
+### 部署Consumer
+
+Consumer是队列的消费者，以批量拉取的方式从Store拉数据。
+
+将以下3个配置文件分别部署到3个Consumer节点并启动：
+
+```sh
+bin/consumer_main -c etc/consumer_server.0.conf -d
+bin/consumer_main -c etc/consumer_server.1.conf -d
+bin/consumer_main -c etc/consumer_server.2.conf -d
+```
+
+### 部署Lock（可选）
+
+Lock是一个分布式锁，其接口设计非常通用化，使用者可以选择将Lock独立部署，提供通用分布式锁服务。部署Lock可以避免队列的重复消费。
+
+将以下3个配置文件分别部署到3个Lock节点并启动：
+
+```sh
+bin/lock_main -c etc/lock_server.0.conf -d
+bin/lock_main -c etc/lock_server.1.conf -d
+bin/lock_main -c etc/lock_server.2.conf -d
+```
+
+### 部署Scheduler（可选）
+
+Scheduler收集Consumer全局负载信息, 对Consumer做容灾和负载均衡。当使用者没有这方面的需求时，可以省略部署Scheduler，此时各Consumer根据配置权重决定与队列的处理关系。
+
+Scheduler依赖Lock，如果需要部署Scheduler，请先部署Lock。
+
+将以下3个配置文件分别部署到3个Scheduler节点并启动：
+
+```sh
+bin/scheduler_main -c etc/scheduler_server.0.conf -d
+bin/scheduler_main -c etc/scheduler_server.1.conf -d
+bin/scheduler_main -c etc/scheduler_server.2.conf -d
+```
+
+### 查看日志
+
+各个模块的日志位于'log/'下模块名子目录中，例如store的0号节点日志：
+
+```sh
+tail -f log/store.0/store_main.INFO
+```
 
 ## 贡献
 

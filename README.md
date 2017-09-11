@@ -28,7 +28,7 @@ PhxQueue is a high-availability, high-throughput and highly reliable distributed
 
 ### Download PhxQueue source
 
-Download the [phxqueue_0.1.0.tar.gz]() and un-tar it to `$PHXQUEUE_DIR`.
+Download the [phxqueue_0.8.0.tar.gz]() and un-tar it to `$PHXQUEUE_DIR`.
 
 ### Install Dependence
 
@@ -120,44 +120,6 @@ tail -f log/store.1/store_main.INFO
 tail -f log/store.2/store_main.INFO
 ```
 
-### Start Lock
-
-Now Start 3 Lock node (add `-d` if run as daemon):
-
-```sh
-bin/lock_main -c etc/lock_server.0.conf
-bin/lock_main -c etc/lock_server.1.conf
-bin/lock_main -c etc/lock_server.2.conf
-```
-
-You can find informations and errors in log files:
-
-```sh
-ps -ef | grep lock_main
-tail -f log/lock.0/lock_main.INFO
-tail -f log/lock.1/lock_main.INFO
-tail -f log/lock.2/lock_main.INFO
-```
-
-### Start Scheduler
-
-Now Start 3 Scheduler node (add `-d` if run as daemon):
-
-```sh
-bin/scheduler_main -c etc/scheduler_server.0.conf
-bin/scheduler_main -c etc/scheduler_server.1.conf
-bin/scheduler_main -c etc/scheduler_server.2.conf
-```
-
-You can find informations and errors in log files:
-
-```sh
-ps -ef | grep scheduler_main
-tail -f log/scheduler.0/scheduler_main.INFO
-tail -f log/scheduler.1/scheduler_main.INFO
-tail -f log/scheduler.2/scheduler_main.INFO
-```
-
 ### Start Consumer
 
 Now Start 3 Consumer node (add `-d` if run as daemon, not for this test):
@@ -237,6 +199,54 @@ lockconfig.conf ...................Lock config
 ```
 
 Deloy and modify these files on all target machine.
+
+### Start Store
+
+Deploy these config to 3 Store node and start:
+
+```sh
+bin/store_main -c etc/store_server.0.conf -d
+bin/store_main -c etc/store_server.1.conf -d
+bin/store_main -c etc/store_server.2.conf -d
+```
+
+### Start Consumer
+
+Deploy these config to 3 Consumer node and start:
+
+```sh
+bin/consumer_main -c etc/consumer_server.0.conf -d
+bin/consumer_main -c etc/consumer_server.1.conf -d
+bin/consumer_main -c etc/consumer_server.2.conf -d
+```
+
+### Start Lock (Optional)
+
+Deploy these config to 3 Lock node and start:
+
+```sh
+bin/lock_main -c etc/lock_server.0.conf -d
+bin/lock_main -c etc/lock_server.1.conf -d
+bin/lock_main -c etc/lock_server.2.conf -d
+```
+
+### Start Scheduler (Optional)
+
+Deploy these config to 3 Scheduler node and start:
+
+```sh
+bin/scheduler_main -c etc/scheduler_server.0.conf -d
+bin/scheduler_main -c etc/scheduler_server.1.conf -d
+bin/scheduler_main -c etc/scheduler_server.2.conf -d
+```
+
+### View Logs
+
+You can find informations and errors in log files. For example, the number 0 Store node:
+
+```sh
+tail -f log/store.0/store_main.INFO
+```
 
 ## Contribution
 
