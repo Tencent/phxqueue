@@ -5,6 +5,6 @@ set -x  # display all commands
 
 git submodule update --init --recursive
 
-(cd third_party && ./autoinstall.sh)
+(cd third_party && bash ./autoinstall.sh)
 
 make
