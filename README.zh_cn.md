@@ -28,7 +28,7 @@ PhxQueue是微信开源的一款基于Paxos协议实现的高可用、高吞吐�
 
 ### 下载源代码
 
-下载[phxqueue_0.8.0.tar.gz]()并解压到`$PHXQUEUE_DIR`.
+下载[phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/master)并解压到`$PHXQUEUE_DIR`.
 
 ### 安装第三方依赖
 

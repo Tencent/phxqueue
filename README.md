@@ -28,7 +28,7 @@ PhxQueue is a high-availability, high-throughput and highly reliable distributed
 
 ### Download PhxQueue source
 
-Download the [phxqueue_0.8.0.tar.gz]() and un-tar it to `$PHXQUEUE_DIR`.
+Download the [phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/master) and un-tar it to `$PHXQUEUE_DIR`.
 
 ### Install Dependence
 
