@@ -1,3 +1,15 @@
+/*
+Tencent is pleased to support the open source community by making PhxQueue available.
+Copyright (C) 2017 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the BSD 3-Clause License (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+<https://opensource.org/licenses/BSD-3-Clause>
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+*/
+
+
+
 #include "phxrpc_scheduler.h"
 
 #include "lock_client.h"
@@ -31,12 +43,4 @@ PhxRpcScheduler::AcquireLock(const phxqueue_proto::AcquireLockRequest &req,
 }
 
 }
-
-
-//gzrd_Lib_CPP_Version_ID--start
-#ifndef GZRD_SVN_ATTR
-#define GZRD_SVN_ATTR "0"
-#endif
-static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL: http://scm-gy.tencent.com/gzrd/gzrd_mail_rep/phoenix_proj/trunk/phxqueue/phxqueue_phxrpc/src/scheduler/phxrpc_scheduler.cpp $ $Id: phxrpc_scheduler.cpp 2142737 2017-06-28 14:20:06Z walnuthe $ " GZRD_SVN_ATTR "__file__";
-// gzrd_Lib_CPP_Version_ID--end
 
