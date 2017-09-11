@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+import "phxqueue/comm/proto/comm.proto";
+
+message ConsumerConfig {
+    repeated Consumer consumers = 1;
+}
+
+message Consumer {
+    optional comm.proto.Addr addr = 2;
+    optional int32 scale = 3;
+    repeated int32 sub_ids = 20;
+}

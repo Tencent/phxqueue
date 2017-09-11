@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+
+message GlobalConfig {
+    repeated TopicInfo topic_infos = 1;
+}
+
+message TopicInfo {
+    optional int32 topic_id = 1;
+    optional string topic_name = 2;
+    optional string topic_config_path = 3;
+    optional string consumer_config_path = 4;
+    optional string store_config_path = 5;
+    optional string scheduler_config_path = 6;
+    optional string lock_config_path = 7;
+
+}

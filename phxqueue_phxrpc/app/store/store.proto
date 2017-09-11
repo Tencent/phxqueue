@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package phxqueue_phxrpc.store;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "phxqueue/comm/proto/comm.proto";
+import "phxrpc/rpc/phxrpc.proto";
+
+service Store {
+    rpc Add(phxqueue.comm.proto.AddRequest) returns(phxqueue.comm.proto.AddResponse) {
+        option(phxrpc.CmdID) = 1;
+    }
+    rpc Get(phxqueue.comm.proto.GetRequest) returns(phxqueue.comm.proto.GetResponse) {
+        option(phxrpc.CmdID) = 2;
+    }
+}
+

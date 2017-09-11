@@ -1,0 +1,167 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+
+message TopicConfig {
+    optional Topic topic = 1;
+    repeated QueueInfo queue_infos = 3;
+    repeated Pub pubs = 5;
+    repeated Sub subs = 6;
+    repeated SkipInfo skip_infos = 7;
+    repeated FreqInfo freq_infos = 8;
+    repeated ReplayInfo replay_infos = 9;
+}
+
+message Topic {
+    optional int32 topic_id = 11; // (required, unique)
+    repeated int32 handle_ids = 21; // (required)
+
+    optional int32 items_byte_size_limit = 301 [default = 2097152]; // max byte size of items per enqueue(Store::Add). (default value recommanded)
+    optional int32 batch_limit = 302 [default = 100]; // max items get per dequeue(Store::Get). (default value recommanded)
+
+    // ------------------ store general config ------------------
+
+    optional int32 store_make_cp_interval_s = 401 [default = 10]; // time interval of making checkpoint. (default value recommanded)
+    optional int32 store_adjust_master_rate_time_interval_10s = 402 [default = 1]; // useless.
+    optional int32 store_adjust_min_master_rate = 403 [default = 100]; // useless.
+    optional int32 store_adjust_max_master_rate = 404 [default = 100]; // useless.
+    optional int32 store_sync_interval_s = 411 [default = 5]; // time interval of syncing dequeue offset from master to slave. (default value recommanded)
+    optional int32 store_adjust_master_rate_time_interval_s = 412 [default = 10]; // time interval to adjust master.
+
+    // ------------------ store paxos config ------------------
+
+    optional int32 store_paxos_propose_timeout_ms = 431 [default = 1500]; // time interval of syncing dequeue offset from master to slave. (default value recommanded)
+
+    // thread blocks when calling Node::Propose/Node::BatchPropose and fast reject will occur when blocked threads num reach store_paxos_max_hold_threads. (default value recommanded)
+    optional int32 store_paxos_max_hold_threads = 432 [default = 200];
+
+    optional int32 store_paxos_master_lease = 433 [default = 5000]; // lease time of being master. (default value recommanded)
+    optional int32 store_paxos_propose_wait_time_threshold_ms = 434 [default = 800]; // timeout of thread blocking on Node::Propose/Node::BatchPropose.
+    optional int32 store_paxos_log_sync = 435 [default = 1]; // flush disk in Node::Propose/Node::BatchPropose.
+    optional int32 store_paxos_batch_count = 436 [default = 20]; // Node::BatchPropose process paxos protocal when blocking threads num reach store_paxos_batch_count. (default value recommanded)
+    optional int32 store_paxos_batch_delay_time_ms = 437 [default = 20]; // !or! blocking time reach store_paxos_batch_delay_time_ms.
+    optional int32 store_paxos_fsync_interval = 438; // the numer of Node::Propose/Node::BatchPropose to trigger once flush disk. (default value recommanded)
+    optional int32 store_paxos_oss_attr_id = 439; // monitor config for phxpaxos::Options::poBreakpoint.
+    optional int32 store_paxos_oss_attr_id_usetime = 440; // monitor config for phxpaxos::Options::poBreakpoint.
+    optional int32 store_paxos_hold_log_count = 441 [default = 100000]; // paxos log hold before checkpoint, just for replay.
+
+    // ------------------ consumer general config ------------------
+
+    optional int32 consumer_lock_lease_time_s = 601 [default = 30]; // lease time of consumer handling a queue. (default value recommanded)
+    optional int32 consumer_max_mem_size_mb_per_proc = 602 [default = 300]; // consumer process suicide when memory reach consumer_max_mem_size_mb_per_proc.
+    repeated int32 consumer_ignore_sub_ids = 603; // sub_id list that consumer do not handle.
+    optional int32 consumer_lock_interval_s = 604 [default = 20]; // interval time of consumer refresh lease. must be less than consumer_lock_lease_time_s. (default value recommanded)
+
+    // ------------------ producer general config ------------------
+
+    optional int32 producer_retry_switch_store = 701 [default = 1]; // if enqueue fail, just try another store.
+    optional int32 producer_nretry_raw_add = 702; // enqueue retry count before return failure to client.
+    optional int32 producer_retry_switch_queue = 703 [default = 1]; // if enqueue fail, just try another queue.
+
+    optional int32 producer_batch_delay_time_ms = 704 [default = 20]; // producer batch delay time.
+
+    // ------------------ scheduler general config ------------------
+
+    optional int32 scheduler_get_scale_interval_s = 802 [default = 10]; // wait for a while to start load balancing for collect consumer load info. (default value recommanded)
+    optional int32 scheduler_strict = 803 [default = 0]; // useless.
+    optional int32 scheduler_max_load = 804 [default = 80]; // max consumer load to trigger load banalced. (default value recommanded)
+    optional int32 scheduler_max_mean_load_percent = 805 [default = 150]; // more than an average percentage of the average load to trigger load banalced. (default value recommanded)
+    optional int32 scheduler_max_init_weight_percent = 806 [default = 200]; // the new weight will not exceed the percentage of the initialized weight. (default value recommanded)
+    optional int32 scheduler_load_sticky = 807 [default = 5]; // min load diff to trigger load banalced. (default value recommanded)
+    optional int32 scheduler_weight_sticky = 808 [default = 500]; // min weight diff to trigger load banalced (default value recommanded)
+    optional int32 scheduler_load_balance_interval_s = 809 [default = 60]; // min time interval to load banalced. (default value recommanded)
+    optional int32 scheduler_lock_lease_time_s = 810 [default = 20]; // lease time for being master. (default value recommanded)
+    optional int32 scheduler_renew_lock_interval_s = 811 [default = 5]; // time interval to renew master. (default value recommanded)
+    optional int32 scheduler_hash_keep_time_s = 812 [default = 20]; // if consumer does not sync load info for a while, consider it's die. (default value recommanded)
+    optional string scheduler_master_ip = 813; // specify master.
+    optional int32 scheduler_master_port = 814; // specify master.
+    optional string scheduler_lock_key = 815 [default = "__scheduler__.__master__"]; // lock key for lease master. (default value recommanded)
+
+
+    // ------------------ lock general config ------------------
+
+    optional int32 lock_adjust_master_rate_time_interval_10s = 1002 [default = 1]; // useless.
+    optional int32 lock_adjust_min_master_rate = 1003 [default = 100]; // useless.
+    optional int32 lock_adjust_max_master_rate = 1004 [default = 100]; // useless.
+    optional int32 lock_adjust_master_rate_time_interval_s = 1005 [default = 1]; // time interval to adjust master.
+
+    // ------------------ lock paxos config ------------------
+
+    optional int32 lock_paxos_propose_timeout_ms = 1031 [default = 1500]; // time interval of syncing dequeue offset from master to slave. (default value recommanded)
+
+    // thread blocks when calling Node::Propose/Node::BatchPropose and fast reject will occur when blocked threads num reach lock_paxos_max_hold_threads. (default value recommanded)
+    optional int32 lock_paxos_max_hold_threads = 1032 [default = 200];
+
+    optional int32 lock_paxos_master_lease = 1033 [default = 5000]; // lease time of being master. (default value recommanded)
+    optional int32 lock_paxos_propose_wait_time_threshold_ms = 1034 [default = 800]; // timeout of thread blocking on Node::Propose/Node::BatchPropose.
+    optional int32 lock_paxos_log_sync = 1035 [default = 1]; // flush disk in Node::Propose/Node::BatchPropose.
+    optional int32 lock_paxos_batch_count = 1036 [default = 20]; // Node::BatchPropose process paxos protocal when blocking threads num reach store_paxos_batch_count. (default value recommanded)
+    optional int32 lock_paxos_batch_delay_time_ms = 1037 [default = 20]; // !or! blocking time reach store_paxos_batch_delay_time_ms.
+    optional int32 lock_paxos_fsync_interval = 1038; // the numer of Node::Propose/Node::BatchPropose to trigger once flush disk.
+    optional int32 lock_paxos_nr_hold_log = 1039 [default = 100000]; // paxos log hold before checkpoint.
+    optional int32 lock_paxos_oss_attr_id = 1051; // monitor config for phxpaxos::Options::poBreakpoint.
+    optional int32 lock_paxos_oss_attr_id_usetime = 1052; // monitor config for phxpaxos::Options::poBreakpoint.
+
+    // ------------------ temporary config(to delete) ------------------
+    optional int32 use_new_hash = 2000;
+}
+
+
+message QueueInfo {
+    optional int32 queue_info_id = 1; // (required, unique)
+    repeated string ranges = 2; // queue_id set. example: "ranges = 0-4 10-12". (required, unique)
+
+    optional int32 handle_by_random_uin = 22; // for serial processing on same uin.
+    optional int32 freq_limit         = 23; // useless.
+    optional int32 freq_interval      = 24; // useless.
+    optional int32 sleep_us_per_get   = 25; // sleep time after Store::Get.
+    optional int32 sleep_us_on_get_fail = 26 [default = 1000000]; // sleep time while Store::Get fail. 
+    optional int32 sleep_us_on_get_no_item = 27 [default = 200000]; // sleep time while Store::Get response without items.
+    optional int32 sleep_us_on_get_size_too_small = 28 [default = 20000]; // sleep time while Store::Get response byte size too small.
+    optional int32 get_size_too_small_threshold = 29 [default = 5]; // Store::Get response's byte size threshold to trigger sleep after Store::Get.
+
+    optional int32 drop_all           = 32; // drop all items that Store::Get return.
+
+    optional int32 delay = 41; // delay(seconds) deliver to consumer although it is ready to dequeue
+    optional int32 count = 42 [default = 1]; // process count
+}
+
+message Pub {
+    optional int32 pub_id = 1; // (required, unique)
+    repeated int32 queue_info_ids = 2; // multi queue_info_id. enqueue to next queue_info after the number of retries of current queue_info's count specify. (required)
+    repeated int32 sub_ids = 3; // multi-subscription routing. The meaning here is that the request belonging to the pub will be subscribed multi copies. (required)
+}
+
+message Sub {
+    optional int32 sub_id = 1; // (required, unique)
+
+    optional int32 use_dynamic_scale = 11 [default = 1]; // use loadbalance.
+    optional int32 skip_lock = 12 [default = 0]; // consumer do not use lock to exclusive queue
+}
+
+// skip item config. the relation of conditions(uin/pub_id/sub_id/queue_info_id/handle_id) is &.
+message SkipInfo {
+    optional uint32 uin = 1 [default = 0];
+    optional int32 pub_id = 2 [default = -1];
+    optional int32 sub_id = 3 [default = -1];
+    optional int32 queue_info_id = 4 [default = -1];
+    optional int32 handle_id = 5 [default = -1];
+}
+
+// consumer process freq config. the relation of conditions(pub_id/sub_id/handle_id/queue_info_id) is &.
+message FreqInfo {
+    optional int32 pub_id = 1;
+    optional int32 sub_id = 2;
+    optional int32 handle_id = 3 [default = -1];
+    optional int32 limit_per_min = 4;
+    optional int32 queue_info_id = 5;
+}
+
+// replay dequeue from cursor_id.
+message ReplayInfo {
+    repeated int32 sub_ids = 3;
+    repeated int32 pub_ids = 4;
+
+    optional uint64 cursor_id = 61 [default = 0xffffffffffffffff];
+    optional uint64 timestamp = 62;
+}

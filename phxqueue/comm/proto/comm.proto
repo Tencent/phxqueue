@@ -1,0 +1,146 @@
+syntax = "proto2";
+
+package phxqueue.comm.proto;
+
+message Cookie {
+    optional string key = 1;
+    optional bytes val = 2;
+}
+
+message Cookies {
+    repeated Cookie cookies = 1;
+}
+
+message Meta { // 不变量
+    optional int32 topic_id = 2;
+    optional int32 handle_id = 3;
+    optional uint64 uin    = 5;
+    optional uint64 sub_ids = 8;
+    optional int32 pub_id = 9;
+    optional uint64 hash = 11;
+    optional uint64 atime  = 51;
+    optional Cookies user_cookies = 61; // 放业务cookie/票据
+}
+
+message QItem {
+    optional bytes  buffer = 6;
+    optional int32 buffer_type  = 7;
+    optional uint64 sub_ids = 8;
+    optional int32 pub_id = 9;
+    optional uint64 atime  = 51;
+    optional uint32 count  = 54;
+
+    optional Cookies sys_cookies = 62; // 放队列参数
+
+    optional uint64 cursor_id = 101;
+
+    optional Meta meta = 201;
+}
+
+message ConsumerContext {
+    optional int32 topic_id = 1;
+    optional int32 sub_id = 2 [default = -1];
+    optional int32 store_id = 4 [default = -1];
+    optional int32 queue_id = 5 [default = -1];
+    optional uint64 prev_cursor_id = 6 [default = 0xffffffffffffffff];
+    optional uint64 next_cursor_id = 7 [default = 0xffffffffffffffff];
+}
+
+
+message Addr {
+    optional string ip = 1;
+    optional int32 port = 2;
+    optional int32 paxos_port = 3;
+}
+
+message AddRequest {
+    optional int32 topic_id = 1;
+    optional int32 store_id = 2;
+    optional int32 queue_id = 3;
+
+    repeated QItem items = 50;
+
+    optional Addr master_addr = 100;
+}
+
+message AddResponse {
+    optional uint64 cursor_id = 1;
+    optional Addr redirect_addr = 101;
+}
+
+message GetRequest {
+    optional int32 topic_id = 1;
+    optional int32 store_id = 2;
+    optional int32 queue_id = 3;
+    optional int32 limit = 5;
+    optional uint64 atime  = 6;
+    optional int32 sub_id = 7; // 如果sub_id在target_sub_ids中，那就拉取
+
+    optional uint64 prev_cursor_id = 11;
+    optional uint64 next_cursor_id = 12;
+
+    optional Addr master_addr = 100;
+}
+
+message GetResponse {
+    repeated QItem items  = 1;
+    optional uint64 prev_cursor_id = 11;
+    optional uint64 next_cursor_id = 12;
+    optional Addr redirect_addr = 101;
+}
+
+message AddrScale {
+    optional Addr addr = 1;
+    optional int32 scale = 2;
+}
+
+message LoadInfo {
+    optional int32 cpu = 1;
+}
+
+message GetAddrScaleRequest {
+    optional int32 topic_id = 1;
+    optional Addr addr = 2;
+    optional LoadInfo load_info = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message GetAddrScaleResponse {
+    repeated AddrScale addr_scales = 1;
+
+    optional Addr redirect_addr = 101;
+}
+
+message LockInfo {
+    optional string lock_key = 1;
+    optional uint64 version = 2;
+    optional string client_id = 3;
+    optional uint64 lease_time_ms = 4;
+}
+
+message AcquireLockRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional LockInfo lock_info = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message AcquireLockResponse {
+    optional Addr redirect_addr = 101;
+}
+
+message GetLockInfoRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional string lock_key = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message GetLockInfoResponse {
+    optional LockInfo lock_info = 2;
+    optional Addr redirect_addr = 101;
+}
+

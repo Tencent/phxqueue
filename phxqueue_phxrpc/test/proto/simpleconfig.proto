@@ -1,0 +1,20 @@
+syntax = "proto2";
+
+package phxqueue_phxrpc.test.proto;
+
+message Foo {
+    optional int32 f = 1;
+}
+
+message Bar {
+    optional int32 a = 1;
+    optional uint64 b = 2 [default = 100];
+    optional string c = 3 [default = "101"];
+    repeated uint32 d = 4;
+    optional Foo foo = 5;
+}
+
+message SimpleConfig {
+    optional Foo foo = 1;
+    repeated Bar bars = 2;
+}

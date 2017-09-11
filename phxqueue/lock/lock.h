@@ -1,0 +1,141 @@
+#pragma once
+
+#include "phxqueue/comm.h"
+#include "phxqueue/lock/lockoption.h"
+
+
+namespace phxpaxos {
+
+
+class Node;
+class Options;
+
+
+}
+
+
+namespace phxqueue {
+
+namespace lock {
+
+
+class LockMgr;
+
+
+class LockContext {
+  public:
+    LockContext() {}
+    virtual ~LockContext() {}
+
+    comm::RetCode result;
+};
+
+
+class Lock {
+  public:
+    Lock(const LockOption &opt);
+    virtual ~Lock();
+
+    // ------------------------ Interfaces generally used ------------------------
+
+    // Init.
+    // Usage please refer to phxqueue_phxrpc/app/lock/lock_main.cpp
+    comm::RetCode Init();
+
+
+    // Distributed lock pseudocode:
+
+    // server:
+    // rpc GetLockInfo(a_LockID) return (Version, ClientID, LiveTime)
+    //     return Version[a_LockID], ClientID[a_LockID], LiveTime[a_LockID]
+    // rpc AcquireLock(a_ClientID, a_LockID, a_Version, a_LiveTime) return (Succ)
+    //     if a_Version != Version[a_LockID]:
+    //         retrurn False
+    //     Update(CurTime)
+    //     Version[a_LockID] := a_Version + 1
+    //     ClientID[a_LockID] := a_ClientID
+    //     LiveTime[a_LockID] := a_LiveTime
+    //     OverdueTime[a_LockID] := CurTime + a_LiveTime
+    //     return True
+
+    // client:
+    // function TryLock() return (Succ)
+    //     Update(CurTime)
+    //     PeerVersion, PeerClientID, PeerLiveTime := GetLockInfo(LockID)
+    //     if Version != PeerVersion:
+    //         Version := PeerVersion
+    //         OverdueTime := CurTime + PeerLiveTime
+    //     Update(LiveTime)
+    //     if ClientID = PeerClientID || CurTime > OverdueTime:
+    //         Succ := TryLock(ClientID, LockID, Version, LiveTime)
+    //         if Succ:
+    //             return True
+    //     return False
+    
+    // Usage please refer to phxqueue_phxrpc/app/lock/lock_service_impl.cpp
+    comm::RetCode GetLockInfo(const comm::proto::GetLockInfoRequest &req,
+                              comm::proto::GetLockInfoResponse &resp);
+
+    // Usage please refer to phxqueue_phxrpc/app/lock/lock_service_impl.cpp
+    comm::RetCode AcquireLock(const comm::proto::AcquireLockRequest &req,
+                              comm::proto::AcquireLockResponse &resp);
+
+    // ------------------------ Interfaces CAN be overrided ------------------------
+
+  protected:
+
+    // Callback before the paxos processing starts, to modify phxpaxos::Options.
+    virtual void BeforeRunNode(phxpaxos::Options &opts) {}
+
+    // ------------------------ Interfaces used internally ------------------------
+
+  public:
+
+    // If returned True, store will abandon leasing master of the group specified by pxaos_group_id.
+    // You can implement your own HA strategy here.
+    virtual bool NeedDropMaster(const int paxos_group_id);
+
+    // Return phxpaxos::Node instance, to do propose.
+    phxpaxos::Node *GetNode();
+
+    // Return LockMgr instance, to process the pseudocode mentioned above. 
+    LockMgr *GetLockMgr();
+
+    // Return LockOption.
+    const LockOption *GetLockOption() const;
+
+    // Return topic id.
+    int GetTopicID();
+
+    // Return addr of this lock instance.
+    const comm::proto::Addr &GetAddr();
+
+  protected:
+
+    // Dispose.
+    comm::RetCode Dispose();
+
+    // Init phxpaxos::Node.
+    comm::RetCode PaxosInit(const std::string &mirror_dir_path);
+
+    // The first thing to do when a request arrived is to check if the current store instance is master, and if not, redirect to the master.
+    comm::RetCode CheckMaster(const int paxos_group_id, comm::proto::Addr &redirect_addr);
+
+    // Process the pseudocode of AcquireLock mentioned above. 
+    comm::RetCode PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
+                                   comm::proto::AcquireLockResponse &resp);
+
+    // Determine topic id.
+    comm::RetCode InitTopicID();
+
+    class LockImpl;
+    std::unique_ptr<LockImpl> impl_;
+};
+
+
+
+
+}  // namespace lock
+
+}  // namespace phxqueue
+

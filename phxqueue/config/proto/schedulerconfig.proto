@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+import "phxqueue/comm/proto/comm.proto";
+
+message SchedulerConfig {
+    optional Scheduler scheduler = 1;
+}
+
+message Scheduler {
+    repeated comm.proto.Addr addrs = 2;
+}
+

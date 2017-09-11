@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package phxqueue_phxrpc.scheduler;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "phxqueue/comm/proto/comm.proto";
+import "phxrpc/rpc/phxrpc.proto";
+
+service Scheduler {
+    rpc GetAddrScale(phxqueue.comm.proto.GetAddrScaleRequest) returns(phxqueue.comm.proto.GetAddrScaleResponse) {
+        option(phxrpc.CmdID) = 1;
+    }
+}
+

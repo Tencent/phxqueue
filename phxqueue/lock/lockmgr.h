@@ -1,0 +1,75 @@
+#pragma once
+
+#include "phxpaxos/sm.h"
+
+#include "phxqueue/comm.h"
+#include "phxqueue/lock/lockoption.h"
+#include "phxqueue/lock/lockdb.h"
+
+
+namespace phxqueue {
+
+namespace lock {
+
+
+class LockMgr;
+
+class GroupData {
+  public:
+    LockDb map;
+    LockDb leveldb;
+    uint64_t last_instance_id() { return last_instance_id_; }
+    uint64_t checkpoint() { return checkpoint_; }
+
+  private:
+    friend class LockMgr;
+
+    void set_last_instance_id(const uint64_t instance_id) { last_instance_id_ = instance_id; }
+    void set_checkpoint(const uint64_t checkpoint) { checkpoint_ = checkpoint; }
+
+    uint64_t last_instance_id_{phxpaxos::NoCheckpoint};
+    uint64_t checkpoint_{phxpaxos::NoCheckpoint};
+};
+
+typedef std::vector<GroupData> GroupVector;
+
+
+class LockMgr {
+  public:
+    LockMgr(Lock *const lock);
+    virtual ~LockMgr();
+
+    comm::RetCode Init(const std::string &mirror_dir_path);
+    comm::RetCode Dispose();
+
+    comm::RetCode ReadCheckpoint(const GroupVector::size_type paxos_group_id,
+                                 uint64_t &checkpoint);
+    comm::RetCode WriteCheckpoint(const GroupVector::size_type paxos_group_id,
+                                  const uint64_t checkpoint);
+
+    comm::RetCode ReadRestartCheckpoint(const GroupVector::size_type paxos_group_id,
+                                        uint64_t &restart_checkpoint);
+    comm::RetCode WriteRestartCheckpoint(const GroupVector::size_type paxos_group_id,
+                                         const uint64_t checkpoint);
+
+    LockDb &leveldb(const GroupVector::size_type paxos_group_id);
+    const LockDb &leveldb(const GroupVector::size_type paxos_group_id) const;
+
+    LockDb &map(const GroupVector::size_type paxos_group_id);
+    const LockDb &map(const GroupVector::size_type paxos_group_id) const;
+
+    void set_last_instance_id(const GroupVector::size_type paxos_group_id,
+                              const uint64_t instance_id);
+    uint64_t last_instance_id(const GroupVector::size_type paxos_group_id) const;
+    uint64_t checkpoint(const GroupVector::size_type paxos_group_id) const;
+
+  private:
+    class LockMgrImpl;
+    std::unique_ptr<LockMgrImpl> impl_;
+};
+
+
+}  // namespace lock
+
+}  // namespace phxqueue
+

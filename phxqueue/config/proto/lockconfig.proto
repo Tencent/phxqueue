@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+import "phxqueue/comm/proto/comm.proto";
+
+message LockConfig {
+    repeated Lock locks = 1;
+}
+
+message Lock {
+    optional int32 lock_id = 1;
+    repeated comm.proto.Addr addrs = 2;
+    optional int32 scale = 3;
+}
+

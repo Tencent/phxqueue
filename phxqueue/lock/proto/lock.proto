@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package phxqueue.lock.proto;
+import "phxqueue/comm/proto/comm.proto";
+
+
+message LockPaxosArgs {
+    optional comm.proto.AcquireLockRequest acquire_lock_req = 1;
+    optional comm.proto.Addr master_addr = 102;
+}
+
+message LocalLockInfo {
+    optional uint64 version = 1;
+    optional string client_id = 2;
+    optional uint64 lease_time_ms = 3;
+    optional uint64 expire_time_ms = 4;
+}
+
+message LockKeyInfo {
+    optional uint64 version = 1;
+    optional string lock_key = 2;
+}
+

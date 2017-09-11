@@ -1,0 +1,24 @@
+syntax = "proto2";
+
+package phxqueue_phxrpc.consumer.proto;
+
+message ConsumerServerConfig {
+    optional Consumer consumer = 1;
+    optional Log log = 2;
+}
+
+message Consumer {
+    optional string ip = 1;
+    optional int32 port = 2;
+    optional string topic = 3;
+    optional int32 nproc = 4;
+    optional string proc_pid_path = 5;
+    optional string lock_path_base = 6;
+    optional string phxqueue_global_config_path = 7;
+    optional int32 shm_key_base = 8;
+}
+
+message Log {
+    optional string path = 1;
+    optional int32 level = 2;
+}
