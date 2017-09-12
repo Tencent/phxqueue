@@ -24,6 +24,14 @@ PhxQueue is a high-availability, high-throughput and highly reliable distributed
 
 *	A group of Store or Lock deploy on multiple region is supported
 
+## Auto Build
+
+```sh
+git clone https://github.com/Tencent/phxqueue
+cd phxqueue/
+bash build.sh
+```
+
 ## Build from Source
 
 ### Download PhxQueue source
