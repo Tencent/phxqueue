@@ -41,6 +41,20 @@ class MeanVector {
     }
     MeanVector(const MeanVector &) = delete;
     MeanVector &operator=(const MeanVector &) = delete;
+    MeanVector(MeanVector &&m) {
+        if (this != &m) {
+            std::lock_guard<std::mutex> guard(mutex_);
+            cursor_ = m.cursor_;
+            vector_ = std::move(m.vector_);
+        }
+    }
+    MeanVector &operator=(MeanVector &&m) {
+        if (this != &m) {
+            std::lock_guard<std::mutex> guard(mutex_);
+            cursor_ = m.cursor_;
+            vector_ = std::move(m.vector_);
+        }
+    }
 
     virtual ~MeanVector() = default;
 
@@ -99,14 +113,14 @@ class MeanVector {
 
 class ConsumerInfo {
   public:
-    ConsumerInfo() : loads(6) {}
+    ConsumerInfo() : loads(6), last_active_time_(new std::atomic<uint64_t>(0)) {}
     ConsumerInfo(const ConsumerInfo &) = delete;
-    ConsumerInfo(ConsumerInfo &&) = default;
+    ConsumerInfo &operator=(const ConsumerInfo &) = delete;
 
     virtual ~ConsumerInfo() = default;
 
-    ConsumerInfo &operator=(const ConsumerInfo &) = delete;
-    ConsumerInfo &operator=(ConsumerInfo &&) = default;
+    ConsumerInfo(ConsumerInfo &&c) = default;
+    ConsumerInfo &operator=(ConsumerInfo &&c) = default;
 
     void Reset() {
         weight = 0;
@@ -115,11 +129,11 @@ class ConsumerInfo {
     }
 
     void set_last_active_time(const uint64_t time) {
-        return last_active_time_.store(time);
+        return last_active_time_->store(time);
     }
 
     uint64_t last_active_time() {
-        return last_active_time_.load();
+        return last_active_time_->load();
     }
 
     int weight{0};
@@ -132,7 +146,7 @@ class ConsumerInfo {
 
   private:
     // update by GetAddrScale()
-    std::atomic<uint64_t> last_active_time_{0};
+    std::unique_ptr<std::atomic<uint64_t>> last_active_time_;
 };
 
 
