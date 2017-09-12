@@ -3,6 +3,10 @@ bin/
 lib/
 build/
 
+# Protocol Buffers
+*.pb.cc
+*.pb.h
+
 # Prerequisites
 *.d
 
