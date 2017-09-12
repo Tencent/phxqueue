@@ -4,7 +4,7 @@
 
 PhxQueue is a high-availability, high-throughput and highly reliable distributed queue based on the Paxos protocol. It guarantees At-Least-Once Delivery. It is widely used in WeChat for WeChat Pay, WeChat Media Platform, and many other important business.
 
-Authors: Junjie Liang, Tao He, Haochuan Cui
+Authors: Junjie Liang, Tao He, Haochuan Cui and Sifan Liu
 
 Contact us: phxteam@tencent.com
 
