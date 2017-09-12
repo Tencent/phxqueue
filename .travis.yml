@@ -1,0 +1,12 @@
+sudo: required
+dist: trusty
+
+language: cpp
+compiler: g++
+git:
+    submodules: false
+script:
+    - bash build.sh
+notifications:
+    email: true
+
