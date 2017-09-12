@@ -50,7 +50,7 @@ IGNORE := $(foreach lib,$(LIB_TARGETS),$(call LIB_GEN,$(lib)))
 IGNORE := $(foreach bin,$(BIN_TARGETS),$(call BIN_GEN,$(bin)))
 
 
-all: pb $(LIB_TARGETS) $(SUB_MAKE_LIB_TARGETS) install_lib $(BIN_TARGETS) $(SUB_MAKE_BIN_TARGETS)  install_bin
+all: pb $(LIB_TARGETS) $(SUB_MAKE_LIB_TARGETS) install_lib $(BIN_TARGETS) $(SUB_MAKE_BIN_TARGETS)  install_bin build_dir
 
 pb: $(PROTO_SRCS)
 	$(foreach sub_make,$(SUB_MAKE_LIB_TARGETS),make -C $(dir $(sub_make)) pb;)
@@ -75,6 +75,26 @@ install_bin:
 	mkdir -p bin
 	cp $(BIN_TARGETS) bin/
 	cp $(SUB_MAKE_BIN_TARGETS) bin/
+
+build_dir:
+	mkdir -p data/lock.0
+	mkdir -p data/lock.1
+	mkdir -p data/lock.2
+	mkdir -p data/store.0
+	mkdir -p data/store.1
+	mkdir -p data/store.2
+	mkdir -p log/lock.0
+	mkdir -p log/lock.1
+	mkdir -p log/lock.2
+	mkdir -p log/store.0
+	mkdir -p log/store.1
+	mkdir -p log/store.2
+	mkdir -p log/consumer.0
+	mkdir -p log/consumer.1
+	mkdir -p log/consumer.2
+	mkdir -p log/scheduler.0
+	mkdir -p log/scheduler.1
+	mkdir -p log/scheduler.2
 
 
 clean:
