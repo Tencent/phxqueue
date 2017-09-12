@@ -8,3 +8,4 @@ git submodule update --init --recursive
 (cd third_party && bash ./autoinstall.sh)
 
 make
+
