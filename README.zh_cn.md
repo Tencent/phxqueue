@@ -26,7 +26,15 @@ PhxQueue是微信开源的一款基于Paxos协议实现的高可用、高吞吐�
 
 * 消费者自动容灾/负载均衡
 
-## 从源码安装
+## 自动构建
+
+```sh
+git clone https://github.com/Tencent/phxqueue
+cd phxqueue/
+bash build.sh
+```
+
+## 手动编译
 
 ### 下载源代码
 

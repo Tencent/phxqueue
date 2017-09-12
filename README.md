@@ -34,7 +34,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-## Build from Source
+## Manually Compile
 
 ### Download PhxQueue source
 
@@ -71,7 +71,7 @@ Download the [phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/maste
 
 	Git clone [libco](https://github.com/Tencent/libco) to `$PHXQUEUE_DIR/third_party/colib/`.
 
-### Build PhxQueue
+### Compile PhxQueue
 
 ```sh
 cd $PHXQUEUE_DIR/
