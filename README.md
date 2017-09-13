@@ -38,7 +38,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-All modules are built. now let's [start a simple PhxQueue](#Start a simple PhxQueue).
+All modules are built. now let's [Start a Simple PhxQueue](#start-a-simple-phxqueue).
 
 ## Manually Build
 
@@ -100,7 +100,7 @@ phxqueue/ ................. The PhxQueue root directory
 
 the output files are located in `bin/` and `lib/`, while the sample configure files are located in `etc/`.
 
-## Start a simple PhxQueue
+## Start a Simple PhxQueue
 
 The built PhxQueue is ready to run simple demos.
 
