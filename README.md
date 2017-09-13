@@ -38,7 +38,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-All modules are built. now let's [Start a Simple PhxQueue](#start-a-simple-phxqueue).
+All modules have been built. Let's [Start a Simple PhxQueue](#start-a-simple-phxqueue) now.
 
 ## Manually Build
 
