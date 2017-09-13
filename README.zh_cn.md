@@ -38,7 +38,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-所有模块构建完成，现在可以[启动一个简单的PhxQueue](#start-a-simple-phxqueue)了。
+所有模块构建完成，现在可以[启动一个简单的PhxQueue](#启动一个简单的phxqueue)了。
 
 ## 手动构建
 
