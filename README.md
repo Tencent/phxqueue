@@ -38,7 +38,9 @@ cd phxqueue/
 bash build.sh
 ```
 
-## Manually Compile
+All modules are built. now let's [start a simple PhxQueue](#Start a simple PhxQueue).
+
+## Manually Build
 
 ### Download PhxQueue source
 

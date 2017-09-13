@@ -38,7 +38,9 @@ cd phxqueue/
 bash build.sh
 ```
 
-## 手动编译
+所有模块构建完成，现在可以[启动一个简单的PhxQueue](#启动一个简单的PhxQueue)了。
+
+## 手动构建
 
 ### 下载源代码
 
