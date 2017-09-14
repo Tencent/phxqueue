@@ -261,7 +261,7 @@ comm::RetCode Store::PaxosInit() {
     opts.oMyNode.SetIPPort(impl_->opt.ip, impl_->opt.paxos_port);
     opts.bUseMembership = false;
     opts.sLogStoragePath = nodedb_dir_path;
-    opts.pLogFunc = comm::LogFuncForPhxPaxos;
+    //opts.pLogFunc = comm::LogFuncForPhxPaxos;
 
     opts.bUseCheckpointReplayer = false;
     opts.iSyncInterval = topic_config->GetProto().topic().store_paxos_fsync_interval();
