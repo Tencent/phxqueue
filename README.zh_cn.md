@@ -127,6 +127,12 @@ tail -f log/store.1/store_main.INFO
 tail -f log/store.2/store_main.INFO
 ```
 
+注意: 正常运行需要启动至少2个Store节点，否则会出现如下错误日志：
+
+```
+MASTERSTAT: ERR: Propose err. paxos_ret 404 ...
+```
+
 ### 启动Consumer
 
 启动3个Consumer节点：

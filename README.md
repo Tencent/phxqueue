@@ -128,6 +128,12 @@ tail -f log/store.1/store_main.INFO
 tail -f log/store.2/store_main.INFO
 ```
 
+NOTICE: To run properly, at least 2 Store nodes need to be started, otherwise error log will occur below:
+
+```
+MASTERSTAT: ERR: Propose err. paxos_ret 404 ...
+```
+
 ### Starting the Consumer nodes
 
 Start 3 Consumer nodes:
