@@ -191,10 +191,12 @@ comm::RetCode Consumer::MakeHandleBuckets() {
 
     int nbucket_used{0};
     map<uint64_t, int> uin2bucket_idx;
-    int max_sz = -1, min_sz = -1;
+    int max_sz = -1;
+    int max_handle_id = -1;
     uint64_t max_key = -1;
     for (int i{0}; i < impl_->items.size(); ++i) {
         auto key = impl_->items[i]->meta().uin();
+        auto handle_id = impl_->items[i]->meta().handle_id();
 
         int bucket_idx = -1;
         bool update_uin2bucket_idx = false;
@@ -216,15 +218,15 @@ comm::RetCode Consumer::MakeHandleBuckets() {
         if (update_uin2bucket_idx) uin2bucket_idx[key] = bucket_idx;
 
         impl_->handle_buckets[bucket_idx].push(i);
-        auto sz = impl_->handle_buckets[i].size();
-        if (-1 == min_sz || sz < min_sz) min_sz = sz;
+        auto sz = impl_->handle_buckets[bucket_idx].size();
         if (-1 == max_sz || sz > max_sz) {
             max_sz = sz;
+            max_handle_id = handle_id;
             max_key = key;
         }
     }
 
-    QLInfo("nbucket_used %zu min_sz %d max_sz %d max_key %" PRIu64, nbucket_used, min_sz, max_sz, max_key);
+    QLInfo("nbucket_used %zu max_sz %d max_handle_id %d max_key %" PRIu64, nbucket_used, max_sz, max_handle_id, max_key);
 
     return comm::RetCode::RET_OK;
 }
