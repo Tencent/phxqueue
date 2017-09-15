@@ -38,7 +38,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-Now that all modules are built, you can continue to [PhxQueue Quickstart](#start-a-simple-phxqueue).
+Now that all modules are built, you can continue to [PhxQueue Quickstart](#phxqueue-quickstart).
 
 ## Building manually
 
@@ -106,7 +106,7 @@ The built PhxQueue is ready to run simple demos.
 
 ### Preparing the setup
 
-PhxQueue can be run using multiple configuration files at the same time. 
+PhxQueue accesses multiple files at the same time. 
 Make sure to set high enough (> 4000) open file limit with `ulimit -Sn` or `ulimit -n`.
 
 ### Starting the Store nodes
@@ -192,7 +192,7 @@ INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_curso
 
 While testing PhxQueue, a lot of logs and data is generated. Run `log/clear_log.sh` to clear logs and `data/clear_data.sh` to delete data.
 Make sure that you are running these commands against stores that does not hold any important data. 
-Comands listed here will result in permanent data loss.
+Commands listed here will result in permanent data loss.
 
 ## Deploy distributed PhxQueue
 
