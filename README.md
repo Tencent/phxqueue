@@ -38,7 +38,7 @@ cd phxqueue/
 bash build.sh
 ```
 
-Now that all modules are built, you can continue to [PhxQueue Quickstart](#phxqueue-quickstart).
+Now that all modules are built, you can continue to [quickstart](#quickstart).
 
 ## Building manually
 
@@ -100,7 +100,7 @@ phxqueue/ ................. The PhxQueue root directory
 
 the output files are located in `bin/` and `lib/`, while the sample configure files are located in `etc/`.
 
-## PhxQueue quickstart
+## Quickstart
 
 The built PhxQueue is ready to run simple demos.
 
@@ -199,6 +199,10 @@ INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_curso
 While testing PhxQueue, a lot of logs and data is generated. Run `log/clear_log.sh` to clear logs and `data/clear_data.sh` to delete data.
 Make sure that you are running these commands against PhxQueue that does not hold any important data. 
 Commands listed here will result in permanent data loss.
+
+## Quickstart with Docker
+
+[Quickstart with Docker](https://github.com/Tencent/phxqueue/wiki/Quickstart-with-Docker)
 
 ## Deploy distributed PhxQueue
 
