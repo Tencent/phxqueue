@@ -188,16 +188,22 @@ comm::RetCode Consumer::MakeHandleBuckets() {
         return ret;
     }
 
+
     int nbucket_used{0};
     map<uint64_t, int> uin2bucket_idx;
+    int max_sz = -1, min_sz = -1;
+    uint64_t max_key = -1;
     for (int i{0}; i < impl_->items.size(); ++i) {
         auto key = impl_->items[i]->meta().uin();
 
         int bucket_idx = -1;
+        bool update_uin2bucket_idx = false;
         if (key && !queue_info->handle_by_random_uin()) {
             auto &&it = uin2bucket_idx.find(key);
             if (uin2bucket_idx.end() != it) {
                 bucket_idx = it->second;
+            } else {
+                update_uin2bucket_idx = true;
             }
         }
         if (-1 == bucket_idx) {
@@ -207,19 +213,18 @@ comm::RetCode Consumer::MakeHandleBuckets() {
                 bucket_idx = nbucket_used++;
             }
         }
+        if (update_uin2bucket_idx) uin2bucket_idx[key] = bucket_idx;
 
         impl_->handle_buckets[bucket_idx].push(i);
+        auto sz = impl_->handle_buckets[i].size();
+        if (-1 == min_sz || sz < min_sz) min_sz = sz;
+        if (-1 == max_sz || sz > max_sz) {
+            max_sz = sz;
+            max_key = key;
+        }
     }
 
-    {
-        int min_sz{-1}, max_sz{-1};
-        for (int i{0}; i < nbucket_used; ++i) {
-            auto sz = impl_->handle_buckets[i].size();
-            if (-1 == min_sz || sz < min_sz) min_sz = sz;
-            if (-1 == max_sz || sz > max_sz) max_sz = sz;
-        }
-        QLInfo("nbucket_used %zu min_sz %d max_sz %d", nbucket_used, min_sz, max_sz);
-    }
+    QLInfo("nbucket_used %zu min_sz %d max_sz %d max_key %" PRIu64, nbucket_used, min_sz, max_sz, max_key);
 
     return comm::RetCode::RET_OK;
 }
