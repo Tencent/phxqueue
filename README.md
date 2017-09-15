@@ -14,7 +14,7 @@ Contact us: phxteam@tencent.com
 
 *	Guaranteed delivery with strict real-time reconciliation
 
-*	Batch enqueue
+*	Server-side batch enqueue
 
 *	Strictly ordered dequeue
 
@@ -162,7 +162,7 @@ You will get the output from test Producer:
 produce echo succeeded!
 ```
 
-Now let's see the output of Consumer (only 1 of 3 consumers):
+Now let's see the output of Consumer (only 1 of 3 Consumer nodes):
 
 ```sh
 consume echo succeeed! ...
@@ -191,7 +191,7 @@ INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_curso
 ### Clearing data and logs created during testing
 
 While testing PhxQueue, a lot of logs and data is generated. Run `log/clear_log.sh` to clear logs and `data/clear_data.sh` to delete data.
-Make sure that you are running these commands against stores that does not hold any important data. 
+Make sure that you are running these commands against PhxQueue that does not hold any important data. 
 Commands listed here will result in permanent data loss.
 
 ## Deploy distributed PhxQueue
