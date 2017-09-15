@@ -2,7 +2,7 @@
 
 [简体中文README](README.zh_cn.md)
 
-PhxQueue is a high-availability, high-throughput and highly reliable distributed queue based on the Paxos protocol. It guarantees At-Least-Once Delivery. It is widely used in WeChat for WeChat Pay, WeChat Media Platform, and many other important business.
+PhxQueue is a high-availability, high-throughput and highly reliable distributed queue based on the Paxos protocol. It guarantees At-Least-Once Delivery. It is widely used in WeChat for WeChat Pay, WeChat Media Platform, and many other important businesses.
 
 Authors: Junjie Liang, Tao He, Haochuan Cui, Qing Huang and Jiatao Xu
 
@@ -12,25 +12,25 @@ Contact us: phxteam@tencent.com
 
 ## Features
 
-*	Absolutely No data lose and strictly reconciliation mechanism
+*	Guaranteed delivery with strict real-time reconciliation
 
-*	Server batch enqueue
+*	Batch enqueue
 
-*	Dequeue in order strictly
+*	Strictly ordered dequeue
 
-*	Multiple Subscribers
+*	Multiple subscribers
 
-*	Dequeue speed limit
+*	Dequeue speed limits
 
-*	Dequeue replay
+*	Dequeue replays
 
-*	Consumer loadbalance
+*	Consumer load balancing
 
-*	All module are scalable
+*	All modules are scalable
 
-*	A group of Store or Lock deploy on multiple region is supported
+*	Multi-region deployment for Store or Lock nodes
 
-## Auto Build
+## Building automatically
 
 ```sh
 git clone https://github.com/Tencent/phxqueue
@@ -38,17 +38,17 @@ cd phxqueue/
 bash build.sh
 ```
 
-All modules have been built. Let's [Start a Simple PhxQueue](#start-a-simple-phxqueue) now.
+Now that all modules are built, you can continue to [PhxQueue Quickstart](#start-a-simple-phxqueue).
 
-## Manually Build
+## Building manually
 
 ### Download PhxQueue source
 
 Download the [phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/master) and un-tar it to `$PHXQUEUE_DIR`.
 
-### Install Dependence
+### Install dependencies
 
-*	Prepare the `$DEP_PREFIX` diectory for dependence installation. For example:
+*	Prepare the `$DEP_PREFIX` diectory for dependency installation:
 
 	```sh
 	export $DEP_PREFIX='/usr/local'
@@ -56,7 +56,7 @@ Download the [phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/maste
 
 *	Protocol Buffers and glog
 
-	Build [Protocol Buffers](https://github.com/google/protobuf/releases) and [glog](https://github.com/google/glog/releases) with `./configure CXXFLAGS=-fPIC --prefix=$DEP_PREFIX`. Then make some links:
+	Build [Protocol Buffers](https://github.com/google/protobuf/releases) and [glog](https://github.com/google/glog/releases) with `./configure CXXFLAGS=-fPIC --prefix=$DEP_PREFIX`. Then create symlinks:
 
 	```sh
 	rm -r $PHXQUEUE_DIR/third_party/protobuf/
@@ -84,15 +84,15 @@ cd $PHXQUEUE_DIR/
 make
 ```
 
-## The PhxQueue Distribution
+## PhxQueue distribution
 
 PhxQueue is structured like this:
 
 ```
 phxqueue/ ................. The PhxQueue root directory
-├── bin/ .................. Generated Binary files
-├── etc/ .................. Example Configure files
-├── lib/ .................. Generated Library files
+├── bin/ .................. Generated binary files
+├── etc/ .................. Example configuration files
+├── lib/ .................. Generated library files
 ├── phxqueue/ ............. PhxQueue source files
 ├── phxqueue_phxrpc/ ...... PhxQueue with PhxRPC implementation
 └── ...
@@ -100,17 +100,18 @@ phxqueue/ ................. The PhxQueue root directory
 
 the output files are located in `bin/` and `lib/`, while the sample configure files are located in `etc/`.
 
-## Start a Simple PhxQueue
+## PhxQueue quickstart
 
 The built PhxQueue is ready to run simple demos.
 
-### Preparation
+### Preparing the setup
 
-PhxQueue open multiple files on the same time. Make sure to set enough (> 4000) open files limit with `ulimit -Sn` or `ulimit -n`.
+PhxQueue can be run using multiple configuration files at the same time. 
+Make sure to set high enough (> 4000) open file limit with `ulimit -Sn` or `ulimit -n`.
 
-### Start Store
+### Starting the Store nodes
 
-Now Start 3 Store node (add `-d` if run as daemon):
+Start 3 Store nodes (add `-d` if run as daemon) as shown bellow:
 
 ```sh
 bin/store_main -c etc/store_server.0.conf
@@ -118,7 +119,7 @@ bin/store_main -c etc/store_server.1.conf
 bin/store_main -c etc/store_server.2.conf
 ```
 
-You can find informations and errors in log files:
+You can follow the status of the nodes and check for any errors in these log files as shown bellow:
 
 ```sh
 ps -ef | grep store_main
@@ -127,9 +128,9 @@ tail -f log/store.1/store_main.INFO
 tail -f log/store.2/store_main.INFO
 ```
 
-### Start Consumer
+### Starting the Consumer nodes
 
-Now Start 3 Consumer node:
+Start 3 Consumer nodes:
 
 ```sh
 bin/consumer_main -c etc/consumer_server.0.conf
@@ -137,7 +138,7 @@ bin/consumer_main -c etc/consumer_server.1.conf
 bin/consumer_main -c etc/consumer_server.2.conf
 ```
 
-You can find informations and errors in log files:
+You can follow the status of the nodes and check for any errors in these log files as shown bellow:
 
 ```sh
 ps -ef | grep consumer_main
@@ -146,9 +147,10 @@ tail -f log/consumer.1/consumer_main.INFO
 tail -f log/consumer.2/consumer_main.INFO
 ```
 
-### Send Single Test Requests
+### Sending test requests
 
-Now the deploy of simple PhxQueue is finished! Use the benchmark tool to send some test request:
+Now that both Store and Consumer nodes have been deployed, you can use the benchmark tool 
+to send some test requests:
 
 ```sh
 bin/test_producer_echo_main
@@ -166,13 +168,13 @@ Now let's see the output of Consumer (only 1 of 3 consumers):
 consume echo succeeed! ...
 ```
 
-### Run Benchmark
+### Running benchmarks
 
 ```sh
 bin/producer_benchmark_main 10 5 5 10
 ```
 
-Watch the Consumer log files again:
+Watch the Consumer log files:
 
 ```sh
 tail -f log/consumer.0/consumer_main.INFO
@@ -180,19 +182,22 @@ tail -f log/consumer.1/consumer_main.INFO
 tail -f log/consumer.2/consumer_main.INFO
 ```
 
-Now you can see the Consumer dequeue log like this:
+This is an example of the output you can expect from the Consumer log:
 
 ```
 INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_cursor_id 9106 next_cursor_id 9109
 ```
 
-### Clear Test Logs or Data
+### Clearing data and logs created during testing
 
-While running PhxQueue, losts of logs and data are generated. Run `log/clear_log.sh` to clear logs. Run `data/clear_data.sh` to delete data. Please make sure the data is useless before delete.
+While testing PhxQueue, a lot of logs and data is generated. Run `log/clear_log.sh` to clear logs and `data/clear_data.sh` to delete data.
+Make sure that you are running these commands against stores that does not hold any important data. 
+Comands listed here will result in permanent data loss.
 
-## Deploy Distributed PhxQueue
+## Deploy distributed PhxQueue
 
-Normally, each node should be deployed on one machine. Change the `etc/*.conf` for each node.
+Normally, each node should be deployed on separate machine. You need to configure `etc/*.conf`
+configuration files for each node.
 
 Files located in directory `etc/`:
 
@@ -205,13 +210,13 @@ schedulerconfig.conf ..............Scheduler config
 lockconfig.conf ...................Lock config
 ```
 
-Deloy and modify these files on all target machine.
+Deloy and modify these files on all target machines.
 
-### Deploy Store
+### Deploying Store nodes
 
-Store is the storage module for queue, using the Paxos protocol for replica synchronization.
+Store is the storage module for queues, using the Paxos protocol for replica synchronization.
 
-Deploy these config to 3 Store node and start:
+Deploy these configs to 3 Store nodes and start each node:
 
 ```sh
 bin/store_main -c etc/store_server.0.conf -d
@@ -219,11 +224,11 @@ bin/store_main -c etc/store_server.1.conf -d
 bin/store_main -c etc/store_server.2.conf -d
 ```
 
-### Deploy Consumer
+### Deploying Consumer nodes
 
-Consumer pull and consume data from Store.
+Consumer pulls and consumes data from Store.
 
-Deploy these config to 3 Consumer node and start:
+Deploy these configs to 3 Consumer nodes and start each node:
 
 ```sh
 bin/consumer_main -c etc/consumer_server.0.conf -d
@@ -231,13 +236,13 @@ bin/consumer_main -c etc/consumer_server.1.conf -d
 bin/consumer_main -c etc/consumer_server.2.conf -d
 ```
 
-### Deploy Lock (Optional)
+### Deploying Lock nodes (Optional)
 
 Lock is a distributed lock module. You can deploy Lock independently, providing a common distributed lock service.
 
-Set `skip_lock = 1` in `topicconfig.conf` if not use Lock.
+Set `skip_lock = 1` in `topicconfig.conf` to disable distributed Lock.
 
-Deploy these config to 3 Lock node and start:
+Deploy these configs to 3 Lock nodes and start each node:
 
 ```sh
 bin/lock_main -c etc/lock_server.0.conf -d
@@ -245,15 +250,15 @@ bin/lock_main -c etc/lock_server.1.conf -d
 bin/lock_main -c etc/lock_server.2.conf -d
 ```
 
-### Deploy Scheduler (Optional)
+### Deploying Scheduler nodes (Optional)
 
-Scheduler gathers global load information from Consumer for disaster tolerance and load balancing. If no Scheduler is deployed, Consumer will be assigned according to the configuration weight.
+Scheduler gathers global load information from Consumer for disaster recovery and load balancing. If no Scheduler is deployed, Consumer will be assigned according to weight configured.
 
-If you need to deploy Scheduler, deploy Lock first.
+If you want to deploy Scheduler, you will need to deploy Lock first.
 
-Set `use_dynamic_scale = 0` in `topicconfig.conf` if not use Scheduler.
+Set `use_dynamic_scale = 0` in `topicconfig.conf` to disable Scheduler.
 
-Deploy these config to 3 Scheduler node and start:
+Deploy these configs to 3 Scheduler nodes and start each node:
 
 ```sh
 bin/scheduler_main -c etc/scheduler_server.0.conf -d
@@ -261,9 +266,10 @@ bin/scheduler_main -c etc/scheduler_server.1.conf -d
 bin/scheduler_main -c etc/scheduler_server.2.conf -d
 ```
 
-### View Logs
+### Viewing logs
 
-You can find informations and errors in log files. For example, the number 0 Store node:
+For each node, there is a log file where you can trace current node status
+and errors. For example, you can access log file for Store node with ID 0 like shown bellow:
 
 ```sh
 tail -f log/store.0/store_main.INFO
