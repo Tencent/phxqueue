@@ -211,16 +211,18 @@ void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id
             Queue_t *queue{&impl_->buf->queues[vpid]};
 
             if (LOCK_ITEM_MAGIC == queue->magic && sub_id == queue->sub_id) {
-                idx = 0;
-                for (; idx < pending_queues.size(); ++idx) {
-                    if (done[idx]) continue;
+                for (idx = 0; idx < pending_queues.size(); ++idx) {
                     auto &&pending_queue = pending_queues[idx];
                     if (queue->sub_id == pending_queue.sub_id &&
                         queue->store_id == pending_queue.store_id &&
                         queue->queue_id == pending_queue.queue_id) {
-                        done[idx] = true;
 
-                        QLInfo("QUEUEINFO: vpid %d keep sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+                        if (!done[idx]) {
+                            done[idx] = true;
+                            QLInfo("QUEUEINFO: vpid %d keep sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+                        } else {
+                            memset(queue, 0, sizeof(Queue_t));
+                        }
 
                         break;
                     }
@@ -256,6 +258,14 @@ void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id
             }
         }
     }
+
+    for (int vpid{0}; vpid < impl_->nproc; ++vpid) {
+	    Queue_t *queue{&impl_->buf->queues[vpid]};
+	    if (LOCK_ITEM_MAGIC == queue->magic) {
+		    QLInfo("QUEUEINFO: vpid %d match sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+	    }
+    }
+
 
     impl_->buf->magic = LOCK_BUF_MAGIC;
 

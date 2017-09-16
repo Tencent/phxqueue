@@ -87,6 +87,7 @@ int main(int argc, char ** argv) {
     opt.lock_path_base = config.GetProto().consumer().lock_path_base();
     opt.use_store_master_client_on_get = 1;
     opt.use_store_master_client_on_add = 1;
+    opt.shm_key_base = config.GetProto().consumer().shm_key_base();
 
 
     string phxqueue_global_config_path(config.GetProto().consumer().phxqueue_global_config_path());
