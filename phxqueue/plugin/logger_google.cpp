@@ -62,7 +62,7 @@ int LoggerGoogle::GetLogger(const string &module_name, const string &log_path,
 
 
 void LoggerGoogle::Log(const int log_level, const char *format, va_list args) {
-    char buf[1024]{0};
+    char buf[1024] = {0};
     vsnprintf(buf, sizeof(buf), format, args);
 
     int google_log_level{LogLevel2GoogleLogLevel(static_cast<comm::LogLevel>(log_level))};

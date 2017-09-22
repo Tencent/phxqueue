@@ -66,6 +66,8 @@ class Logger {
 
     void SetLogFunc(LogFunc log_func);
 
+    void Log(const int log_level, const char *format, va_list args);
+
   private:
     class LoggerImpl;
     std::unique_ptr<LoggerImpl> impl_;

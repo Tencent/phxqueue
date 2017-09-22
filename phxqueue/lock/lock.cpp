@@ -372,7 +372,7 @@ comm::RetCode Lock::PaxosInit(const string &mirror_dir_path) {
     opts.oMyNode.SetIPPort(impl_->opt.ip, impl_->opt.paxos_port);
     opts.bUseMembership = false;
     opts.sLogStoragePath = nodedb_dir_path;
-    //opts.pLogFunc = comm::LogFuncForPhxPaxos;
+    opts.pLogFunc = comm::LogFuncForPhxPaxos;
 
     opts.bUseCheckpointReplayer = true;
     opts.iSyncInterval = topic_config->GetProto().topic().lock_paxos_fsync_interval();

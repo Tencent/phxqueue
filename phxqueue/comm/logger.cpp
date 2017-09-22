@@ -16,6 +16,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <iostream>
 #include <mutex>
 #include <string>
+#include <cstring>
 
 
 using namespace std;
@@ -111,6 +112,11 @@ void Logger::SetLogFunc(LogFunc log_func) {
     impl_->log_func = log_func;
 }
 
+void Logger::Log(const int log_level, const char *format, va_list args) {
+	if (impl_->log_func != nullptr) {
+		impl_->log_func(log_level, format, args);
+	}
+}
 
 enum PhxPaxosLogLevel {
     PhxPaxosLogLevel_None = 0,
@@ -121,27 +127,34 @@ enum PhxPaxosLogLevel {
 };
 
 void LogFuncForPhxPaxos(const int log_level, const char *format, va_list args) {
+    auto phxqueue_log_level = LogLevel::None;
     switch (log_level) {
         case PhxPaxosLogLevel::PhxPaxosLogLevel_None:
-            phxqueue::comm::Logger::GetInstance()->LogError(format, args);
+            phxqueue_log_level = LogLevel::Error;
             break;
         case PhxPaxosLogLevel::PhxPaxosLogLevel_Error:
-            phxqueue::comm::Logger::GetInstance()->LogError(format, args);
+            phxqueue_log_level = LogLevel::Error;
             break;
         case PhxPaxosLogLevel::PhxPaxosLogLevel_Warning:
-            phxqueue::comm::Logger::GetInstance()->LogVerbose(format, args);
+            phxqueue_log_level = LogLevel::Verbose;
             break;
         case PhxPaxosLogLevel::PhxPaxosLogLevel_Info:
-            phxqueue::comm::Logger::GetInstance()->LogVerbose(format, args);
+            phxqueue_log_level = LogLevel::Verbose;
             break;
         case PhxPaxosLogLevel::PhxPaxosLogLevel_Verbose:
-            phxqueue::comm::Logger::GetInstance()->LogVerbose(format, args);
+            phxqueue_log_level = LogLevel::Verbose;
             break;
+    }
+
+    if (phxqueue_log_level != LogLevel::None) {
+        if (strstr(format, "STATUS")) return;
+        if (strstr(format, "Lag msg")) return;
+        phxqueue::comm::Logger::GetInstance()->Log(static_cast<int>(phxqueue_log_level), format, args);
     }
 }
 
 void LogFuncForPhxRpc(const int log_level, const char *format, va_list args) {
-    phxqueue::comm::Logger::GetInstance()->LogInfo(format, args);
+    phxqueue::comm::Logger::GetInstance()->Log(static_cast<int>(LogLevel::Info), format, args);
 }
 
 
