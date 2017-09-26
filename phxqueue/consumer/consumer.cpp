@@ -552,9 +552,9 @@ void Consumer::MakeGetRequest(const comm::proto::ConsumerContext &cc, const conf
 void Consumer::UpdateConsumerContextByGetResponse(const comm::proto::GetResponse &resp, comm::proto::ConsumerContext &cc) {
     QLVerb("cc: sub_id %d store_id %d queue_id %d prev_cursor_id (%" PRIu64 "->%" PRIu64 ") next_cursor_id (%" PRIu64 "->%" PRIu64,
            cc.sub_id(), cc.store_id(), cc.queue_id(),
-           (uint64_t)cc.prev_cursor_id(), (uint64_t)resp.next_cursor_id(),
+           (uint64_t)cc.prev_cursor_id(), (uint64_t)resp.prev_cursor_id(),
            (uint64_t)cc.next_cursor_id(), (uint64_t)resp.next_cursor_id());
-    cc.set_prev_cursor_id(resp.next_cursor_id());
+    cc.set_prev_cursor_id(resp.prev_cursor_id());
     cc.set_next_cursor_id(resp.next_cursor_id());
 }
 
@@ -646,9 +646,13 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
         {
             uint64_t custom_prev_cursor_id = req.prev_cursor_id();
+            uint64_t custom_next_cursor_id = req.next_cursor_id();
             int custom_limit = req.limit();
-            CustomGetRequest(cc, req, custom_prev_cursor_id, custom_limit);
+
+            CustomGetRequest(cc, req, custom_prev_cursor_id, custom_next_cursor_id, custom_limit);
+
             req.set_prev_cursor_id(custom_prev_cursor_id);
+            req.set_next_cursor_id(custom_next_cursor_id);
             if (custom_limit >= 0 && custom_limit <= req.limit()) {
                 req.set_limit(custom_limit);
             }
@@ -913,6 +917,11 @@ void Consumer::CheckMem(const int vpid) {
     }
 }
 
+void Consumer::CustomGetRequest(const comm::proto::ConsumerContext &cc,
+                                const comm::proto::GetRequest &req,
+                                uint64_t &pre_cursor_id, uint64_t &next_cursor_id, int &limit) {
+    pre_cursor_id = req.next_cursor_id();
+}
 
 void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
                             const std::vector<std::shared_ptr<comm::proto::QItem> > &items,

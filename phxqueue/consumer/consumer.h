@@ -133,8 +133,8 @@ class Consumer : public comm::MultiProc {
     // Callback after the pull thread finished lock process.
     virtual void AfterLock(const comm::proto::ConsumerContext &cc) {}
 
-    // Custom pre_cursor_id/limit in comm::GetRequest before Get.
-    virtual void CustomGetRequest(const comm::proto::ConsumerContext &cc, const comm::proto::GetRequest &req, uint64_t &pre_cursor_id, int &limit) {}
+    // Custom pre_cursor_id/next_cursor_id/limit in comm::GetRequest before Get.
+    virtual void CustomGetRequest(const comm::proto::ConsumerContext &cc, const comm::proto::GetRequest &req, uint64_t &pre_cursor_id, uint64_t &next_cursor_id, int &limit);
 
     // Callback before the pull thread start get items from Store.
     virtual void BeforeGet(const comm::proto::GetRequest &req) {}
