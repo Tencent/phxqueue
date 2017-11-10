@@ -12,8 +12,33 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./comm/fileconfig.h"
-#include "./comm/fileloader.h"
-#include "./comm/ini2pb.h"
-#include "./comm/iniparser.h"
+#include <memory>
+#include <string>
+#include <vector>
+
+
+namespace phxqueue_phxrpc {
+
+namespace comm {
+
+
+class INIParser {
+  public:
+    INIParser();
+    virtual ~INIParser();
+
+    void ParseContent(const std::string &content);
+    bool GetValue(const std::string &section, const std::string &key, std::string &val);
+    void SetDelAfterGet(bool del_after_get);
+    void GetAllValue(std::vector<std::tuple<std::string, std::string, std::string>> &vals);
+
+  private:
+    class INIParserImpl;
+    std::unique_ptr<INIParserImpl> impl_;
+};
+
+
+}  // namespace comm
+
+}  // namespace phxqueue_phxrpc
 

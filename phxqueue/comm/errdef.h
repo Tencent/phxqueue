@@ -127,6 +127,7 @@ template <typename Enumeration>
     return static_cast<typename std::underlying_type<Enumeration>::type>(value);
 }
 
+#define PHX_ASSERT(left,operator,right) { if(!((left) operator (right))) { std::cerr << "ASSERT FAILED: " << #left << #operator << #right << " @ " << __FILE__ << " (" << __LINE__ << "). " << #left << "=" << (left) << "; " << #right << "=" << (right) << std::endl; abort();} }
 
 }  // namespace comm
 

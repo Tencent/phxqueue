@@ -32,6 +32,7 @@ class ConfigFactory::ConfigFactoryImpl {
     virtual ~ConfigFactoryImpl() {}
 
     string global_config_path;
+    bool need_check = false;
 };
 
 ConfigFactory::ConfigFactory(const string &global_config_path)
@@ -45,6 +46,7 @@ unique_ptr<phxqueue::config::GlobalConfig> ConfigFactory::NewGlobalConfig() {
     QLVerb("path %s", impl_->global_config_path.c_str());
 
     auto &&conf(new config::GlobalConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(impl_->global_config_path);
     if (conf) conf->LoadIfModified();
 
@@ -56,6 +58,7 @@ ConfigFactory::NewTopicConfig(const int topic_id, const string &path) {
     QLVerb("topic_id %d path %s", topic_id, path.c_str());
 
     auto &&conf(new config::TopicConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(path);
     if (conf) conf->LoadIfModified();
 
@@ -67,6 +70,7 @@ ConfigFactory::NewConsumerConfig(const int topic_id, const string &path) {
     QLVerb("topic_id %d path %s", topic_id, path.c_str());
 
     auto &&conf(new config::ConsumerConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(path);
     if (conf) conf->LoadIfModified();
 
@@ -78,6 +82,7 @@ ConfigFactory::NewStoreConfig(const int topic_id, const string &path) {
     QLVerb("topic_id %d path %s", topic_id, path.c_str());
 
     auto &&conf(new config::StoreConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(path);
     if (conf) conf->LoadIfModified();
 
@@ -89,6 +94,7 @@ ConfigFactory::NewSchedulerConfig(const int topic_id, const string &path) {
     QLVerb("topic_id %d path %s", topic_id, path.c_str());
 
     auto &&conf(new config::SchedulerConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(path);
     if (conf) conf->LoadIfModified();
 
@@ -100,10 +106,15 @@ ConfigFactory::NewLockConfig(const int topic_id, const string &path) {
     QLVerb("topic_id %d path %s", topic_id, path.c_str());
 
     auto &&conf(new config::LockConfig());
+    conf->SetNeedCheck(impl_->need_check);
     conf->SetFileIfUnset(path);
     if (conf) conf->LoadIfModified();
 
     return unique_ptr<config::LockConfig>(conf);
+}
+
+void ConfigFactory::SetNeedCheck(bool need_check) {
+    impl_->need_check = need_check;
 }
 
 

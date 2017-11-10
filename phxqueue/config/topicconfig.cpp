@@ -129,6 +129,7 @@ comm::RetCode TopicConfig::ReadConfig(proto::TopicConfig &proto) {
 
 
 comm::RetCode TopicConfig::Rebuild() {
+    bool need_check = NeedCheck();
 
     impl_->pub_id2pub.clear();
     impl_->sub_id2sub.clear();
@@ -146,15 +147,18 @@ comm::RetCode TopicConfig::Rebuild() {
     for (int i{0}; proto.pubs_size() > i; ++i) {
         const auto &pub(proto.pubs(i));
         if (!pub.pub_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->pub_id2pub.end() == impl_->pub_id2pub.find(pub.pub_id()), ==, true);
         impl_->pub_id2pub.emplace(pub.pub_id(), make_shared<proto::Pub>(pub));
 
         auto &&sub_ids = impl_->pub_id2sub_ids[pub.pub_id()];
         for (int j{0}; j < pub.sub_ids_size(); ++j) {
+            if (need_check) PHX_ASSERT(sub_ids.end() == sub_ids.find(pub.sub_ids(j)), ==, true);
             sub_ids.insert(pub.sub_ids(j));
         }
 
         auto &&queue_info_ids = impl_->pub_id2queue_info_ids[pub.pub_id()];
         for (int j{0}; j < pub.queue_info_ids_size(); ++j) {
+            if (need_check) PHX_ASSERT(queue_info_ids.end() == queue_info_ids.find(pub.queue_info_ids(j)), ==, true);
             queue_info_ids.insert(pub.queue_info_ids(j));
         }
     }
@@ -162,6 +166,7 @@ comm::RetCode TopicConfig::Rebuild() {
     for (int i{0}; proto.subs_size() > i; ++i) {
         const auto &sub(proto.subs(i));
         if (!sub.sub_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->sub_id2sub.end() == impl_->sub_id2sub.find(sub.sub_id()), ==, true);
         impl_->sub_id2sub.emplace(sub.sub_id(), make_shared<proto::Sub>(sub));
     }
 
@@ -170,6 +175,7 @@ comm::RetCode TopicConfig::Rebuild() {
 
 
         if (!queue_info.queue_info_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->queue_info_id2queue_info.end() == impl_->queue_info_id2queue_info.find(queue_info.queue_info_id()), ==, true);
         impl_->queue_info_id2queue_info.emplace(queue_info.queue_info_id(), make_shared<proto::QueueInfo>(queue_info));
 
         {
@@ -207,6 +213,7 @@ comm::RetCode TopicConfig::Rebuild() {
     }
 
     for (int i{0}; proto.topic().handle_ids_size() > i; ++i) {
+        if (need_check) PHX_ASSERT(impl_->handle_id2rank.end() == impl_->handle_id2rank.find(proto.topic().handle_ids(i)), ==, true);
         impl_->handle_id2rank.emplace(proto.topic().handle_ids(i), i);
     }
 

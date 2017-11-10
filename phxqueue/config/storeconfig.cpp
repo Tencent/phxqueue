@@ -76,6 +76,8 @@ comm::RetCode StoreConfig::ReadConfig(proto::StoreConfig &proto) {
 
 
 comm::RetCode StoreConfig::Rebuild() {
+    bool need_check = NeedCheck();
+
     QLVerb("start");
 
     impl_->store_id2store.clear();
@@ -86,10 +88,12 @@ comm::RetCode StoreConfig::Rebuild() {
     for (int i{0}; i < proto.stores_size(); ++i) {
         const auto &store(proto.stores(i));
         if (!store.store_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->store_id2store.end() == impl_->store_id2store.find(store.store_id()), ==, true);
         impl_->store_id2store.emplace(store.store_id(), make_shared<proto::Store>(store));
 
         for (int j{0}; j < store.addrs_size(); ++j) {
             auto &&addr = store.addrs(j);
+            if (need_check) PHX_ASSERT(impl_->addr2store_id.end() == impl_->addr2store_id.find(comm::utils::EncodeAddr(addr)), ==, true);
             impl_->addr2store_id.emplace(comm::utils::EncodeAddr(addr), store.store_id());
             QLVerb("add addr(%s:%d:%d) store_id %d", addr.ip().c_str(), addr.port(), addr.paxos_port(), store.store_id());
         }

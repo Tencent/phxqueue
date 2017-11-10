@@ -40,6 +40,9 @@ class ConfigFactory : public phxqueue::plugin::ConfigFactory {
     virtual std::unique_ptr<phxqueue::config::LockConfig>
     NewLockConfig(const int topic_id, const std::string &path);
 
+  public:
+    void SetNeedCheck(bool need_check);
+
   private:
     class ConfigFactoryImpl;
     std::unique_ptr<ConfigFactoryImpl> impl_;

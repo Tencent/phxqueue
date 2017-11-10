@@ -73,12 +73,15 @@ comm::RetCode ConsumerConfig::ReadConfig(proto::ConsumerConfig &proto) {
 
 
 comm::RetCode ConsumerConfig::Rebuild() {
+    bool need_check = NeedCheck();
+
     impl_->addr2consumer.clear();
 
     auto &&proto = GetProto();
 
     for (int i{0}; i < proto.consumers_size(); ++i) {
         const auto &consumer(proto.consumers(i));
+        if (need_check) PHX_ASSERT(impl_->addr2consumer.end() == impl_->addr2consumer.find(comm::utils::EncodeAddr(consumer.addr())), ==, true);
         impl_->addr2consumer.emplace(comm::utils::EncodeAddr(consumer.addr()), make_shared<proto::Consumer>(consumer));
     }
     return comm::RetCode::RET_OK;

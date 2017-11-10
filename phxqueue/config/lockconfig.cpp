@@ -72,6 +72,8 @@ comm::RetCode LockConfig::ReadConfig(proto::LockConfig &proto) {
 
 
 comm::RetCode LockConfig::Rebuild() {
+    bool need_check = NeedCheck();
+
     impl_->lock_id2lock.clear();
     impl_->addr2lock_id.clear();
 
@@ -80,10 +82,12 @@ comm::RetCode LockConfig::Rebuild() {
     for (int i{0}; i < proto.locks_size(); ++i) {
         const auto &lock(proto.locks(i));
         if (!lock.lock_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->lock_id2lock.end() == impl_->lock_id2lock.find(lock.lock_id()), ==, true);
         impl_->lock_id2lock.emplace(lock.lock_id(), make_shared<proto::Lock>(lock));
 
         for (int j{0}; j < lock.addrs_size(); ++j) {
             auto &&addr = lock.addrs(j);
+            if (need_check) PHX_ASSERT(impl_->addr2lock_id.end() == impl_->addr2lock_id.find(comm::utils::EncodeAddr(addr)), ==, true);
             impl_->addr2lock_id.emplace(comm::utils::EncodeAddr(addr), lock.lock_id());
         }
     }

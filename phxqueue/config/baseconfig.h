@@ -54,6 +54,14 @@ template <typename T> class BaseConfig {
         return comm::RetCode::RET_OK;
     }
 
+    void SetNeedCheck(bool need_check) {
+        need_check_ = need_check;
+    }
+
+    bool NeedCheck() {
+        return need_check_;
+    }
+
   protected:
     ProtoType &GetMutableProto() {
         return proto_;
@@ -84,6 +92,7 @@ template <typename T> class BaseConfig {
     uint64_t last_clear_build_time_{0};
     uint64_t last_mod_time_{0};
     ProtoType proto_;
+    bool need_check_{false};
 };
 
 
