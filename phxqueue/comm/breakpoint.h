@@ -170,6 +170,7 @@ class StoreBaseMgrBP {
     virtual void OnCrcCheckUnpass(const proto::GetRequest &req) {}
     virtual void OnGetItemFromStoreMetaQueue(const proto::GetRequest &req) {}
     virtual void OnGetItemBeforeCheckPoint(const proto::GetRequest &req) {}
+    virtual void OnGetLoopReachMaxTime(const proto::GetRequest &req) {}
 };
 
 class StoreIMMasterBP {

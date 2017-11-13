@@ -27,6 +27,7 @@ message Topic {
     optional int32 store_adjust_max_master_rate = 404 [default = 100]; // useless.
     optional int32 store_sync_interval_s = 411 [default = 5]; // time interval of syncing dequeue offset from master to slave. (default value recommanded)
     optional int32 store_adjust_master_rate_time_interval_s = 412 [default = 10]; // time interval to adjust master.
+    optional int32 store_get_loop_max_time_ms = 413 [default = 20]; // max time to get items, to prevent dequeue(Store::Get) timeout. (default value recommanded)
 
     // ------------------ store paxos config ------------------
 

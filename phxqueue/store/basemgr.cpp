@@ -223,7 +223,20 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
 
     size_t byte_size{0};
+    uint64_t now_ts{0}, get_loop_start_ts{0};
+    const uint64_t get_loop_max_time_ms = topic_config->GetProto().topic().store_get_loop_max_time_ms();
     for (uint32_t i{0}; 512 > i && resp.items_size() < req.limit(); ++i) {
+
+        now_ts = comm::utils::Time::GetSteadyClockMS();
+        if (0 == get_loop_start_ts) get_loop_start_ts = now_ts;
+        else if (get_loop_start_ts + get_loop_max_time_ms < now_ts) {
+            comm::StoreBaseMgrBP::GetThreadInstance()->OnGetLoopReachMaxTime(req);
+            QLInfo("get loop reach max time. sub_id %d queue_id %d resp_item_size %d next_cursor_id %" PRIu64
+                   " -> %" PRIu64,
+                   req.sub_id(), req.queue_id(), resp.items_size(),
+                   cli_next_cursor_id, next_cursor_id);
+            break;
+        }
 
         cur_cursor_id = next_cursor_id;
 
