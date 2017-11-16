@@ -139,6 +139,16 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
             PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoByQueueInfoID(queue_info_id, queue_info)));
             PHX_ASSERT(queue_info_id, ==, queue_info->queue_info_id());
 
+            PHX_ASSERT(queue_info->freq_limit(), >=, 0);
+            PHX_ASSERT(queue_info->freq_interval(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_per_get(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_fail(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_no_item(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_size_too_small(), >=, 0);
+            PHX_ASSERT(queue_info->get_size_too_small_threshold(), >=, 0);
+            PHX_ASSERT(queue_info->delay(), >=, 0);
+            PHX_ASSERT(queue_info->count(), >=, -1);
+
             {
                 int tmp_queue_info_id;
                 PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDByCount(pub_id, cnt, tmp_queue_info_id)));
@@ -160,6 +170,7 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
             PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetNQueue(queue_info_id, nqueue)));
             PHX_ASSERT(nqueue, ==, queues.size());
             for (auto &&queue : queues) {
+                PHX_ASSERT(queue, >=, 0);
                 PHX_ASSERT(topic_config->IsValidQueue(queue), ==, true);
                 PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id), ==, true);
                 for (int l{0}; l < pub->sub_ids_size(); ++l) {
