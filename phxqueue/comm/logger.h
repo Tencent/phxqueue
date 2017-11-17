@@ -12,9 +12,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include <cstdio>
-#include <cinttypes>
 #include <cassert>
+#include <cinttypes>
+#include <cstdio>
+#include <functional>
 #include <memory>
 
 #include "phxqueue/comm/errdef.h"
