@@ -18,9 +18,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 namespace {
 
-
-inline int LoadInfo2Load(const phxqueue::comm::proto::LoadInfo &loadinfo) {
-    return loadinfo.cpu();
+inline int LoadInfo2Load(const phxqueue::comm::proto::LoadInfo &loadinfo, const int load_use_proc_used_ratio) {
+    return (int)(loadinfo.cpu() * (1 + (load_use_proc_used_ratio ? loadinfo.proc_used_ratio() : 0) / 100.0));
 }
 
 
@@ -137,6 +136,8 @@ comm::RetCode SchedulerMgr::GetAddrScale(const comm::proto::GetAddrScaleRequest 
         return ret;
     }
 
+    auto load_use_proc_used_ratio = topic_config->GetProto().topic().scheduler_load_use_proc_used_ratio();
+
     auto &topic_data(topic_id2data_it->second);
     auto topic_id2lock_it(impl_->topic_id2lock_map.find(topic_id));
     if (impl_->topic_id2lock_map.end() == topic_id2lock_it) {
@@ -166,17 +167,18 @@ comm::RetCode SchedulerMgr::GetAddrScale(const comm::proto::GetAddrScaleRequest 
     } else {
         auto &consumer_info(it->second);
         consumer_info.set_last_active_time(now);
-        consumer_info.loads.Update(LoadInfo2Load(req.load_info()));
+        consumer_info.loads.Update(LoadInfo2Load(req.load_info(), load_use_proc_used_ratio));
         const int new_load{consumer_info.loads.Mean()};
         if (topic_config->GetProto().topic().scheduler_load_sticky() <
             abs(new_load - consumer_info.sticky_load) || 0 >= consumer_info.sticky_load) {
             consumer_info.sticky_load = new_load;
             comm::SchedulerMgrBP::GetThreadInstance()->OnUpdateStickyLoad(req);
         }
-        QLInfo("topic %d consumer %s last_active %" PRIu64 " sticky_load %d load_cursor %u loads {%s}",
+        QLInfo("topic %d consumer %s last_active %" PRIu64 " sticky_load %d load_cursor %u loads {%s} loadinfo(%d, %d)",
                topic_id, comm::utils::AddrToString(req.addr()).c_str(),
                consumer_info.last_active_time(), consumer_info.sticky_load,
-               consumer_info.loads.cursor(), consumer_info.loads.ToString().c_str());
+               consumer_info.loads.cursor(), consumer_info.loads.ToString().c_str(),
+               req.load_info().cpu(), req.load_info().proc_used_ratio());
     }
 
     // resp

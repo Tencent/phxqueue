@@ -378,6 +378,7 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
         addr->set_port(opt->port);
         auto &&load_info = req.mutable_load_info();
         load_info->set_cpu(comm::utils::GetCpu());
+        if (impl_->nproc) load_info->set_proc_used_ratio(impl_->proc_used * 100 / impl_->nproc);
 
         scheduler::SchedulerMasterClient<comm::proto::GetAddrScaleRequest, comm::proto::GetAddrScaleResponse> scheduler_master_client;
         ret = scheduler_master_client.ClientCall(req, resp, bind(&Consumer::GetAddrScale, impl_->consumer, placeholders::_1, placeholders::_2));

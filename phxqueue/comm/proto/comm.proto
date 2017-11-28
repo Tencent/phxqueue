@@ -96,6 +96,7 @@ message AddrScale {
 
 message LoadInfo {
     optional int32 cpu = 1;
+    optional int32 proc_used_ratio = 2;
 }
 
 message GetAddrScaleRequest {

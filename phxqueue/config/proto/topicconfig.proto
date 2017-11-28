@@ -77,7 +77,7 @@ message Topic {
     optional string scheduler_master_ip = 813; // specify master.
     optional int32 scheduler_master_port = 814; // specify master.
     optional string scheduler_lock_key = 815 [default = "__scheduler__.__master__"]; // lock key for lease master. (default value recommanded)
-
+    optional int32 scheduler_load_use_proc_used_ratio = 816 [default = 0]; // use proc used ratio in load calculation.
 
     // ------------------ lock general config ------------------
 
