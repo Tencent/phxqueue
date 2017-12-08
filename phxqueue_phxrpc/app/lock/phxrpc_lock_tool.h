@@ -37,7 +37,7 @@ class LockTool {
     LockTool();
     virtual ~LockTool();
 
-    virtual int PHXEcho(phxrpc::OptMap &bigmap);
+    virtual int PhxEcho(phxrpc::OptMap &bigmap);
 
     virtual int GetLockInfo(phxrpc::OptMap &bigmap);
 
@@ -55,7 +55,7 @@ class LockTool {
 
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
-            { "PHXEcho", &LockTool::PHXEcho, "c:f:vs:", "-s <string>" },
+            { "PhxEcho", &LockTool::PhxEcho, "c:f:vs:", "-s <string>" },
             { NULL, NULL }
         };
 

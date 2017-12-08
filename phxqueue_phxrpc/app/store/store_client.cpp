@@ -58,7 +58,7 @@ StoreClient::StoreClient() {
 
 StoreClient::~StoreClient() {}
 
-int StoreClient::PHXEcho(const google::protobuf::StringValue &req,
+int StoreClient::PhxEcho(const google::protobuf::StringValue &req,
                          google::protobuf::StringValue *resp) {
     const phxrpc::Endpoint_t *ep = global_storeclient_config_.GetRandom();
 
@@ -71,7 +71,7 @@ int StoreClient::PHXEcho(const google::protobuf::StringValue &req,
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
             StoreStub stub(socket, *(global_storeclient_monitor_.get()));
-            return stub.PHXEcho(req, resp);
+            return stub.PhxEcho(req, resp);
         }
     }
 
@@ -92,7 +92,7 @@ int StoreClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                             global_storeclient_config_.GetConnectTimeoutMS(), *(global_storeclient_monitor_.get()))) {
                     socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
                     StoreStub stub(socket, *(global_storeclient_monitor_.get()));
-                    int this_ret = stub.PHXEcho(req, resp);
+                    int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();

@@ -29,9 +29,9 @@ StoreService::StoreService() {}
 
 StoreService::~StoreService() {}
 
-int StoreService::PHXEcho(const google::protobuf::StringValue &/* req */,
+int StoreService::PhxEcho(const google::protobuf::StringValue &/* req */,
                           google::protobuf::StringValue */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PHXEcho unimplemented");
+    phxrpc::log(LOG_ERR, "ERROR: PhxEcho unimplemented");
     return -1;
 }
 

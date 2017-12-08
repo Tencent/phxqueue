@@ -29,15 +29,17 @@ class SchedulerService;
 
 class SchedulerDispatcher {
   public:
-    static const phxrpc::HttpDispatcher< SchedulerDispatcher >::URIFuncMap &GetURIFuncMap();
+    static const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &GetURIFuncMap();
 
     SchedulerDispatcher(SchedulerService &service, phxrpc::DispatcherArgs_t *dispatcher_args);
 
-    ~SchedulerDispatcher();
+    virtual ~SchedulerDispatcher();
 
-    int PHXEcho(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response);
+    int PhxEcho(const phxrpc::BaseRequest *const req,
+                phxrpc::BaseResponse *const resp);
 
-    int GetAddrScale(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response);
+    int GetAddrScale(const phxrpc::BaseRequest *const req,
+                     phxrpc::BaseResponse *const resp);
 
   private:
     SchedulerService &service_;

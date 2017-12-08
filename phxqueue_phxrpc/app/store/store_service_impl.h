@@ -38,7 +38,7 @@ class StoreServiceImpl : public StoreService {
     StoreServiceImpl(ServiceArgs_t &app_args);
     virtual ~StoreServiceImpl();
 
-    virtual int PHXEcho(const google::protobuf::StringValue &req,
+    virtual int PhxEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) override;
 
     virtual int Add(const phxqueue::comm::proto::AddRequest &req,

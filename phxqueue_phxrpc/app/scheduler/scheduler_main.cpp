@@ -68,17 +68,18 @@ static int MakeArgs(SchedulerServerConfig &config, ServiceArgs_t &args) {
 }
 
 
-void HttpDispatch(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response, phxrpc::DispatcherArgs_t *args) {
+void Dispatch(const phxrpc::BaseRequest *const req,
+              phxrpc::BasepResponse *const resp,
+              phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
 
     SchedulerServiceImpl service(*service_args);
     SchedulerDispatcher dispatcher(service, args);
 
-    phxrpc::HttpDispatcher<SchedulerDispatcher> http_dispatcher(
+    phxrpc::BaseDispatcher<SchedulerDispatcher> base_dispatcher(
             dispatcher, SchedulerDispatcher::GetURIFuncMap());
-    if (!http_dispatcher.Dispatch(request, response)) {
-        response->SetStatusCode(404);
-        response->SetReasonPhrase("Not Found");
+    if (!base_dispatcher.Dispatch(req, resp)) {
+        resp->DispatchErr();
     }
 }
 
@@ -133,7 +134,7 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    phxrpc::HshaServer server(config.GetHshaServerConfig(), HttpDispatch, &service_args);
+    phxrpc::HshaServer server(config.GetHshaServerConfig(), Dispatch, &service_args);
     server.RunForever();
 
     phxrpc::closelog();

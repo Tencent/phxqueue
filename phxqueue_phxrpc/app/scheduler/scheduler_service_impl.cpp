@@ -28,7 +28,7 @@ SchedulerServiceImpl::SchedulerServiceImpl(ServiceArgs_t &app_args)
 
 SchedulerServiceImpl::~SchedulerServiceImpl() {}
 
-int SchedulerServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
+int SchedulerServiceImpl::PhxEcho(const google::protobuf::StringValue &req,
                                   google::protobuf::StringValue *resp) {
     resp->set_value(req.value());
     return 0;

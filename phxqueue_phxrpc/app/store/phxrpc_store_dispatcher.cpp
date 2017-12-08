@@ -34,76 +34,80 @@ StoreDispatcher::StoreDispatcher(StoreService &service, phxrpc::DispatcherArgs_t
 
 StoreDispatcher::~StoreDispatcher() {}
 
-const phxrpc::HttpDispatcher< StoreDispatcher >::URIFuncMap &StoreDispatcher::GetURIFuncMap() {
-    static phxrpc::HttpDispatcher< StoreDispatcher >::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.store/PHXEcho", &StoreDispatcher::PHXEcho},
+const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &StoreDispatcher::GetURIFuncMap() {
+    static phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap uri_func_map = {
+        {"/phxqueue_phxrpc.store/PhxEcho", &StoreDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.store/Add", &StoreDispatcher::Add},
         {"/phxqueue_phxrpc.store/Get", &StoreDispatcher::Get}};
     return uri_func_map;
 }
 
-int StoreDispatcher::PHXEcho(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
+int StoreDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
+                             phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    google::protobuf::StringValue req;
-    google::protobuf::StringValue resp;
+    google::protobuf::StringValue req_pb;
+    google::protobuf::StringValue resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.PHXEcho(req, &resp);
+        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
 
     return ret;
 }
 
-int StoreDispatcher::Add(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
+int StoreDispatcher::Add(const phxrpc::BaseRequest *const req,
+                         phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(1, "Add", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    phxqueue::comm::proto::AddRequest req;
-    phxqueue::comm::proto::AddResponse resp;
+    phxqueue::comm::proto::AddRequest req_pb;
+    phxqueue::comm::proto::AddResponse resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.Add(req, &resp);
+        if (0 == ret) ret = service_.Add(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
@@ -112,33 +116,35 @@ int StoreDispatcher::Add(const phxrpc::HttpRequest &request, phxrpc::HttpRespons
     return ret;
 }
 
-int StoreDispatcher::Get(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
+int StoreDispatcher::Get(const phxrpc::BaseRequest *const req,
+                         phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(2, "Get", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    phxqueue::comm::proto::GetRequest req;
-    phxqueue::comm::proto::GetResponse resp;
+    phxqueue::comm::proto::GetRequest req_pb;
+    phxqueue::comm::proto::GetResponse resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.Get(req, &resp);
+        if (0 == ret) ret = service_.Get(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
