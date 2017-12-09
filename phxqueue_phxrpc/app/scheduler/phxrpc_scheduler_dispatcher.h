@@ -29,6 +29,7 @@ class SchedulerService;
 
 class SchedulerDispatcher {
   public:
+    static const phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap &GetMqttFuncMap();
     static const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &GetURIFuncMap();
 
     SchedulerDispatcher(SchedulerService &service, phxrpc::DispatcherArgs_t *dispatcher_args);

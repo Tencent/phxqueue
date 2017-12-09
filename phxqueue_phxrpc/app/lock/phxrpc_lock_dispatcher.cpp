@@ -34,7 +34,14 @@ LockDispatcher::LockDispatcher(LockService &service, phxrpc::DispatcherArgs_t *d
 
 LockDispatcher::~LockDispatcher() {}
 
-const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &LockDispatcher::GetURIFuncMap() {
+const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+LockDispatcher::GetMqttFuncMap() {
+    static phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap mqtt_func_map = {};
+    return mqtt_func_map;
+}
+
+const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &
+LockDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap uri_func_map = {
         {"/phxqueue_phxrpc.lock/PhxEcho", &LockDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.lock/GetLockInfo", &LockDispatcher::GetLockInfo},

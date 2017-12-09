@@ -34,7 +34,14 @@ SchedulerDispatcher::SchedulerDispatcher(SchedulerService &service, phxrpc::Disp
 
 SchedulerDispatcher::~SchedulerDispatcher() {}
 
-const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &SchedulerDispatcher::GetURIFuncMap() {
+const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+SchedulerDispatcher::GetMqttFuncMap() {
+    static phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap mqtt_func_map = {};
+    return mqtt_func_map;
+}
+
+const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &
+SchedulerDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
         {"/phxqueue_phxrpc.scheduler/PhxEcho", &SchedulerDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};

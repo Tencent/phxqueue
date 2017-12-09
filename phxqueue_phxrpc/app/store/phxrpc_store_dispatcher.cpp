@@ -34,7 +34,14 @@ StoreDispatcher::StoreDispatcher(StoreService &service, phxrpc::DispatcherArgs_t
 
 StoreDispatcher::~StoreDispatcher() {}
 
-const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &StoreDispatcher::GetURIFuncMap() {
+const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+StoreDispatcher::GetMqttFuncMap() {
+    static phxrpc::BaseDispatcher<StoreDispatcher>::MqttFuncMap mqtt_func_map = {};
+    return mqtt_func_map;
+}
+
+const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &
+StoreDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap uri_func_map = {
         {"/phxqueue_phxrpc.store/PhxEcho", &StoreDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.store/Add", &StoreDispatcher::Add},

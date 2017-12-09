@@ -29,6 +29,7 @@ class LockService;
 
 class LockDispatcher {
   public:
+    static const phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap &GetMqttFuncMap();
     static const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &GetURIFuncMap();
 
     LockDispatcher(LockService &service, phxrpc::DispatcherArgs_t *dispatcher_args);
