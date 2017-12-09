@@ -34,7 +34,7 @@ LockDispatcher::LockDispatcher(LockService &service, phxrpc::DispatcherArgs_t *d
 
 LockDispatcher::~LockDispatcher() {}
 
-const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+const phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap &
 LockDispatcher::GetMqttFuncMap() {
     static phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap mqtt_func_map = {};
     return mqtt_func_map;

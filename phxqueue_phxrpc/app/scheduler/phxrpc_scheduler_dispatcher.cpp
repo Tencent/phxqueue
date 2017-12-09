@@ -34,7 +34,7 @@ SchedulerDispatcher::SchedulerDispatcher(SchedulerService &service, phxrpc::Disp
 
 SchedulerDispatcher::~SchedulerDispatcher() {}
 
-const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+const phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap &
 SchedulerDispatcher::GetMqttFuncMap() {
     static phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap mqtt_func_map = {};
     return mqtt_func_map;

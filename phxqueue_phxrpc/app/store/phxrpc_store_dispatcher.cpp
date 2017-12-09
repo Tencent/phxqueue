@@ -34,7 +34,7 @@ StoreDispatcher::StoreDispatcher(StoreService &service, phxrpc::DispatcherArgs_t
 
 StoreDispatcher::~StoreDispatcher() {}
 
-const phxrpc::BaseDispatcher<SearchDispatcher>::MqttFuncMap &
+const phxrpc::BaseDispatcher<StoreDispatcher>::MqttFuncMap &
 StoreDispatcher::GetMqttFuncMap() {
     static phxrpc::BaseDispatcher<StoreDispatcher>::MqttFuncMap mqtt_func_map = {};
     return mqtt_func_map;
