@@ -69,7 +69,7 @@ static int MakeArgs(SchedulerServerConfig &config, ServiceArgs_t &args) {
 
 
 void Dispatch(const phxrpc::BaseRequest *const req,
-              phxrpc::BasepResponse *const resp,
+              phxrpc::BaseResponse *const resp,
               phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
 
