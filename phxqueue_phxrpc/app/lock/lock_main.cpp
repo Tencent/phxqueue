@@ -85,7 +85,7 @@ void Dispatch(const phxrpc::BaseRequest *const req,
     LockDispatcher dispatcher(service, args);
 
     phxrpc::BaseDispatcher<LockDispatcher> base_dispatcher(
-            dispatcher,  SchedulerDispatcher::GetMqttFuncMap(),
+            dispatcher,  LockDispatcher::GetMqttFuncMap(),
             LockDispatcher::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
         resp->DispatchErr();
