@@ -57,6 +57,14 @@ class StoreSelectorDefault : public StoreSelector {
 
     virtual comm::RetCode GetStoreID(int &store_id);
 
+  protected:
+    virtual bool IsStoreBlocked(const int store_id) {return false;}
+
+    int GetTopicID();
+    int GetPubID();
+    uint64_t GetUin();
+    bool IsRetrySwitchStore();
+
   private:
     class StoreSelectorDefaultImpl;
     std::unique_ptr<StoreSelectorDefaultImpl> impl_;

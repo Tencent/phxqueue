@@ -99,6 +99,7 @@ class StoreSelectorDefault::StoreSelectorDefaultImpl {
     uint64_t uin;
     bool retry_switch_store;
     int retry;
+    set<int> tried_store_ids;
 };
 
 StoreSelectorDefault::StoreSelectorDefault(const int topic_id, const int pub_id,
@@ -113,7 +114,6 @@ StoreSelectorDefault::StoreSelectorDefault(const int topic_id, const int pub_id,
 }
 
 StoreSelectorDefault::~StoreSelectorDefault() {}
-
 
 comm::RetCode StoreSelectorDefault::GetStoreID(int &store_id) {
     shared_ptr<const config::StoreConfig> store_config;
@@ -147,26 +147,117 @@ comm::RetCode StoreSelectorDefault::GetStoreID(int &store_id) {
         return comm::RetCode::RET_ERR_RANGE_STORE;
     }
 
-    {
-        size_t rd = crc32(0, Z_NULL, 0);
-        {
-            uint64_t tmp_uin = !impl_->uin ? comm::utils::OtherUtils::FastRand() : impl_->uin;
-            rd = crc32(rd, (const unsigned char *)&tmp_uin, sizeof(uint64_t));
-            rd = crc32(rd, (const unsigned char *)&impl_->topic_id, sizeof(int));
-            if (impl_->retry_switch_store) rd = crc32(rd, (const unsigned char *)&impl_->retry, sizeof(int));
+    auto store_ids_size = store_ids.size();
+
+    // rebuild consisten hash
+    static __thread map<int, uint64_t> topic_id2last_rebuild_time;
+    static __thread map<int, map<uint64_t, int>> topic_id2hash_ring;
+    static __thread map<int, map<int, set<uint64_t>>> topic_id2store_id2hash_list;
+
+    auto &hash_ring = topic_id2hash_ring[impl_->topic_id];
+    auto &store_id2hash_list = topic_id2store_id2hash_list[impl_->topic_id];
+    do {
+        auto &last_rebuild_time = topic_id2last_rebuild_time[impl_->topic_id];
+
+        auto last_mod_time = store_config->GetLastModTime();
+        if (last_mod_time == last_rebuild_time) break;
+        last_rebuild_time = last_mod_time;
+
+        hash_ring.clear();
+        store_id2hash_list.clear();
+
+        for (auto &&tmp_store_id : store_ids) {
+            shared_ptr<const config::proto::Store> store;
+            if (comm::RetCode::RET_OK != (ret = store_config->GetStoreByStoreID(tmp_store_id, store))) {
+                QLErr("GetStoreByStoreID ret %d topic_id %d store_id %d", as_integer(ret), impl_->topic_id, tmp_store_id);
+                continue;
+            }
+
+            vector<uint64_t> encoded_addrs;
+            for (int i{0}; i < store->addrs_size(); ++i) {
+                encoded_addrs.push_back(comm::utils::EncodeAddr(store->addrs(i)));
+            }
+
+            auto &hash_list = store_id2hash_list[tmp_store_id];
+
+            for (int i{0}; i < store->scale(); ++i) {
+                size_t h = 0;
+                for (auto &&encoded_addr : encoded_addrs) {
+                    h = comm::utils::MurmurHash64(&encoded_addr, sizeof(uint64_t), h);
+                }
+                h = comm::utils::MurmurHash64(&i, sizeof(int), h);
+
+                hash_ring.emplace(h, tmp_store_id);
+                hash_list.insert(h);
+            }
         }
 
-        auto store_idx = rd % store_ids.size();
-        auto it = store_ids.begin();
-        advance(it, store_idx);
-        store_id = *it;
-    }
+    } while (0);
 
-    ++impl_->retry;
+    // find store_id in consistent hash
+    store_id = -1;
+    while (-1 == store_id) {
+        size_t h = 0;
+        {
+            uint64_t tmp_uin = !impl_->uin ? comm::utils::OtherUtils::FastRand() : impl_->uin;
+            h = comm::utils::MurmurHash64(&tmp_uin, sizeof(uint64_t), h);
+            h = comm::utils::MurmurHash64(&impl_->topic_id, sizeof(int), h);
+            if (impl_->retry_switch_store) h = comm::utils::MurmurHash64(&impl_->retry, sizeof(int), h);
+        }
+
+        if (impl_->retry_switch_store && impl_->retry) {
+            uint64_t min_hash = 0;
+            for (auto &&tmp_store_id : store_ids) {
+                if (impl_->tried_store_ids.end() != impl_->tried_store_ids.find(tmp_store_id)) continue;
+                auto &hash_list = store_id2hash_list[tmp_store_id];
+
+                auto &&it = hash_list.lower_bound(h);
+                if (hash_list.end() == it) it = hash_list.begin();
+                if (hash_list.end() != it) {
+                    if (-1 == store_id || *it < min_hash) {
+                        store_id = tmp_store_id;
+                        min_hash = *it;
+                    }
+                }
+            }
+        } else {
+            auto &&it = hash_ring.lower_bound(h);
+            if (hash_ring.end() == it) it = hash_ring.begin();
+            store_id = it->second;
+        }
+
+        ++impl_->retry;
+
+        if (-1 != store_id) {
+            if (impl_->retry_switch_store) {
+                impl_->tried_store_ids.insert(store_id);
+                if (IsStoreBlocked(store_id)) store_id = -1;
+            }
+        } else {
+            auto &&it = store_ids.begin();
+            advance(it, h % store_ids_size);
+            store_id = *it;
+        }
+    }
 
     return comm::RetCode::RET_OK;
 }
 
+int StoreSelectorDefault::GetTopicID() {
+    return impl_->topic_id;
+}
+
+int StoreSelectorDefault::GetPubID() {
+    return impl_->pub_id;
+}
+
+uint64_t StoreSelectorDefault::GetUin() {
+    return impl_->uin;
+}
+
+bool StoreSelectorDefault::IsRetrySwitchStore() {
+    return impl_->retry_switch_store;
+}
 
 }  // namespace producer
 
