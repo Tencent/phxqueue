@@ -148,7 +148,7 @@ class StoreBaseMgrBP {
     StoreBaseMgrBP() {}
     virtual ~StoreBaseMgrBP() {}
 
-    virtual void OnAdd(const proto::AddRequest &req) {}
+    virtual void OnAdd(const proto::AddRequest &req, const int queue_info_id) {}
     virtual void OnAddSkip(const proto::AddRequest &req) {}
     virtual void OnAddSucc(const proto::AddRequest &req, const uint64_t instance_id) {}
 

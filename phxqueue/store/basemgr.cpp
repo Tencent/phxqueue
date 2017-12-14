@@ -77,13 +77,13 @@ comm::RetCode BaseMgr::Add(const uint64_t cursor_id, const comm::proto::AddReque
         return ret;
     }
 
-    comm::StoreBaseMgrBP::GetThreadInstance()->OnAdd(req);
-
     shared_ptr<const config::proto::QueueInfo> queue_info;
     if (comm::RetCode::RET_OK != (ret = topic_config->GetQueueInfoByQueue(req.queue_id(), queue_info))) {
         QLErr("GetQueueInfoByQueue ret %d", as_integer(ret));
         return ret;
     }
+
+    comm::StoreBaseMgrBP::GetThreadInstance()->OnAdd(req, queue_info->queue_info_id());
 
     if (0 == req.items_size()) return comm::RetCode::RET_OK;
 
