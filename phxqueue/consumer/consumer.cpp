@@ -541,7 +541,11 @@ void Consumer::MakeGetRequest(const comm::proto::ConsumerContext &cc, const conf
     req.set_store_id(cc.store_id());
     req.set_queue_id(cc.queue_id());
     req.set_limit(limit);
-    if (queue_info.delay() > 0) req.set_atime(time(nullptr) - queue_info.delay());
+    if (queue_info.delay() > 0) {
+        auto now = comm::utils::Time::GetTimestampMS();
+        req.set_atime(now / 1000 - queue_info.delay());
+        req.set_atime_ms(now % 1000);
+    }
     req.set_sub_id(cc.sub_id());
 
     req.set_prev_cursor_id(cc.prev_cursor_id());
@@ -953,7 +957,10 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
                                                                                         [&cc, retry_sub_ids](phxqueue::comm::proto::QItem &item)->void {
                                                                                             item.set_count(item.count() + 1);
                                                                                             item.set_sub_ids(retry_sub_ids);
-                                                                                            item.set_atime(time(nullptr));
+
+                                                                                            auto now = comm::utils::Time::GetTimestampMS();
+                                                                                            item.set_atime(now / 1000);
+                                                                                            item.set_atime_ms(now % 1000);
                                                                                         });
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             QLErr("MakeAddRequests ret %d", as_integer(ret));

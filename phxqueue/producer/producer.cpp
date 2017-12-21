@@ -109,7 +109,7 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     comm::ProducerSubBP::GetThreadInstance()->OnSubDistribute(topic_id, pub_id, handle_id, uin, sub_ids);
 
 
-    auto now = time(nullptr);
+    auto now = comm::utils::Time::GetTimestampMS();
 
     auto item = make_shared<comm::proto::QItem>();
     auto meta = item->mutable_meta();
@@ -122,7 +122,8 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
 
     item->set_sub_ids(SubIDs2Mask(topic_config.get(), sub_ids));
     item->set_pub_id(pub_id);
-    item->set_atime(now);
+    item->set_atime(now / 1000);
+    item->set_atime_ms(now % 1000);
     item->set_count(0);
     SetSysCookies(*item->mutable_sys_cookies());
     item->set_cursor_id(-1);
@@ -138,11 +139,12 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
         size_t h = crc32(0, Z_NULL, 0);
         h = crc32(h, (const unsigned char *)buffer.c_str(), buffer.length());
         h = crc32(h, (const unsigned char *)&uin, sizeof(uint64_t));
-        h = crc32(h, (const unsigned char *)&now, sizeof(time_t));
+        h = crc32(h, (const unsigned char *)&now, sizeof(uint64_t));
         meta->set_hash(h);
     }
 
     meta->set_atime(item->atime());
+    meta->set_atime_ms(item->atime_ms());
     SetUserCookies(*meta->mutable_user_cookies());
 
     vector<shared_ptr<comm::proto::QItem> > items;

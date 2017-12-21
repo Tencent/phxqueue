@@ -19,6 +19,8 @@ message Meta { // 不变量
     optional int32 pub_id = 9;
     optional uint64 hash = 11;
     optional uint64 atime  = 51;
+    optional uint32 atime_ms  = 52;
+
     optional Cookies user_cookies = 61; // 放业务cookie/票据
 }
 
@@ -28,6 +30,7 @@ message QItem {
     optional uint64 sub_ids = 8;
     optional int32 pub_id = 9;
     optional uint64 atime  = 51;
+    optional uint32 atime_ms  = 52;
     optional uint32 count  = 54;
 
     optional Cookies sys_cookies = 62; // 放队列参数
@@ -75,6 +78,7 @@ message GetRequest {
     optional int32 limit = 5;
     optional uint64 atime  = 6;
     optional int32 sub_id = 7; // 如果sub_id在target_sub_ids中，那就拉取
+    optional uint32 atime_ms  = 8;
 
     optional uint64 prev_cursor_id = 11;
     optional uint64 next_cursor_id = 12;

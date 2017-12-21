@@ -302,9 +302,9 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
         }
 
         if (req.atime() != 0) {
-            if (items[0].atime() > req.atime()) {
+            if (items[0].atime() > req.atime() || (items[0].atime() == req.atime() && items[0].atime_ms() > req.atime_ms())) {
                 comm::StoreBaseMgrBP::GetThreadInstance()->OnGetNoMoreItemBeforeATime(req);
-                QLVerb("queue_id %d no more item before atime %u", req.queue_id(), req.atime());
+                QLVerb("queue_id %d no more item before atime %u.%03u", req.queue_id(), req.atime(), req.atime_ms());
                 break;
             }
         }
@@ -324,8 +324,8 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
             }
 
             QLVerb("add item to resp. cur_cursor_id %" PRIu64
-                   " meta.atime %u req.atime %u uin %llu hash %" PRIu64,
-                   cur_cursor_id, item.atime(), req.atime(),
+                   " meta.atime %u req.atime %u.%03u uin %llu hash %" PRIu64,
+                   cur_cursor_id, item.atime(), req.atime(), req.atime_ms(),
                    item.meta().uin(), item.meta().hash());
 
             byte_size += item.ByteSize();
