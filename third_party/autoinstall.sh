@@ -145,6 +145,7 @@ function install_glog()
 
     go_back;
     cd $lib_name;
+    ./autogen.sh
     ./configure CXXFLAGS=-fPIC --prefix=$(pwd);
     make && make install;
 
