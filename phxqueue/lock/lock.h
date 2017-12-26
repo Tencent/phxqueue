@@ -36,7 +36,9 @@ class LockMgr;
 
 class LockContext {
   public:
-    LockContext() {}
+    LockContext() {
+        result = comm::RetCode::RET_OK;
+    }
     virtual ~LockContext() {}
 
     comm::RetCode result;

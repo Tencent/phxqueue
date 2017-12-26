@@ -37,7 +37,7 @@ class StoreSM::StoreSMImpl {
     StoreSMImpl() {}
     virtual ~StoreSMImpl() {}
 
-    Store *store;
+    Store *store{nullptr};
 };
 
 StoreSM::StoreSM(Store *const store) : impl_(new StoreSMImpl()) {

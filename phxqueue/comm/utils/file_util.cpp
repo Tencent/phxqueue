@@ -99,6 +99,7 @@ int DoTravelDir(const string &root_src_dir_path, const string &relative_src_dir_
             }
 
             if (0 != ret) {
+                closedir(dir);
                 // TODO:
                 //QLErr("DoTravelDir \"%s\" err %d", dirent->d_name, ret);
 
@@ -348,12 +349,20 @@ int CopyFile2(const string &src_file_path, const string &dst_file_path) {
     int dst_file{open(dst_file_path.c_str(), O_WRONLY | O_CREAT, 0644)};
     int ret{0};
 
+    if (src_file < 0 || dst_file < 0) {
+        ret = errno;
+        return ret;
+    }
+
     // struct required, rationale: function stat() exists also
     struct stat src_stat;
     if (-1 == fstat(src_file, &src_stat)) {
         ret = errno;
         // TODO:
         //QLErr("fstat \"%s\" err %d", src_file_path.c_str(), ret);
+
+        close(src_file);
+        close(dst_file);
 
         return ret;
     }
@@ -366,6 +375,9 @@ int CopyFile2(const string &src_file_path, const string &dst_file_path) {
         // TODO:
         //QLErr("sendfile \"%s\" -> \"%s\" err %d",
         //      src_file_path.c_str(), dst_file_path.c_str(), ret);
+
+        close(src_file);
+        close(dst_file);
 
         return ret;
     }

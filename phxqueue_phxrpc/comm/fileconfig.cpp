@@ -73,11 +73,15 @@ bool FileConfig::Read() {
         if (0 == fstat( fileno( fp ), &fileStat)) {
             unique_ptr<char[]> buf = unique_ptr<char[]>(new char[fileStat.st_size + 64]);
 
-            fread(buf.get(), fileStat.st_size, 1, fp );
-            buf[fileStat.st_size] = '\0';
-            impl_->content = string(buf.get(), fileStat.st_size);
+            auto read_sz = fread(buf.get(), fileStat.st_size, 1, fp );
+            if (read_sz == fileStat.st_size) {
+                buf[fileStat.st_size] = '\0';
+                impl_->content = string(buf.get(), fileStat.st_size);
 
-            ParseContent(impl_->content);
+                ParseContent(impl_->content);
+            } else {
+                ret = false;
+            }
         } else {
             ret = false;
             //QLErr("fstat fail. file %s errno %d %s", impl_->file.c_str(), errno, strerror(errno));

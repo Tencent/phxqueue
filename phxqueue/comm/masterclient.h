@@ -99,12 +99,15 @@ class MasterClient : public MasterClientBase {
         }
 
         std::vector<proto::Addr> addrs;
-        if (RetCode::RET_OK != (ret = GetCandidateAddrs(req, addrs))) {
-            QLErr("GetCandidateAddrs err %d route_key(%s)", ret, route_key.c_str());
-            return ret;
+        {
+            RetCode ret1;
+            if (RetCode::RET_OK != (ret1 = GetCandidateAddrs(req, addrs))) {
+                QLErr("GetCandidateAddrs err %d route_key(%s)", ret1, route_key.c_str());
+                return ret1;
+            }
         }
         if (!addrs.size()) {
-            QLErr("GetCandidateAddrs ret addr size 0");
+            QLErr("GetCandidateAddrs addr size 0");
             return RetCode::RET_ERR_LOGIC;
         }
 

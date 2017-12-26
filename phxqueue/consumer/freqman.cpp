@@ -412,9 +412,6 @@ void FreqMan::Judge(const int vpid, bool &need_block, bool &need_freqlimit,
         return;
     }
 
-    if (!nhandle_limit) {
-        return;
-    }
     need_freqlimit = true;
 
     nhandle_per_get_recommand = limit_info.nhandle_per_get_recommand;

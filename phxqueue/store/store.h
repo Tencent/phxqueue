@@ -41,7 +41,9 @@ class CheckPointStatMgr;
 
 class StoreContext final {
   public:
-    StoreContext() {}
+    StoreContext() {
+        result = comm::RetCode::RET_OK;
+    }
     ~StoreContext() {}
 
     comm::RetCode result;

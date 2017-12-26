@@ -42,13 +42,13 @@ class CpuInfo {
     unsigned long long hardirq{0};
     unsigned long long softirq{0};
 
-    unsigned long long userate;
-    unsigned long long sysrate;
-    unsigned long long iowaitrate;
-    unsigned long long hardirqrate;
-    unsigned long long softirqrate;
+    unsigned long long userate{0};
+    unsigned long long sysrate{0};
+    unsigned long long iowaitrate{0};
+    unsigned long long hardirqrate{0};
+    unsigned long long softirqrate{0};
 
-    unsigned long long usage;
+    unsigned long long usage{0};
 };
 
 class CpuRate {
