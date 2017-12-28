@@ -29,17 +29,21 @@ class StoreService;
 
 class StoreDispatcher {
   public:
-    static const phxrpc::HttpDispatcher< StoreDispatcher >::URIFuncMap &GetURIFuncMap();
+    static const phxrpc::BaseDispatcher<StoreDispatcher>::MqttFuncMap &GetMqttFuncMap();
+    static const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &GetURIFuncMap();
 
     StoreDispatcher(StoreService &service, phxrpc::DispatcherArgs_t *dispatcher_args);
 
-    ~StoreDispatcher();
+    virtual ~StoreDispatcher();
 
-    int PHXEcho(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response);
+    int PhxEcho(const phxrpc::BaseRequest *const req,
+                phxrpc::BaseResponse *const resp);
 
-    int Add(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response);
+    int Add(const phxrpc::BaseRequest *const req,
+            phxrpc::BaseResponse *const resp);
 
-    int Get(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response);
+    int Get(const phxrpc::BaseRequest *const req,
+            phxrpc::BaseResponse *const resp);
 
   private:
     StoreService &service_;

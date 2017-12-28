@@ -27,7 +27,7 @@ StoreServiceImpl::StoreServiceImpl(ServiceArgs_t &app_args) : args_(app_args), s
 
 StoreServiceImpl::~StoreServiceImpl() {}
 
-int StoreServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
+int StoreServiceImpl::PhxEcho(const google::protobuf::StringValue &req,
                               google::protobuf::StringValue *resp) {
     resp->set_value(req.value());
     return 0;

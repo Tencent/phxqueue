@@ -34,10 +34,10 @@ void SchedulerStub::SetKeepAlive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
-int SchedulerStub::PHXEcho(const google::protobuf::StringValue &req,
+int SchedulerStub::PhxEcho(const google::protobuf::StringValue &req,
                            google::protobuf::StringValue *resp) {
     phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.scheduler/PHXEcho", -1);
+    caller.SetURI("/phxqueue_phxrpc.scheduler/PhxEcho", -1);
     caller.SetKeepAlive(keep_alive_);
     return caller.Call(req, resp);
 }

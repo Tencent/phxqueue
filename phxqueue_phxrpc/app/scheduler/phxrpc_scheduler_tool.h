@@ -37,7 +37,7 @@ class SchedulerTool {
     SchedulerTool();
     virtual ~SchedulerTool();
 
-    virtual int PHXEcho(phxrpc::OptMap &bigmap);
+    virtual int PhxEcho(phxrpc::OptMap &bigmap);
 
     virtual int GetAddrScale(phxrpc::OptMap &bigmap);
 
@@ -52,7 +52,7 @@ class SchedulerTool {
 
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
-            { "PHXEcho", &SchedulerTool::PHXEcho, "c:f:vs:", "-s <string>" },
+            { "PhxEcho", &SchedulerTool::PhxEcho, "c:f:vs:", "-s <string>" },
             { NULL, NULL }
         };
 

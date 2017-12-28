@@ -33,7 +33,7 @@ class SchedulerClientUThread {
     SchedulerClientUThread(phxrpc::UThreadEpollScheduler *uthread_scheduler);
     virtual ~SchedulerClientUThread();
 
-    int PHXEcho(const google::protobuf::StringValue &req,
+    int PhxEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
     int PhxBatchEcho(const google::protobuf::StringValue &req,

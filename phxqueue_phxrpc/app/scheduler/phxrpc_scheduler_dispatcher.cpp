@@ -34,75 +34,86 @@ SchedulerDispatcher::SchedulerDispatcher(SchedulerService &service, phxrpc::Disp
 
 SchedulerDispatcher::~SchedulerDispatcher() {}
 
-const phxrpc::HttpDispatcher< SchedulerDispatcher >::URIFuncMap &SchedulerDispatcher::GetURIFuncMap() {
-    static phxrpc::HttpDispatcher< SchedulerDispatcher >::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.scheduler/PHXEcho", &SchedulerDispatcher::PHXEcho},
+const phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap &
+SchedulerDispatcher::GetMqttFuncMap() {
+    static phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap mqtt_func_map = {};
+    return mqtt_func_map;
+}
+
+const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &
+SchedulerDispatcher::GetURIFuncMap() {
+    static phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
+        {"/phxqueue_phxrpc.scheduler/PhxEcho", &SchedulerDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
     return uri_func_map;
 }
 
-int SchedulerDispatcher::PHXEcho(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
+int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
+                                 phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    google::protobuf::StringValue req;
-    google::protobuf::StringValue resp;
+    google::protobuf::StringValue req_pb;
+    google::protobuf::StringValue resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.PHXEcho(req, &resp);
+        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
 
     return ret;
 }
 
-int SchedulerDispatcher::GetAddrScale(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
+int SchedulerDispatcher::GetAddrScale(const phxrpc::BaseRequest *const req,
+                                      phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(1, "GetAddrScale", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    phxqueue::comm::proto::GetAddrScaleRequest req;
-    phxqueue::comm::proto::GetAddrScaleResponse resp;
+    phxqueue::comm::proto::GetAddrScaleRequest req_pb;
+    phxqueue::comm::proto::GetAddrScaleResponse resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.GetAddrScale(req, &resp);
+        if (0 == ret) ret = service_.GetAddrScale(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 

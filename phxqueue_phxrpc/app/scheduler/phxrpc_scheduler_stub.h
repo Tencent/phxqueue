@@ -40,7 +40,7 @@ class SchedulerStub {
 
     void SetKeepAlive(const bool keep_alive);
 
-    int PHXEcho(const google::protobuf::StringValue &req,
+    int PhxEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
     int GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,

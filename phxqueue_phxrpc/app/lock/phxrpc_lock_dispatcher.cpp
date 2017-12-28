@@ -34,76 +34,87 @@ LockDispatcher::LockDispatcher(LockService &service, phxrpc::DispatcherArgs_t *d
 
 LockDispatcher::~LockDispatcher() {}
 
-const phxrpc::HttpDispatcher<LockDispatcher>::URIFuncMap &LockDispatcher::GetURIFuncMap() {
-    static phxrpc::HttpDispatcher< LockDispatcher >::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.lock/PHXEcho", &LockDispatcher::PHXEcho},
+const phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap &
+LockDispatcher::GetMqttFuncMap() {
+    static phxrpc::BaseDispatcher<LockDispatcher>::MqttFuncMap mqtt_func_map = {};
+    return mqtt_func_map;
+}
+
+const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &
+LockDispatcher::GetURIFuncMap() {
+    static phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap uri_func_map = {
+        {"/phxqueue_phxrpc.lock/PhxEcho", &LockDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.lock/GetLockInfo", &LockDispatcher::GetLockInfo},
         {"/phxqueue_phxrpc.lock/AcquireLock", &LockDispatcher::AcquireLock}};
     return uri_func_map;
 }
 
-int LockDispatcher::PHXEcho(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
+int LockDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
+                            phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
 
     int ret{0};
 
-    google::protobuf::StringValue req;
-    google::protobuf::StringValue resp;
+    google::protobuf::StringValue req_pb;
+    google::protobuf::StringValue resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                        request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.PHXEcho(req, &resp);
+        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
 
     return ret;
 }
 
-int LockDispatcher::GetLockInfo(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
+int LockDispatcher::GetLockInfo(const phxrpc::BaseRequest *const req,
+                                phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(1, "GetLockInfo", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    phxqueue::comm::proto::GetLockInfoRequest req;
-    phxqueue::comm::proto::GetLockInfoResponse resp;
+    phxqueue::comm::proto::GetLockInfoRequest req_pb;
+    phxqueue::comm::proto::GetLockInfoResponse resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.GetLockInfo(req, &resp);
+        if (0 == ret) ret = service_.GetLockInfo(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 
@@ -112,33 +123,35 @@ int LockDispatcher::GetLockInfo(const phxrpc::HttpRequest &request, phxrpc::Http
     return ret;
 }
 
-int LockDispatcher::AcquireLock(const phxrpc::HttpRequest &request, phxrpc::HttpResponse *response) {
+int LockDispatcher::AcquireLock(const phxrpc::BaseRequest *const req,
+                                phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(2, "AcquireLock", 1);
 
-    int ret = 0;
+    int ret{0};
 
-    phxqueue::comm::proto::AcquireLockRequest req;
-    phxqueue::comm::proto::AcquireLockResponse resp;
+    phxqueue::comm::proto::AcquireLockRequest req_pb;
+    phxqueue::comm::proto::AcquireLockResponse resp_pb;
 
-    //unpack request
+    // unpack request
     {
-        if (!req.ParseFromString(request.GetContent())) {
+        if (!req_pb.ParseFromString(req->GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                request.GetContent().size(), request.GetClientIP());
-            return -1 *EINVAL;
+                        req->GetContent().size(), req->GetClientIP());
+            return -EINVAL;
         }
     }
 
-    //logic process
+    // logic process
     {
-        if (0 == ret) ret = service_.AcquireLock(req, &resp);
+        if (0 == ret) ret = service_.AcquireLock(req_pb, &resp_pb);
     }
 
-    //pack response
+    // pack response
     {
-        if (!resp.SerializeToString(&(response->GetContent()))) {
-            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s", request.GetClientIP());
-            return -1 *ENOMEM;
+        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
+            phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
+                        req->GetClientIP());
+            return -ENOMEM;
         }
     }
 

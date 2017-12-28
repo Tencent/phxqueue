@@ -40,7 +40,7 @@ class StoreStub {
 
     void SetKeepAlive(const bool keep_alive);
 
-    int PHXEcho(const google::protobuf::StringValue &req,
+    int PhxEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
     int Add(const phxqueue::comm::proto::AddRequest &req,

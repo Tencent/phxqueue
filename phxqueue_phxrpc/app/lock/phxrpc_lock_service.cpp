@@ -28,9 +28,9 @@ LockService::LockService() {}
 
 LockService::~LockService() {}
 
-int LockService::PHXEcho(const google::protobuf::StringValue &/* req */,
+int LockService::PhxEcho(const google::protobuf::StringValue &/* req */,
         google::protobuf::StringValue */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PHXEcho unimplemented");
+    phxrpc::log(LOG_ERR, "ERROR: PhxEcho unimplemented");
     return -1;
 }
 

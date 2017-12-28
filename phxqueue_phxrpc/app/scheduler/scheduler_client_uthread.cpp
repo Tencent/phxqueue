@@ -63,7 +63,7 @@ SchedulerClientUThread::SchedulerClientUThread(phxrpc::UThreadEpollScheduler *ut
 
 SchedulerClientUThread::~SchedulerClientUThread() {}
 
-int SchedulerClientUThread::PHXEcho(const google::protobuf::StringValue &req,
+int SchedulerClientUThread::PhxEcho(const google::protobuf::StringValue &req,
                                     google::protobuf::StringValue *resp) {
     const phxrpc::Endpoint_t *ep = global_schedulerclientuthread_config_.GetRandom();
 
@@ -76,7 +76,7 @@ int SchedulerClientUThread::PHXEcho(const google::protobuf::StringValue &req,
             socket.SetTimeout(global_schedulerclientuthread_config_.GetSocketTimeoutMS());
 
             SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()));
-            return stub.PHXEcho(req, resp);
+            return stub.PhxEcho(req, resp);
         }
     }
 
@@ -98,7 +98,7 @@ int SchedulerClientUThread::PhxBatchEcho(const google::protobuf::StringValue &re
                         *(global_schedulerclientuthread_monitor_.get()))) {
                     socket.SetTimeout(global_schedulerclientuthread_config_.GetSocketTimeoutMS());
                     SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()));
-                    int this_ret = stub.PHXEcho(req, resp);
+                    int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();
