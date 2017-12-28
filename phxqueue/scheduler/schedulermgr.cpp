@@ -18,8 +18,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 namespace {
 
+
 inline int LoadInfo2Load(const phxqueue::comm::proto::LoadInfo &loadinfo, const int load_use_proc_used_ratio) {
-    return (int)(loadinfo.cpu() * (1 + (load_use_proc_used_ratio ? loadinfo.proc_used_ratio() : 0) / 100.0));
+    double x = loadinfo.proc_used_ratio() / 100.0;
+    //x = x * x * x;
+    return (int)(loadinfo.cpu() * (1 + x * load_use_proc_used_ratio));
 }
 
 
@@ -760,10 +763,12 @@ comm::RetCode SchedulerMgr::AdjustScale(const int topic_id, TopicData &topic_dat
         const string consumer_addr_string{comm::utils::EncodedAddrToIPString(consumer_addr)};
         auto &&consumer_info(consumer_addr2info_kv.second);
 
-        int new_weight{consumer_info.weight};
+        int new_weight{consumer_info.init_weight};
         if (consumer_info.live) {
-            new_weight = NextConsumerWeight(topic_config, consumer_info.sticky_load,
-                                            mean_load, consumer_info.init_weight);
+            if (!topic_config->GetProto().topic().scheduler_use_init_weight()) {
+                new_weight = NextConsumerWeight(topic_config, consumer_info.sticky_load,
+                                                mean_load, consumer_info.init_weight);
+            }
             consumer_addr2preview_map.emplace(consumer_addr, new_weight);
         } else {
             new_weight = 0;
@@ -939,4 +944,3 @@ void SchedulerMgr::TraceMap(const int topic_id, const TopicData &topic_data) {
 }  // namespace scheduler
 
 }  // namespace phxqueue
-
