@@ -36,6 +36,7 @@ class StoreServerConfig {
     const char *GetPhxQueueGlobalConfigPath() const;
     int GetPaxosPort() const;
     int GetNPaxosIOThread() const;
+    int GetNGroup() const;
 
   private:
     phxrpc::HshaServerConfig ep_server_config_;
@@ -45,6 +46,7 @@ class StoreServerConfig {
     char phxqueue_global_config_path_[128];
     int paxos_port_;
     int npaxos_iothread_;
+    int ngroup_;
 
 };
 

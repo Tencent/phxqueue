@@ -54,6 +54,7 @@ static int MakeArgs(StoreServerConfig &config, ServiceArgs_t &args) {
     opt.port = config.GetHshaServerConfig().GetPort();
     opt.paxos_port = config.GetPaxosPort();
     opt.npaxos_iothread = config.GetNPaxosIOThread();
+    opt.ngroup = config.GetNGroup();
     opt.log_func = g_log_func;
 
     string phxqueue_global_config_path(config.GetPhxQueueGlobalConfigPath());
