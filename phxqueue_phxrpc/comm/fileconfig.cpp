@@ -73,7 +73,7 @@ bool FileConfig::Read() {
         if (0 == fstat( fileno( fp ), &fileStat)) {
             unique_ptr<char[]> buf = unique_ptr<char[]>(new char[fileStat.st_size + 64]);
 
-            auto read_sz = fread(buf.get(), fileStat.st_size, 1, fp );
+            auto read_sz = fread(buf.get(), 1, fileStat.st_size, fp );
             if (read_sz == fileStat.st_size) {
                 buf[fileStat.st_size] = '\0';
                 impl_->content = string(buf.get(), fileStat.st_size);
