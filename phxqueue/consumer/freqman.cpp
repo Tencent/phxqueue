@@ -196,6 +196,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
         return ret;
     }
     const int batch_limit = topic_config->GetProto().topic().batch_limit();
+    const int max_sleep_ms_per_get_recommand_on_freq_limit = topic_config->GetProto().topic().consumer_max_sleep_ms_per_get_recommand_on_freq_limit();
 
     shared_ptr<const config::StoreConfig> store_config;
     if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetStoreConfig(impl_->topic_id, store_config))) {
@@ -347,7 +348,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
             while (l <= r) {
                 nhandle_per_get_recommand = (l + r) / 2;
                 sleep_ms_per_get_recommand = 1000.0 * diff_time_s / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
-                if (sleep_ms_per_get_recommand > 500) {
+                if (sleep_ms_per_get_recommand > max_sleep_ms_per_get_recommand_on_freq_limit) {
                     r = nhandle_per_get_recommand - 1;
                 } else {
                     l = nhandle_per_get_recommand + 1;
@@ -361,7 +362,8 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
               sleep_ms_per_get_recommand = 1000.0 * diff_time_s / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
             */
 
-            if (nhandle_per_get_recommand == batch_min && sleep_ms_per_get_recommand > 500) sleep_ms_per_get_recommand = 500;
+            if (nhandle_per_get_recommand == batch_min && sleep_ms_per_get_recommand > max_sleep_ms_per_get_recommand_on_freq_limit)
+                sleep_ms_per_get_recommand = max_sleep_ms_per_get_recommand_on_freq_limit;
 
             for (int vpid{0}; vpid < opt->nprocs; ++vpid) {
                 auto &&queue = queues[vpid];
