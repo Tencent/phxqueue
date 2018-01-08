@@ -270,6 +270,9 @@ class Consumer : public comm::MultiProc {
     // Step 2-4 memtioned above in the process of pull thread.
     comm::RetCode Process(comm::proto::ConsumerContext &cc);
 
+    // Worker process suicide when process count more than consumer_max_loop_per_proc, refer to phxqueue/config/proto/topicconfig.proto.
+    void CheckMaxLoop(const int vpid);
+
     // Worker process suicide when rss used more than consumer_max_mem_size_mb_per_proc, refer to phxqueue/config/proto/topicconfig.proto.
     void CheckMem(const int vpid);
 

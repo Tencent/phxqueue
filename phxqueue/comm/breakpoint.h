@@ -54,6 +54,10 @@ class ConsumerBP {
     virtual void OnMemCheckUnpass(const int topic_id) {}
     virtual void OnMemCheckPass(const int topic_id) {}
 
+    virtual void OnMaxLoopCheck(const int topic_id) {}
+    virtual void OnMaxLoopCheckUnpass(const int topic_id) {}
+    virtual void OnMaxLoopCheckPass(const int topic_id) {}
+
     virtual void OnConsume(const proto::ConsumerContext &cc, const std::vector<std::shared_ptr<proto::QItem>> &items) {}
     virtual void OnConsumeSucc(const proto::ConsumerContext &cc, const std::vector<std::shared_ptr<proto::QItem>> &items,
                                const std::vector<HandleResult> &handle_results) {}

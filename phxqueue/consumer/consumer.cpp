@@ -82,6 +82,7 @@ class Consumer::ConsumerImpl {
 	stCoCond_t *cond = nullptr;
     int nhandle_task_finished = 0;
     int nbatch_handle_task_finished = 0;
+
 };
 
 Consumer::Consumer(const ConsumerOption &opt) : impl_(new ConsumerImpl()) {
@@ -495,6 +496,8 @@ void Consumer::ChildRun(const int vpid) {
 
     while (true) {
 
+        CheckMaxLoop(vpid);
+
         CheckMem(vpid);
 
         BeforeLock(cc);
@@ -879,6 +882,33 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
     return comm::RetCode::RET_OK;
 }
 
+void Consumer::CheckMaxLoop(const int vpid) {
+    comm::RetCode ret;
+
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(impl_->topic_id, topic_config))) {
+        QLErr("GetTopicConfigByTopicID ret %d topic_id %d", comm::as_integer(ret), impl_->topic_id);
+        return;
+    }
+
+    static uint32_t nloop = 0;
+    ++nloop;
+
+    if (0 == nloop % 100) {
+        QLInfo("nloop %u", nloop);
+    }
+    
+    auto consumer_max_loop_per_proc = topic_config->GetProto().topic().consumer_max_loop_per_proc();
+    uint32_t fixed_limit = consumer_max_loop_per_proc + consumer_max_loop_per_proc / 100.0 * (vpid % 20);
+    if (consumer_max_loop_per_proc && nloop > fixed_limit) {
+        comm::ConsumerBP::GetThreadInstance()->OnMaxLoopCheckUnpass(impl_->topic_id);
+        QLInfo("nloop(%u) > fixed_limit(%u), kill it, consumer_max_loop_per_proc %u", nloop, fixed_limit, consumer_max_loop_per_proc);
+        nloop = 0;
+        exit(-1);
+    }
+    comm::ConsumerBP::GetThreadInstance()->OnMaxLoopCheckPass(impl_->topic_id);
+}
+
 void Consumer::CheckMem(const int vpid) {
     comm::RetCode ret;
 
@@ -904,15 +934,17 @@ void Consumer::CheckMem(const int vpid) {
         if (mem_stat.resident > mem_stat.share) {
             auto mem_size = (mem_stat.resident - mem_stat.share) / 256;
             QLInfo("mem_size %d mem_size_limit %d", mem_size, mem_size_limit);
-            if (mem_size > mem_size_limit + mem_size_limit / 100.0 * (vpid % 20)) {
+            uint32_t fixed_limit = mem_size_limit + mem_size_limit / 100.0 * (vpid % 20);
+            if (mem_size > fixed_limit) {
                 comm::ConsumerBP::GetThreadInstance()->OnMemCheckUnpass(impl_->topic_id);
 
-                QLErr("ERR: memory size %u > %u MB, kill it, res %lu, share %lu, size %lu",
+                QLErr("ERR: memory size %u > %u MB, kill it, res %lu, share %lu, size %lu, mem_size_limit %u",
                       mem_size,
-                      mem_size_limit,
+                      fixed_limit,
                       mem_stat.resident,
                       mem_stat.share,
-                      mem_stat.size);
+                      mem_stat.size,
+                      mem_size_limit);
                 exit(-1);
             }
         }
