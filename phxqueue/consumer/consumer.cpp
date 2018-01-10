@@ -189,7 +189,6 @@ comm::RetCode Consumer::MakeHandleBuckets() {
         return ret;
     }
 
-
     int nbucket_used{0};
     map<uint64_t, int> uin2bucket_idx;
     int max_sz = -1;
@@ -496,10 +495,6 @@ void Consumer::ChildRun(const int vpid) {
 
     while (true) {
 
-        CheckMaxLoop(vpid);
-
-        CheckMem(vpid);
-
         BeforeLock(cc);
 
         comm::ConsumerBP::GetThreadInstance()->OnLock(cc.topic_id());
@@ -525,6 +520,9 @@ void Consumer::ChildRun(const int vpid) {
         QLInfo("QUEUEINFO: vpid %u sub_id %d store_id %d queue_id %d", vpid, cc.sub_id(), cc.store_id(), cc.queue_id());
 
         AfterLock(cc);
+
+        CheckMaxLoop(vpid);
+        CheckMem(vpid);
 
         comm::ConsumerBP::GetThreadInstance()->OnProcess(cc);
 
@@ -626,7 +624,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
         int nhandle_per_get_recommand = 0, sleep_ms_per_get_recommand = 0;
         impl_->freq.Judge(impl_->vpid, need_block, need_freqlimit, nhandle_per_get_recommand, sleep_ms_per_get_recommand);
         if (need_block) {
-            QLInfo("vpid %d need_block", impl_->vpid);
+            QLVerb("vpid %d need_block", impl_->vpid);
             usleep(10000);
             continue;
         }
@@ -634,14 +632,15 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
         if (last_loop_time) {
             loop_spend_time_ms = now - last_loop_time;
         }
-        last_loop_time = now;
-
 
         if (need_freqlimit) {
-            QLInfo("vpid %d need_freqlimit. get %d sleep %d spend %d", impl_->vpid, nhandle_per_get_recommand, sleep_ms_per_get_recommand, loop_spend_time_ms);
+            QLInfo("vpid %d need_freqlimit. topic %d sub_id %d store_id %d queue_id %d get %d sleep %d spend %d",
+                   impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id(),
+                   nhandle_per_get_recommand, sleep_ms_per_get_recommand, loop_spend_time_ms);
             if (sleep_ms_per_get_recommand > loop_spend_time_ms) usleep((sleep_ms_per_get_recommand - loop_spend_time_ms)* 1000);
         }
 
+        last_loop_time = comm::utils::Time::GetSteadyClockMS();
 
         comm::proto::GetRequest req;
         comm::proto::GetResponse resp;
@@ -654,10 +653,9 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
         {
             uint64_t custom_prev_cursor_id = req.prev_cursor_id();
             uint64_t custom_next_cursor_id = req.next_cursor_id();
+
             int custom_limit = req.limit();
-
             CustomGetRequest(cc, req, custom_prev_cursor_id, custom_next_cursor_id, custom_limit);
-
             req.set_prev_cursor_id(custom_prev_cursor_id);
             req.set_next_cursor_id(custom_next_cursor_id);
             if (custom_limit >= 0 && custom_limit <= req.limit()) {
@@ -703,11 +701,10 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
         if (0 == resp.items_size()) {
             comm::ConsumerBP::GetThreadInstance()->OnGetNoItem(cc);
-            usleep(sleep_us_on_get_no_item + (sleep_us_on_get_no_item ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_no_item : 0));
-            continue;
+            if (!need_freqlimit) usleep(sleep_us_on_get_no_item + (sleep_us_on_get_no_item ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_no_item : 0));
         }
 
-        if (sleep_us_per_get) {
+        if (!need_freqlimit && sleep_us_per_get) {
             comm::ConsumerBP::GetThreadInstance()->OnSleepAfterGet(cc);
             usleep(sleep_us_per_get + (sleep_us_per_get ? comm::utils::OtherUtils::FastRand() % sleep_us_per_get : 0));
         }
@@ -730,16 +727,20 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
             comm::ConsumerBP::GetThreadInstance()->OnDropAll(cc, items);
         } else {
             vector<comm::HandleResult> &handle_results = impl_->handle_results;
-            if (comm::RetCode::RET_OK != (ret = Consume(cc, items, handle_results))) {
-                QLErr("BatchHandle ret %d", comm::as_integer(ret));
+            handle_results.clear();
+
+            if (items.size()) {
+                if (comm::RetCode::RET_OK != (ret = Consume(cc, items, handle_results))) {
+                    QLErr("BatchHandle ret %d", comm::as_integer(ret));
+                }
             }
 
             AfterConsume(cc, items, handle_results);
         }
 
-        if (resp.items_size() < queue_info->get_size_too_small_threshold()) {
+        if (items.size() && items.size() < queue_info->get_size_too_small_threshold()) {
             comm::ConsumerBP::GetThreadInstance()->OnGetSizeTooSmall(cc, items);
-            usleep(sleep_us_on_get_size_too_small + (sleep_us_on_get_size_too_small ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_size_too_small : 0));
+            if (!need_freqlimit) usleep(sleep_us_on_get_size_too_small + (sleep_us_on_get_size_too_small ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_size_too_small : 0));
         }
     }
 

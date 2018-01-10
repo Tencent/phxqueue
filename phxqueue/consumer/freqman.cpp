@@ -46,6 +46,7 @@ using namespace std;
 #define MAX_VPID 10000
 #define MAX_HANDLE_ID_NUM 1000
 
+
 struct LimitInfo_t {
     int nhandle_limit;
     int nhandle_per_get_recommand;
@@ -80,7 +81,7 @@ comm::RetCode FreqMan::Init(const int topic_id, Consumer *consumer) {
     impl_->topic_id = topic_id;
     impl_->consumer = consumer;
 
-    impl_->last_update_time = time(nullptr);
+    impl_->last_update_time = comm::utils::Time::GetSteadyClockMS();
 
     impl_->shm = (FreqManShm_t *)mmap(nullptr, sizeof(FreqManShm_t), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     if (MAP_FAILED == impl_->shm) {
@@ -122,7 +123,6 @@ void FreqMan::UpdateConsumeStat(const int vpid, const comm::proto::ConsumerConte
     }
 
     ++consume_stat.nget;
-    ++consume_stat.nhandle_tot += items.size();
 
     for (auto &&item : items) {
         if (impl_->consumer->SkipHandle(cc, *item)) continue;
@@ -136,6 +136,7 @@ void FreqMan::UpdateConsumeStat(const int vpid, const comm::proto::ConsumerConte
             QLErr("handle_id %d rank(%d) > MAX_HANDLE_ID_NUM(%d)", item->meta().handle_id(), rank, MAX_HANDLE_ID_NUM);
             continue;
         }
+        ++consume_stat.nhandle_tot;
         ++consume_stat.handle_id_rank2nhandle[rank];
     }
     QLVerb("consume_stat nget %d nhandle_tot %d", consume_stat.nget, consume_stat.nhandle_tot);
@@ -184,8 +185,9 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
     QLVerb("start");
 
     comm::RetCode ret;
-    uint64_t now = time(nullptr);
-    uint64_t diff_time_s = now - impl_->last_update_time;
+
+    uint64_t now = comm::utils::Time::GetSteadyClockMS();
+    uint64_t diff_time_ms = now - impl_->last_update_time;
     impl_->last_update_time = now;
 
     auto &&opt(impl_->consumer->GetConsumerOption());
@@ -316,10 +318,10 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
             if (-1 == handle_id_rank) nhandle += consume_stat.nhandle_tot;
             else nhandle += consume_stat.handle_id_rank2nhandle[handle_id_rank];
         }
-        QLVerb("proc_used %d nget nhandle_tot nhandle", proc_used, nget, nhandle_tot, nhandle);
+        QLVerb("proc_used %d nget %d nhandle_tot %d nhandle %d", proc_used, nget, nhandle_tot, nhandle);
         if (!proc_used || !nget || !nhandle_tot || !nhandle) continue;
 
-        int limit_per_proc = (int)((double)limit_per_min / 60 * diff_time_s / proc_tot);
+        int limit_per_proc = (int)((double)limit_per_min / 60 * diff_time_ms / 1000.0 / proc_tot);
         double handled_pct_per_proc = (double)nhandle / proc_used / limit_per_proc;
         double handle_rate = (double)nhandle / nhandle_tot;
         int nhandle_limit = limit_per_proc / handle_rate;
@@ -339,7 +341,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
         pub_sub_queue_info_id2max_handle_pct[key] = handled_pct_per_proc;
 
         {
-            const int batch_min = 10; // minimal batchget
+            const int batch_min = 1; // minimal batchget
 
 
             int l = batch_min;
@@ -347,7 +349,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
             if (l > r) l = r;
             while (l <= r) {
                 nhandle_per_get_recommand = (l + r) / 2;
-                sleep_ms_per_get_recommand = 1000.0 * diff_time_s / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
+                sleep_ms_per_get_recommand = diff_time_ms / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
                 if (sleep_ms_per_get_recommand > max_sleep_ms_per_get_recommand_on_freq_limit) {
                     r = nhandle_per_get_recommand - 1;
                 } else {
@@ -359,11 +361,14 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
               nhandle_per_get_recommand = nhandle_tot / nget;
               if (nhandle_per_get_recommand < batch_min) nhandle_per_get_recommand = batch_min;
               if (nhandle_per_get_recommand > batch_limit) nhandle_per_get_recommand = batch_limit;
-              sleep_ms_per_get_recommand = 1000.0 * diff_time_s / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
+              sleep_ms_per_get_recommand = diff_time_ms / (limit_per_proc / (nhandle_per_get_recommand * handle_rate));
             */
 
+            /*
             if (nhandle_per_get_recommand == batch_min && sleep_ms_per_get_recommand > max_sleep_ms_per_get_recommand_on_freq_limit)
                 sleep_ms_per_get_recommand = max_sleep_ms_per_get_recommand_on_freq_limit;
+            */
+
 
             for (int vpid{0}; vpid < opt->nprocs; ++vpid) {
                 auto &&queue = queues[vpid];
@@ -372,11 +377,16 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
                       valid_store_ids.end() != valid_store_ids.find(queue.store_id) &&
                       valid_queue_ids.end() != valid_queue_ids.find(queue.queue_id))) continue;
 
+                auto &&consume_stat = impl_->shm->consume_stats[vpid];
+                double prop = consume_stat.handle_id_rank2nhandle[handle_id_rank] / ((double)nhandle / proc_used);
+                if (prop < 0.1) prop = 0.1;
+
                 auto &&limit_info = impl_->shm->limit_infos[vpid];
                 updated[vpid] = true;
                 limit_info.nhandle_limit = nhandle_limit;
                 limit_info.nhandle_per_get_recommand = nhandle_per_get_recommand;
-                limit_info.sleep_ms_per_get_recommand = sleep_ms_per_get_recommand;
+                limit_info.sleep_ms_per_get_recommand = sleep_ms_per_get_recommand / prop;
+                if (!limit_info.sleep_ms_per_get_recommand) limit_info.sleep_ms_per_get_recommand = 1;
             }
         }
     }
@@ -409,19 +419,23 @@ void FreqMan::Judge(const int vpid, bool &need_block, bool &need_freqlimit,
 
     if (!nhandle_limit) return;
 
-    if (nhandle_tot >= nhandle_limit) {
+/*
+    if (nhandle_tot > nhandle_limit) {
+        QLErr("vpid %d need_block nhandle_tot %d nhandle_limit %d", vpid, nhandle_tot, nhandle_limit);
         need_block = true;
         return;
     }
+*/
 
     need_freqlimit = true;
 
     nhandle_per_get_recommand = limit_info.nhandle_per_get_recommand;
     sleep_ms_per_get_recommand = limit_info.sleep_ms_per_get_recommand;
-
+/*
     if (nhandle_per_get_recommand > nhandle_limit - nhandle_tot) {
         nhandle_per_get_recommand = nhandle_limit - nhandle_tot;
     }
+*/
 }
 
 
