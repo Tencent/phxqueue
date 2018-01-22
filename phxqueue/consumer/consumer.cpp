@@ -877,8 +877,15 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
 
     comm::ConsumerConsumeBP::GetThreadInstance()->OnHandleEnd(impl_->cc, item, handle_result);
 
-    QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
-           item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.sub_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result);
+    auto &&client_id = item.meta().client_id();
+    if (client_id.empty()) {
+        QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
+               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.sub_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result);
+    } else {
+        QLInfo("Handle handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d client_id %s",
+               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.sub_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result,
+               client_id.c_str());
+    }
 
     return comm::RetCode::RET_OK;
 }
