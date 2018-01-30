@@ -52,7 +52,6 @@ message Topic {
     optional int32 consumer_max_mem_size_mb_per_proc = 602 [default = 300]; // consumer process suicide when memory reach consumer_max_mem_size_mb_per_proc.
     repeated int32 consumer_ignore_sub_ids = 603; // sub_id list that consumer do not handle.
     optional int32 consumer_lock_interval_s = 604 [default = 20]; // interval time of consumer refresh lease. must be less than consumer_lock_lease_time_s. (default value recommanded)
-    optional int32 consumer_max_sleep_ms_per_get_recommand_on_freq_limit = 605 [default = 200]; // max sleep ms on freq limit. (default value recommanded)
     optional int32 consumer_max_loop_per_proc = 606 [default = 0]; // consumer process suicide when process count reach consumer_max_loop_per_proc.
 
     // ------------------ producer general config ------------------

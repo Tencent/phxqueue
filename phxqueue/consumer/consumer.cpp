@@ -565,7 +565,7 @@ void Consumer::UpdateConsumerContextByGetResponse(const comm::proto::GetResponse
 
 comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
-    QLVerb("cc.sub_id %d cc.store_id %d cc.queue_id %d", cc.sub_id(), cc.store_id(), cc.queue_id());
+    QLInfo("cc.sub_id %d cc.store_id %d cc.queue_id %d", cc.sub_id(), cc.store_id(), cc.queue_id());
 
     comm::RetCode ret;
 
@@ -605,8 +605,19 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
     }
 
     auto start_loop_time = comm::utils::Time::GetSteadyClockMS();
-    uint64_t last_loop_time = 0;
-    int loop_spend_time_ms = 0;
+
+
+    static double freq_quota = 0;
+    static uint64_t last_fill_time = 0;
+
+    static uint64_t last_topic_config_mod_time = 0;
+    {
+        auto new_topic_config_mod_time = topic_config->GetLastModTime();
+        if (last_topic_config_mod_time != new_topic_config_mod_time) {
+            last_topic_config_mod_time = new_topic_config_mod_time;
+            if (freq_quota > 0) freq_quota = 0;
+        }
+    }
 
     while (true) {
         comm::ConsumerBP::GetThreadInstance()->OnLoop(cc);
@@ -620,34 +631,50 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
             return comm::RetCode::RET_OK;
         }
 
-        bool need_block = false, need_freqlimit = false;
-        int nhandle_per_get_recommand = 0, sleep_ms_per_get_recommand = 0;
-        impl_->freq.Judge(impl_->vpid, need_block, need_freqlimit, nhandle_per_get_recommand, sleep_ms_per_get_recommand);
-        if (need_block) {
-            QLVerb("vpid %d need_block", impl_->vpid);
-            usleep(10000);
-            continue;
-        }
-
-        if (last_loop_time) {
-            loop_spend_time_ms = now - last_loop_time;
-        }
-
-        if (need_freqlimit) {
-            QLInfo("vpid %d need_freqlimit. topic %d sub_id %d store_id %d queue_id %d get %d sleep %d spend %d",
-                   impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id(),
-                   nhandle_per_get_recommand, sleep_ms_per_get_recommand, loop_spend_time_ms);
-            if (sleep_ms_per_get_recommand > loop_spend_time_ms) usleep((sleep_ms_per_get_recommand - loop_spend_time_ms)* 1000);
-        }
-
-        last_loop_time = comm::utils::Time::GetSteadyClockMS();
-
         comm::proto::GetRequest req;
         comm::proto::GetResponse resp;
         MakeGetRequest(cc, *queue_info, limit, req);
 
-        if (need_freqlimit && nhandle_per_get_recommand < req.limit()) {
-            req.set_limit(nhandle_per_get_recommand);
+
+        bool need_block = false, need_freqlimit = false;
+        int nrefill = 0, refill_interval_ms = 0;
+        impl_->freq.Judge(impl_->vpid, need_block, need_freqlimit, nrefill, refill_interval_ms);
+        if (need_block) {
+            static uint64_t last_block_log_time = 0;
+            if (now > last_block_log_time + 100) {
+                QLInfo("vpid %d need_block. topic %d sub_id %d store_id %d queue_id %d", impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id());
+                last_block_log_time = now;
+            }
+            if (freq_quota > 0) freq_quota = nrefill;
+            last_fill_time = now;
+            usleep(5000);
+            continue;
+        }
+
+
+        if (need_freqlimit) {
+            if (0 == last_fill_time) {
+                freq_quota = nrefill;
+                last_fill_time = now;
+            } else if (now - last_fill_time >= refill_interval_ms) {
+                freq_quota += (double)(now - last_fill_time) / refill_interval_ms * nrefill;
+                last_fill_time = now;
+            }
+
+            if (freq_quota > 1e7) {
+                freq_quota = 1e7;
+            }
+
+            if (req.limit() > freq_quota) {
+                req.set_limit(freq_quota >= 0 ? (int)freq_quota : 0);
+            }
+
+            QLInfo("vpid %d need_freqlimit. topic %d sub_id %d store_id %d queue_id %d nrefill %d refill_interval_ms %d freq_quota %.2lf get_limit %u",
+                   impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id(),
+                   nrefill, refill_interval_ms, freq_quota, req.limit());
+        } else {
+            freq_quota = 0;
+            last_fill_time = 0;
         }
 
         {
@@ -678,6 +705,9 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
                comm::as_integer(ret), cc.topic_id(), cc.sub_id(), cc.store_id(), cc.queue_id(),
                resp.items_size(), (uint64_t)resp.prev_cursor_id(), (uint64_t)resp.next_cursor_id());
 
+        freq_quota -= resp.items_size();
+
+
         if (comm::RetCode::RET_OK != ret) {
             comm::ConsumerBP::GetThreadInstance()->OnGetFail(cc);
 
@@ -701,10 +731,10 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
         if (0 == resp.items_size()) {
             comm::ConsumerBP::GetThreadInstance()->OnGetNoItem(cc);
-            if (!need_freqlimit) usleep(sleep_us_on_get_no_item + (sleep_us_on_get_no_item ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_no_item : 0));
+            usleep(sleep_us_on_get_no_item + (sleep_us_on_get_no_item ? comm::utils::OtherUtils::FastRand() % sleep_us_on_get_no_item : 0));
         }
 
-        if (!need_freqlimit && sleep_us_per_get) {
+        if (sleep_us_per_get) {
             comm::ConsumerBP::GetThreadInstance()->OnSleepAfterGet(cc);
             usleep(sleep_us_per_get + (sleep_us_per_get ? comm::utils::OtherUtils::FastRand() % sleep_us_per_get : 0));
         }
