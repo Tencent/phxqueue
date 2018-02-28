@@ -87,23 +87,27 @@ static uint64_t SubIDs2Mask(const config::TopicConfig *topic_config, const set<i
 
 
 comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const int handle_id, const string &buffer,
-                          int pub_id, const set<int> *sub_ids) {
+                                int pub_id, const set<int> *sub_ids, const string client_id) {
 
     comm::RetCode ret;
 
     shared_ptr<const config::TopicConfig> topic_config;
     if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(topic_id, topic_config))) {
-        QLErr("GetTopicConfigByTopicID ret %d", as_integer(ret));
+        QLErr("GetTopicConfigByTopicID client_id %s ret %d", client_id.c_str(), as_integer(ret));
         return ret;
     }
 
     if (-1 == pub_id) DecidePubIDOnEnqueue(topic_id, uin, handle_id, pub_id);
     if (-1 == pub_id || !topic_config->IsValidPubID(pub_id)) {
-        QLErr("pub_id %d not decide or invalid", pub_id);
+        QLErr("pub_id %d client_id %s not decide or invalid", client_id.c_str(), pub_id);
         return comm::RetCode::RET_ERR_RANGE_PUB;
     }
 
-    QLVerb("Enqueue. topic_id %d uin %" PRIu64 " buffer.length() %d pub_id %d handle_id %d", topic_id, uin, buffer.length(), pub_id, handle_id);
+    if (client_id.empty()) {
+        QLVerb("Enqueue. topic_id %d uin %" PRIu64 " buffer.length() %d pub_id %d handle_id %d", topic_id, uin, buffer.length(), pub_id, handle_id);
+    } else {
+        QLInfo("Enqueue. topic_id %d uin %" PRIu64 " buffer.length() %d pub_id %d handle_id %d client_id %s", topic_id, uin, buffer.length(), pub_id, handle_id, client_id.c_str());
+    }
 
     comm::ProducerBP::GetThreadInstance()->OnEnqueue(topic_id, pub_id, handle_id, uin);
     comm::ProducerSubBP::GetThreadInstance()->OnSubDistribute(topic_id, pub_id, handle_id, uin, sub_ids);
@@ -134,6 +138,7 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     meta->set_uin(uin);
     meta->set_sub_ids(item->sub_ids());
     meta->set_pub_id(item->pub_id());
+    meta->set_client_id(client_id);
 
     {
         size_t h = crc32(0, Z_NULL, 0);
@@ -153,14 +158,14 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
 
     vector<unique_ptr<comm::proto::AddRequest> > reqs;
     if (comm::RetCode::RET_OK != (ret = MakeAddRequests(topic_id, items, reqs))) {
-        QLErr("MakeAddRequests ret %d", as_integer(ret));
+        QLErr("MakeAddRequests client_id %s ret %d", client_id.c_str(), as_integer(ret));
         return ret;
     }
 
     for (auto &&req : reqs) {
         if (comm::RetCode::RET_OK != (ret = SelectAndAdd(*req, nullptr, nullptr))) {
             comm::ProducerBP::GetThreadInstance()->OnSelectAndAddFail(topic_id, pub_id, handle_id, uin);
-            QLErr("SelectAndAdd ret %d", as_integer(ret));
+            QLErr("SelectAndAdd client_id %s ret %d", client_id.c_str(), as_integer(ret));
             return ret;
         }
     }
@@ -261,11 +266,21 @@ comm::RetCode Producer::MakeAddRequests(const int topic_id,
             }
 
 
-            NLInfo("add item. hash %" PRIu64 " sub_ids %" PRIu64 " pub_id %d store_id %d queue_id %d atime %u count %d",
-                   new_item->meta().hash(),
-                   new_item->sub_ids(), new_item->pub_id(),
-                   req->store_id(), req->queue_id(),
-                   new_item->atime(), new_item->count());
+            auto &&client_id = new_item->meta().client_id();
+            if (client_id.empty()) {
+                NLVerb("add item. hash %" PRIu64 " sub_ids %" PRIu64 " pub_id %d store_id %d queue_id %d atime %u count %d",
+                       new_item->meta().hash(),
+                       new_item->sub_ids(), new_item->pub_id(),
+                       req->store_id(), req->queue_id(),
+                       new_item->atime(), new_item->count());
+            } else {
+                NLInfo("add item. hash %" PRIu64 " sub_ids %" PRIu64 " pub_id %d store_id %d queue_id %d atime %u count %d client_id %s",
+                       new_item->meta().hash(),
+                       new_item->sub_ids(), new_item->pub_id(),
+                       req->store_id(), req->queue_id(),
+                       new_item->atime(), new_item->count(),
+                       new_item->meta().client_id().c_str());
+            }
 
             req->add_items()->Swap(new_item.get());
 

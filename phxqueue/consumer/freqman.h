@@ -32,7 +32,7 @@ class FreqMan {
     void UpdateConsumeStat(const int vpid, const comm::proto::ConsumerContext &cc,
                            const std::vector<std::shared_ptr<comm::proto::QItem>> &items);
     void Judge(const int vpid, bool &need_block, bool &need_freqlimit,
-               int &nhandle_per_get_recommand, int &sleep_ms_per_get_recommand);
+               int &nrefill, int &sleep_ms_per_get_recommand);
 
   private:
     void ClearAllConsumeStat();

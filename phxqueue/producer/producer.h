@@ -44,7 +44,7 @@ class Producer {
     // Interface for Data first enqueue.
     // Pack argument info item, add to Store by Store::Add.
     comm::RetCode Enqueue(const int topic_id, const uint64_t uin, const int handle_id, const std::string &buffer,
-                          int pub_id = -1, const std::set<int> *sub_ids = nullptr);
+                          int pub_id = -1, const std::set<int> *sub_ids = nullptr, const std::string client_id = "");
 
 
     // ------------------------ Interfaces used in Reenqueue scene  ------------------------
