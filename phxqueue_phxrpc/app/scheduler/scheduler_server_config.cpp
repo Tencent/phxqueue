@@ -27,9 +27,8 @@ SchedulerServerConfig::~SchedulerServerConfig() {}
 bool SchedulerServerConfig::Read(const char *config_file) {
     bool ret = ep_server_config_.Read(config_file);
 
-    if (strlen(ep_server_config_.GetPackageName()) == 0) {
-        ep_server_config_.SetPackageName(
-        phxqueue::comm::proto::GetAddrScaleRequest::default_instance().GetDescriptor()->file()->package().c_str());
+    if (0 == strlen(ep_server_config_.GetPackageName())) {
+        ep_server_config_.SetPackageName("phxqueue_phxrpc.scheduler");
     }
 
     // read Extra
@@ -38,7 +37,8 @@ bool SchedulerServerConfig::Read(const char *config_file) {
         return false;
     }
     ret &= config.ReadItem("Scheduler", "Topic", topic_, sizeof(topic_));
-    ret &= config.ReadItem("Scheduler", "PhxQueueGlobalConfigPath", phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
+    ret &= config.ReadItem("Scheduler", "PhxQueueGlobalConfigPath",
+                           phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
 
     return ret;
 }

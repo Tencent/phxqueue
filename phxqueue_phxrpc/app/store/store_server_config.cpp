@@ -28,7 +28,7 @@ StoreServerConfig::~StoreServerConfig() {}
 bool StoreServerConfig::Read(const char *config_file) {
     bool ret = ep_server_config_.Read(config_file);
 
-    if (strlen(ep_server_config_.GetPackageName()) == 0) {
+    if (0 == strlen(ep_server_config_.GetPackageName())) {
         ep_server_config_.SetPackageName("phxqueue_phxrpc.store");
     }
 
@@ -39,7 +39,8 @@ bool StoreServerConfig::Read(const char *config_file) {
     }
     ret &= config.ReadItem("Store", "Topic", topic_, sizeof(topic_));
     ret &= config.ReadItem("Store", "DataDirPath", data_dir_path_, sizeof(data_dir_path_));
-    ret &= config.ReadItem("Store", "PhxQueueGlobalConfigPath", phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
+    ret &= config.ReadItem("Store", "PhxQueueGlobalConfigPath",
+                           phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
     ret &= config.ReadItem("Store", "PaxosPort", &paxos_port_);
     ret &= config.ReadItem("Store", "NPaxosIOThread", &npaxos_iothread_);
     config.ReadItem("Store", "NGroup", &ngroup_, 100);
