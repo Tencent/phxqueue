@@ -28,9 +28,7 @@ bool LockServerConfig::Read(const char *config_file) {
     bool ret{ep_server_config_.Read(config_file)};
 
     if (0 == strlen(ep_server_config_.GetPackageName())) {
-        ep_server_config_.SetPackageName(phxqueue::comm::proto::GetLockInfoRequest::
-                                         default_instance().GetDescriptor()->
-                                         file()->package().c_str());
+        ep_server_config_.SetPackageName("phxqueue_phxrpc.lock");
     }
 
     // read Extra
@@ -40,7 +38,8 @@ bool LockServerConfig::Read(const char *config_file) {
     }
     ret &= config.ReadItem("Lock", "Topic", topic_, sizeof(topic_));
     ret &= config.ReadItem("Lock", "DataDirPath", data_dir_path_, sizeof(data_dir_path_));
-    ret &= config.ReadItem("Lock", "PhxQueueGlobalConfigPath", phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
+    ret &= config.ReadItem("Lock", "PhxQueueGlobalConfigPath",
+                           phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
     ret &= config.ReadItem("Lock", "PaxosPort", &paxos_port_);
 
     return ret;
