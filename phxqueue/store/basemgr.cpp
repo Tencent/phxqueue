@@ -164,6 +164,12 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
         return ret;
     }
 
+    shared_ptr<const config::proto::QueueInfo> queue_info;
+    if (comm::RetCode::RET_OK != (ret = topic_config->GetQueueInfoByQueue(req.queue_id(), queue_info))) {
+        QLErr("GetQueueInfoByQueue ret %d", as_integer(ret));
+        return ret;
+    }
+
     comm::StoreBaseMgrBP::GetThreadInstance()->OnGet(req);
 
     if (req.queue_id() >= impl_->store->GetStoreOption()->nqueue) {
@@ -313,7 +319,7 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
 
         for (auto &&item : items) {
-            if (impl_->store->SkipGet(item, req)) {
+            if (impl_->store->SkipGet(item, req) || topic_config->ShouldSkip(item, req.sub_id(), queue_info->queue_info_id())) {
                 comm::StoreBaseMgrBP::GetThreadInstance()->OnGetSkip(req, item);
                 QLVerb("skip item, uin %llu handle_id %d hash %" PRIu64
                        " sub_ids %llu, request sub_id %d cur_cursor_id %" PRIu64,

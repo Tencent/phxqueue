@@ -463,13 +463,15 @@ comm::RetCode TopicConfig::GetQueueInfoByQueueInfoID(const int queue_info_id, sh
     return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
 }
 
-bool TopicConfig::ShouldSkip(const comm::proto::QItem &item) const {
+bool TopicConfig::ShouldSkip(const comm::proto::QItem &item, const int sub_id, const int queue_info_id) const {
     auto &&proto = GetProto();
     for (int i{0}; i < proto.skip_infos_size(); ++i) {
         auto &&skip_info = proto.skip_infos(i);
         if ((skip_info.uin() == 0 || skip_info.uin() == item.meta().uin()) &&
             (skip_info.pub_id() == -1 || skip_info.pub_id() == item.pub_id()) &&
-            (skip_info.handle_id() == -1 || skip_info.handle_id() == item.meta().handle_id())) {
+            (skip_info.handle_id() == -1 || skip_info.handle_id() == item.meta().handle_id()) &&
+            (skip_info.sub_id() == -1 || skip_info.sub_id() == sub_id) &&
+            (skip_info.queue_info_id() == -1 || skip_info.queue_info_id() == queue_info_id)) {
             return true;
         }
     }

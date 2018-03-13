@@ -232,7 +232,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
     // ShouldSkip
     {
         comm::proto::QItem item;
-        assert(!topic_config->ShouldSkip(item));
+        assert(!topic_config->ShouldSkip(item, 1, 1));
     }
 
     // GetQueueInfoIDByCount

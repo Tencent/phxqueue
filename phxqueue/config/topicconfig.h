@@ -75,7 +75,7 @@ class TopicConfig : public BaseConfig<proto::TopicConfig> {
 
     comm::RetCode GetQueueInfoByQueueInfoID(const int queue_info_id, std::shared_ptr<const proto::QueueInfo> &queue_info) const;
 
-    bool ShouldSkip(const comm::proto::QItem &item) const;
+    bool ShouldSkip(const comm::proto::QItem &item, const int sub_id, const int queue_info_id) const;
 
     comm::RetCode GetQueueInfoIDByCount(const int pub_id, const int cnt, int &queue_info_id) const;
 

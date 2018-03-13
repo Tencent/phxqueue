@@ -746,7 +746,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
             QLVerb("get item hash %" PRIu64 " count %d", (uint64_t)item->meta().hash(), item->count());
 
-            if (!topic_config->ShouldSkip(*item)) {
+            if (!topic_config->ShouldSkip(*item, cc.sub_id(), queue_info->queue_info_id())) {
                 items.emplace_back(make_shared<comm::proto::QItem>(), item);
             }
         }
