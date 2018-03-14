@@ -78,24 +78,24 @@ install_bin:
 	cp $(SUB_MAKE_BIN_TARGETS) bin/
 
 build_dir:
-    mkdir -p data/lock.0
-    mkdir -p data/lock.1
-    mkdir -p data/lock.2
-    mkdir -p data/store.0
-    mkdir -p data/store.1
-    mkdir -p data/store.2
-    mkdir -p log/lock.0
-    mkdir -p log/lock.1
-    mkdir -p log/lock.2
-    mkdir -p log/store.0
-    mkdir -p log/store.1
-    mkdir -p log/store.2
-    mkdir -p log/consumer.0
-    mkdir -p log/consumer.1
-    mkdir -p log/consumer.2
-    mkdir -p log/scheduler.0
-    mkdir -p log/scheduler.1
-    mkdir -p log/scheduler.2
+	mkdir -p data/lock.0
+	mkdir -p data/lock.1
+	mkdir -p data/lock.2
+	mkdir -p data/store.0
+	mkdir -p data/store.1
+	mkdir -p data/store.2
+	mkdir -p log/lock.0
+	mkdir -p log/lock.1
+	mkdir -p log/lock.2
+	mkdir -p log/store.0
+	mkdir -p log/store.1
+	mkdir -p log/store.2
+	mkdir -p log/consumer.0
+	mkdir -p log/consumer.1
+	mkdir -p log/consumer.2
+	mkdir -p log/scheduler.0
+	mkdir -p log/scheduler.1
+	mkdir -p log/scheduler.2
 
 
 clean:
