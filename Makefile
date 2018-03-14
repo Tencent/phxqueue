@@ -51,7 +51,7 @@ IGNORE := $(foreach lib,$(LIB_TARGETS),$(call LIB_GEN,$(lib)))
 IGNORE := $(foreach bin,$(BIN_TARGETS),$(call BIN_GEN,$(bin)))
 
 
-all: pb $(LIB_TARGETS) $(SUB_MAKE_LIB_TARGETS) install_lib $(BIN_TARGETS) $(SUB_MAKE_BIN_TARGETS)  install_bin
+all: pb $(LIB_TARGETS) $(SUB_MAKE_LIB_TARGETS) install_lib $(BIN_TARGETS) $(SUB_MAKE_BIN_TARGETS)  install_bin build_dir
 
 pb: $(PROTO_SRCS)
 	$(foreach sub_make,$(SUB_MAKE_LIB_TARGETS),make -C $(dir $(sub_make)) pb;)
