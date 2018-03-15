@@ -157,6 +157,31 @@ function install_glog()
     psucc "install $lib_name ok."
 }
 
+function install_gflag()
+{
+    lib_name="gflags";
+    check_dir_exist $lib_name;
+
+    # check if aready install.
+    check_lib_exist $lib_name;
+    if [ $? -eq 0 ]; then
+        psucc "$lib_name already installed."
+        return;
+    fi
+    # end check.
+    go_back;
+    cd $lib_name;
+    cmake . -DCMAKE_INSTALL_PREFIX=$(pwd);
+    make && make install;
+
+    check_lib_exist $lib_name;
+    if [ $? -eq 1 ]; then
+        perror "$lib_name install fail. please check compile error info."
+	exit 1;
+    fi
+    psucc "install $lib_name ok."
+}
+
 function install_colib()
 {
     lib_name="colib";
@@ -261,6 +286,7 @@ function install_phxrpc()
 install_leveldb;
 install_protobuf;
 install_glog;
+install_gflag;
 install_colib;
 install_phxpaxos;
 install_phxrpc;
