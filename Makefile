@@ -19,6 +19,7 @@ LIB_TARGETS := phxqueue_phxrpc/test/libphxqueue_phxrpc_test.a \
 
 BIN_TARGETS := phxqueue/test/test_config_main phxqueue/test/test_consumer_main phxqueue/test/test_lock_main phxqueue/test/test_plugin_main \
 			   phxqueue/test/test_producer_main phxqueue/test/test_scheduler_main phxqueue/test/test_store_main phxqueue/test/test_log_main phxqueue/test/test_notifierpool_main \
+			   phxqueue/test/test_consistent_hash_main \
 			   phxqueue_phxrpc/test/test_load_config_main phxqueue_phxrpc/test/test_rpc_config_main \
 			   phxqueue_phxrpc/test/consumer_main phxqueue_phxrpc/test/producer_benchmark_main \
 			   phxqueue_phxrpc/test/test_producer_echo_main phxqueue_phxrpc/test/config_check_main \
