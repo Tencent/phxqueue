@@ -217,16 +217,21 @@ void CleanThread::WriteRestartCheckpoint(const int paxos_group_id, const uint64_
         comm::RetCode ret{impl_->lock->GetLockMgr()->
                 WriteRestartCheckpoint(paxos_group_id, now_instance_id - 1)};
         if (comm::RetCode::RET_OK == ret) {
-            QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint checkpoint %llu"
-                   " last_instance_id %llu now_instance_id %llu ok",
+            QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint ok checkpoint %llu"
+                   " last_instance_id %llu now_instance_id %llu",
                    impl_->lock->GetTopicID(), paxos_group_id,
                    checkpoint, last_instance_id, now_instance_id);
         } else {
-            QLErr("topic_id %d paxos_group_id %d WriteRestartCheckpoint checkpoint %llu"
-                  " last_instance_id %llu now_instance_id %llu err %d",
-                  impl_->lock->GetTopicID(), paxos_group_id,
-                  checkpoint, last_instance_id, now_instance_id, ret);
+            QLErr("topic_id %d paxos_group_id %d WriteRestartCheckpoint err %d checkpoint %llu"
+                  " last_instance_id %llu now_instance_id %llu",
+                  impl_->lock->GetTopicID(), paxos_group_id, ret,
+                  checkpoint, last_instance_id, now_instance_id);
         }
+    } else {
+        QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint skip checkpoint %llu"
+               " last_instance_id %llu now_instance_id %llu",
+               impl_->lock->GetTopicID(), paxos_group_id,
+               checkpoint, last_instance_id, now_instance_id);
     }
 }
 
