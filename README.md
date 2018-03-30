@@ -51,7 +51,7 @@ Download the [phxqueue.tar.gz](https://github.com/Tencent/phxqueue/tarball/maste
 *	Prepare the `$DEP_PREFIX` diectory for dependency installation:
 
 	```sh
-	export $DEP_PREFIX='/usr/local'
+	export $DEP_PREFIX='/your/directory/for/dependency'
 	```
 
 *	Protocol Buffers and glog

@@ -48,10 +48,10 @@ bash build.sh
 
 ### 安装第三方依赖
 
-*	选择一个目录`$DEP_PREFIX`作为安装依赖的路径，例如：
+*	选择一个目录`$DEP_PREFIX`作为安装依赖的路径：
 
 	```sh
-	export $DEP_PREFIX='/usr/local'
+	export $DEP_PREFIX='/your/directory/for/dependency'
 	```
 
 *	Protocol Buffers和glog
