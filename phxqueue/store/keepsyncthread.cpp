@@ -201,7 +201,10 @@ void KeepSyncThread::MakeCheckPoint() {
                         break;
                     }
                 }
-                if (valid) {
+
+                bool skip = topic_config->QueueShouldSkip(queue_id, consumer_group_id);
+                
+                if (valid && !skip) {
                     if (comm::RetCode::RET_OK == (ret = sync->GetCursorID(consumer_group_id, queue_id, prev_cursor_id))) {
                         if (min_prev_cursor_id == -1 || prev_cursor_id < min_prev_cursor_id) {
                             min_prev_cursor_id = prev_cursor_id;
@@ -673,6 +676,8 @@ void KeepSyncThread::GetAllLocalQueue(vector<consumer::Queue_t> &queues) {
             }
             if (!is_valid) continue;
 
+            if (topic_config->QueueShouldSkip(queue_id, consumer_group_id)) continue;
+
             {
                 consumer::Queue_t queue;
                 queue.consumer_group_id = consumer_group_id;
@@ -689,4 +694,12 @@ void KeepSyncThread::GetAllLocalQueue(vector<consumer::Queue_t> &queues) {
 }  // namespace store
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

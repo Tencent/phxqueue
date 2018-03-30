@@ -118,16 +118,7 @@ bool BaseMgr::NeedSkipAdd(const uint64_t cursor_id, const comm::proto::AddReques
         return true;
     }
 
-    shared_ptr<const config::TopicConfig> topic_config;
-    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(topic_id, topic_config))) {
-        QLErr("GetTopicConfig ret %d", as_integer(ret));
-        return true;
-    }
 
-    if (!topic_config->IsValidQueue(req.queue_id())) {
-        QLErr("IsValidQueue fail. queue_id %d", req.queue_id());
-        return true;
-    }
 /*
     shared_ptr<const config::proto::Pub> pub;
     if (comm::RetCode::RET_OK != (ret = topic_config->GetPubByPubID(req.pub_id(), pub))) {
@@ -337,11 +328,11 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
 
         for (auto &&item : items) {
-            if (impl_->store->SkipGet(item, req) || topic_config->ShouldSkip(item, req.consumer_group_id(), queue_info->queue_info_id())) {
+            if (impl_->store->SkipGet(item, req) || topic_config->ItemShouldSkip(item, req.consumer_group_id(), queue_info->queue_info_id())) {
                 comm::StoreBaseMgrBP::GetThreadInstance()->OnGetSkip(req, item);
                 QLVerb("skip item, uin %llu handle_id %d hash %" PRIu64
                        " consumer_group_ids %llu, request consumer_group_id %d cur_cursor_id %" PRIu64,
-                       item.meta().uin(), item.meta().handle_id(),
+                       item.meta().uin(), item.handle_id(),
                        item.meta().hash(), item.consumer_group_ids(), req.consumer_group_id(),
                        cur_cursor_id);
                 continue;
@@ -364,7 +355,7 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
             if (resp.items_size() == 1) {
                 comm::StoreBaseMgrBP::GetThreadInstance()->OnGetItemTooBig(req, resp.items(0));
                 QLInfo("warning, uin %" PRIu64 " handler_id %d size %zu hash %" PRIu64,
-                       resp.items(0).meta().uin(), resp.items(0).meta().handle_id(),
+                       resp.items(0).meta().uin(), resp.items(0).handle_id(),
                        resp.items(0).buffer().size(), resp.items(0).meta().hash());
             }
             break;
@@ -402,9 +393,14 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
         comm::StoreBaseMgrBP::GetThreadInstance()->OnItemInResp(req);
     }
 
+	int back_log = 0;
+	sync->GetBackLogByCursorID(req.queue_id(), next_cursor_id, back_log);
+	resp.set_back_log(back_log);
+
     QLInfo("Get end. consumer_group_id %u queue_id %d prev_cursor_id %" PRIu64
-           " next_cursor_id %" PRIu64 " size %u",
-           req.consumer_group_id(), req.queue_id(), prev_cursor_id, next_cursor_id, resp.items_size());
+           " next_cursor_id %" PRIu64 " size %u backlog %d",
+           req.consumer_group_id(), req.queue_id(), prev_cursor_id, next_cursor_id, 
+		   resp.items_size(), resp.back_log());
 
     comm::StoreBaseMgrBP::GetThreadInstance()->OnGetSucc(req, resp);
 
@@ -474,4 +470,12 @@ StoreMetaQueue *BaseMgr::GetMetaQueue(const int queue_id) {
 }  // namespace store
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

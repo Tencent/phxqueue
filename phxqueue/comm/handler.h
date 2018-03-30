@@ -68,7 +68,6 @@ class HandlerFactory {
     virtual Handler *New() = 0;
 };
 
-
 template <typename T>
     class DefaultHandlerFactory : public HandlerFactory {
   public:

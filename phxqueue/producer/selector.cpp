@@ -52,7 +52,7 @@ QueueSelectorDefault::QueueSelectorDefault(const int topic_id, const int pub_id,
 QueueSelectorDefault::~QueueSelectorDefault() {
 }
 
-comm::RetCode QueueSelectorDefault::GetQueueID(int &queue_id) {
+comm::RetCode QueueSelectorDefault::GetQueueID(const comm::proto::QueueType queue_type, int &queue_id) {
     comm::RetCode ret;
 
     std::shared_ptr<const config::TopicConfig> topic_config;
@@ -62,7 +62,7 @@ comm::RetCode QueueSelectorDefault::GetQueueID(int &queue_id) {
     }
 
     int queue_info_id;
-    if (comm::RetCode::RET_OK != (ret = topic_config->GetQueueInfoIDByCount(impl_->pub_id, impl_->count, queue_info_id))) {
+    if (comm::RetCode::RET_OK != (ret = topic_config->GetQueueInfoIDByCount(impl_->pub_id, impl_->count, queue_info_id, queue_type))) {
         QLErr("GetQueueInfoIDByCount ret %d", as_integer(ret));
         return ret;
     }
@@ -262,4 +262,12 @@ bool StoreSelectorDefault::IsRetrySwitchStore() {
 }  // namespace producer
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

@@ -391,6 +391,18 @@ comm::RetCode Store::CheckGetRequest(const comm::proto::GetRequest &req) {
         return ret;
     }
 
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK !=
+        (ret = config::GlobalConfig::GetThreadInstance()->
+         GetTopicConfigByTopicID(topic_id, topic_config))) {
+        QLErr("GetTopicConfigByTopicID ret %d", as_integer(ret));
+        return ret;
+    }
+
+    if (topic_config->QueueShouldSkip(req.queue_id(), req.consumer_group_id())) {
+        return comm::RetCode::RET_ERR_RANGE;
+    }
+
     return comm::RetCode::RET_OK;
 }
 
@@ -445,12 +457,15 @@ comm::RetCode Store::Add(const comm::proto::AddRequest &req, comm::proto::AddRes
     comm::RetCode ret;
 
     comm::StoreBP::GetThreadInstance()->OnAdd(req);
-    if (0 == req.items_size()) return comm::RetCode::RET_OK;
 
     if (comm::RetCode::RET_OK != (ret = CheckAddRequest(req))) {
         comm::StoreBP::GetThreadInstance()->OnAddRequestInvalid(req);
         QLErr("CheckAddRequest ret %d", as_integer(ret));
         return ret;
+    }
+
+    if (SkipAdd(req)) {
+        return comm::RetCode::RET_OK;
     }
 
     int paxos_group_id = req.queue_id() % impl_->opt.ngroup;
@@ -578,6 +593,30 @@ comm::RetCode Store::Get(const comm::proto::GetRequest &req, comm::proto::GetRes
     return comm::RetCode::RET_OK;
 }
 
+bool Store::SkipAdd(const comm::proto::AddRequest &req) {
+    if (0 == req.items_size()) return true;
+
+    comm::RetCode ret;
+
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(req.topic_id(), topic_config))) {
+        QLErr("GetTopicConfig ret %d", as_integer(ret));
+        return true;
+    }
+
+    if (!topic_config->IsValidQueue(req.queue_id())) {
+        QLErr("IsValidQueue fail. queue_id %d", req.queue_id());
+        return true;
+    }
+
+    if (topic_config->QueueShouldSkip(req.queue_id())) {
+        QLInfo("QueueShouldSkip. queue_id %d", req.queue_id());
+        return true;
+    }
+
+    return false;
+}
+
 bool Store::SkipGet(const comm::proto::QItem &item, const comm::proto::GetRequest &req) {
     comm::RetCode ret;
 
@@ -602,4 +641,12 @@ bool Store::NeedDropMaster(const int paxos_group_id) {
 }  // namespace  store
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

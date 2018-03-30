@@ -26,14 +26,15 @@ namespace config {
 using namespace std;
 
 struct GlobalConfig::GlobalConfigImpl_t {
-    map<string, int> topic_name2topic_id;
-    map<int, int> handle_id2topic_id;
-    map<int, shared_ptr<TopicConfig> > topic_id2topic_config;
-    map<int, shared_ptr<ConsumerConfig> > topic_id2consumer_config;
-    map<int, shared_ptr<StoreConfig> > topic_id2store_config;
-    map<int, shared_ptr<SchedulerConfig> > topic_id2scheduler_config;
-    map<int, shared_ptr<LockConfig> > topic_id2lock_config;
+		std::map<string, int> topic_name2topic_id;
+		std::map<int, int> handle_id2topic_id;
+		std::map<int, shared_ptr<TopicConfig> > topic_id2topic_config;
+		std::map<int, shared_ptr<ConsumerConfig> > topic_id2consumer_config;
+		std::map<int, shared_ptr<StoreConfig> > topic_id2store_config;
+		std::map<int, shared_ptr<SchedulerConfig> > topic_id2scheduler_config;
+		std::map<int, shared_ptr<LockConfig> > topic_id2lock_config;
 };
+
 
 GlobalConfig::GlobalConfig() : impl_(new GlobalConfigImpl_t()) {
     assert(impl_);
@@ -130,6 +131,16 @@ comm::RetCode GlobalConfig::GetTopicIDByTopicName(const string &topic_name, int 
     }
     topic_id = it->second;
     return comm::RetCode::RET_OK;
+}
+
+comm::RetCode GlobalConfig::GetTopicNameByTopicID(const int topic_id, string &topic_name) const {
+	for (auto &&it = impl_->topic_name2topic_id.begin(); it != impl_->topic_name2topic_id.end(); it++) {
+		if (it->second == topic_id) {
+			topic_name = it->first;
+			return comm::RetCode::RET_OK;
+		}
+	}
+	return comm::RetCode::RET_ERR_RANGE_TOPIC;
 }
 
 comm::RetCode GlobalConfig::GetTopicConfigByTopicID(const int topic_id, shared_ptr<const TopicConfig> &topic_config) {
@@ -268,4 +279,12 @@ uint64_t GlobalConfig::GetLastModTime(const int topic_id) {
 }  // namesapce config
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

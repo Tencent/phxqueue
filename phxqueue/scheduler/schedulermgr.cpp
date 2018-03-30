@@ -360,6 +360,17 @@ comm::RetCode SchedulerMgr::LoadBalance(const uint64_t now) {
 //    return comm::RetCode::RET_OK;
 //}
 
+
+void SchedulerMgr::OnBecomeNewMaster(const uint64_t now) {
+    for (auto &&topic_id2data_kv : impl_->topic_id2data_map) {
+        const int topic_id{topic_id2data_kv.first};
+        QLInfo("topic_id %d", topic_id);
+
+        auto &topic_data(topic_id2data_kv.second);
+        topic_data.init_time = now; // keep Mode::Static for a while after being new master.
+    }
+}
+
 comm::RetCode SchedulerMgr::ReloadSchedConfig() {
     // TODO: conf_->LoadIfModified();
 
@@ -597,7 +608,8 @@ Mode SchedulerMgr::GetMode(const int topic_id, TopicData &topic_data, const uint
         return Mode::Static;
     }
 
-    if (topic_data.init_time +
+    if (topic_config->GetProto().topic().scheduler_force_static_mode() ||
+        topic_data.init_time +
         3 * topic_config->GetProto().topic().scheduler_get_scale_interval_s() * 1000 >= now) {
         // stay a long time for most consumer GetAddrScale()
         QLInfo("Mode::Dynamic not ready");

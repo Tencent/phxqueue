@@ -74,6 +74,9 @@ class Store {
 
     // ------------------------ Interfaces CAN be overrided ------------------------
 
+    // Implement to skip Add.
+    virtual bool SkipAdd(const comm::proto::AddRequest &req);
+
     // Implement to skip some items on Get.
     virtual bool SkipGet(const comm::proto::QItem &item, const comm::proto::GetRequest &req);
 

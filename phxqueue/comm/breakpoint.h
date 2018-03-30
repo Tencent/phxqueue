@@ -118,6 +118,7 @@ class StoreBP {
     virtual void OnAddRequestInvalid(const proto::AddRequest &req) {}
     virtual void OnAddCheckMasterUnpass(const proto::AddRequest &req) {}
     virtual void OnAddCheckMasterPass(const proto::AddRequest &req) {}
+    virtual void OnAddSkip(const proto::AddRequest &req) {}
 
     virtual void OnPaxosAdd(const proto::AddRequest &req) {}
     virtual void OnBatchPropose(const proto::AddRequest &req) {}

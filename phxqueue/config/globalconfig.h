@@ -32,6 +32,8 @@ namespace phxqueue {
 
 namespace config {
 
+using namespace std;
+
 
 class GlobalConfig : public BaseConfig<proto::GlobalConfig>{
   public:
@@ -42,6 +44,7 @@ class GlobalConfig : public BaseConfig<proto::GlobalConfig>{
     static GlobalConfig *GetThreadInstance();
 
     comm::RetCode GetTopicIDByTopicName(const std::string &topic_name, int &topic_id) const;
+    comm::RetCode GetTopicNameByTopicID(const int topic_id, std::string &topic_name) const;
 
     comm::RetCode GetTopicConfigByTopicID(const int topic_id, std::shared_ptr<const TopicConfig> &topic_config);
 
@@ -66,7 +69,7 @@ class GlobalConfig : public BaseConfig<proto::GlobalConfig>{
 
     comm::RetCode Rebuild() override;
 
-  private:
+  protected:
     struct GlobalConfigImpl_t;
     std::unique_ptr<struct GlobalConfigImpl_t> impl_;
 };

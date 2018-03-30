@@ -154,6 +154,14 @@ class Consumer : public comm::MultiProc {
                               const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
                               const std::vector<comm::HandleResult> &handle_results);
 
+    virtual void AddRetry(const comm::proto::ConsumerContext &cc,
+                              const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
+                              const std::vector<comm::HandleResult> &handle_results);
+
+    virtual void Forward(const comm::proto::ConsumerContext &cc,
+                              const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
+                              const std::vector<comm::HandleResult> &handle_results);
+
     // In a consume process, there are multiple consumer_group processes concurrently, each corresponding to a worker routine:
     // 1. numbers of hanlde process, specified by ConsumerOption::nhandler, each handle items with same uin.
     // 2. numbers of batch handle process, specified by ConsumerOption::nbatch_handler, each handle all items from last pull.
@@ -244,6 +252,9 @@ class Consumer : public comm::MultiProc {
 
     // Return topic id.
     int GetTopicID();
+
+	// Return consumer group ids for different handle id 
+	comm::RetCode GetConsumerGroupIDsByHandleID(const int handle_id, const int pub_id, std::set<int> &consumer_group_ids);
 
     // Return the handle relationship between queues and worker processes.
     comm::RetCode GetQueuesDistribute(std::vector<Queue_t> &queues);

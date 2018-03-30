@@ -12,24 +12,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./utils/addr_util.h"
-#include "./utils/concurrent_util.h"
-#include "./utils/file_util.h"
-#include "./utils/load_util.h"
-#include "./utils/memory_util.h"
-#include "./utils/other_util.h"
-#include "./utils/string_util.h"
-#include "./utils/time_util.h"
-#include "./utils/benchmark_util.h"
-#include "./utils/co_util.h"
-#include "./utils/hash_util.h"
-#include "./utils/consumer_group_util.h"
+#include <set>
 
+#include "phxqueue/comm/proto/comm.pb.h"
 
 namespace phxqueue {
 
 namespace comm {
 
+namespace utils {
+
+using namespace std;
+
+enum class CompareResult {
+	EQUEL = 0,
+	BIGGER = 1,
+	SMALLER = -1,
+};
+
+CompareResult CursorIDCompare(const uint64_t x, const uint64_t y);
+
+uint64_t ConsumerGroupIDs2Mask(const std::set<int> *consumer_group_ids);
+
+}  // namespace utils
 
 }  // namespace comm
 

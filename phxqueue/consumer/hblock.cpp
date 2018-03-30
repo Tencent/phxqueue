@@ -483,44 +483,78 @@ comm::RetCode HeartBeatLock::GetAllQueues(const int consumer_group_id, vector<Qu
                 continue;
             }
 
-            // check pub
-            {
-                size_t i;
-                for (i = 0; i < pub->consumer_group_ids_size(); ++i) {
-                    if (consumer_group_id == pub->consumer_group_ids(i)) break;
-                }
-                if (i == pub->consumer_group_ids_size()) continue;
-            }
+            // check pub1
+			if (pub->is_transaction()) {
+				if (pub->tx_query_sub_id() > 0) {
+					shared_ptr<const config::proto::Sub> sub;
+					if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(pub->tx_query_sub_id(), sub))) {
+						QLErr("ERR: GetSubBySubID err. ret %d", comm::as_integer(ret));
+						continue;
+					}
+					if (sub->consumer_group_id() == consumer_group_id) {
+						GetQueuesWithFilter(pub_id, store_id, consumer_group_id, all_queues, &(pub->tx_query_queue_info_ids()), topic_config, filter);
+					}
+				}
 
-            for (int i{0}; i < pub->queue_info_ids_size(); ++i) {
-                auto &&queue_info_id = pub->queue_info_ids(i);
-
-                set<int> queue_ids;
-                if (comm::RetCode::RET_OK != (ret = topic_config->GetQueuesByQueueInfoID(queue_info_id, queue_ids))) {
-                    QLErr("GetQueuesByQueueInfoID ret %d queue_info_id %d", comm::as_integer(ret), queue_info_id);
-                    continue;
-                }
-
-                for (auto &&queue_id : queue_ids) {
-                    auto &&tmp = make_pair(store_id, queue_id);
-                    if (filter.end() != filter.find(tmp)) continue;
-                    filter.insert(tmp);
-
-                    Queue_t queue;
-                    queue.magic = 0;
-                    queue.pub_id = pub_id;
-                    queue.consumer_group_id = consumer_group_id;
-                    queue.store_id = store_id;
-                    queue.queue_id = queue_id;
-
-                    QLVerb("add into all_queues. consumer_group_id %d store_id %d queue_id %d", consumer_group_id, store_id, queue_id);
-
-                    all_queues.emplace_back(queue);
-                }
+				for (int i{0}; i < pub->sub_ids_size(); ++i) {
+					shared_ptr<const config::proto::Sub> sub;
+					if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(pub->sub_ids(i), sub))) {
+						QLErr("ERR: GetSubBySubID err. ret %d", comm::as_integer(ret));
+						continue;
+					}
+					if (sub->consumer_group_id() == consumer_group_id) {
+						GetQueuesWithFilter(pub_id, store_id, consumer_group_id, all_queues, &(pub->queue_info_ids()), topic_config, filter);
+						break;
+					}
+				}
+			}
+			else {
+				std::set<int> consumer_group_ids;
+				if (comm::RetCode::RET_OK != (ret = topic_config->GetConsumerGroupIDsByPubID(pub_id, consumer_group_ids))) {
+					QLErr("ERR: GetConsumerGroupIDsByPubID err. ret %d", comm::as_integer(ret));
+					continue;
+				}
+                if (consumer_group_ids.find(consumer_group_id) == consumer_group_ids.end()) continue;
+				GetQueuesWithFilter(pub_id, store_id, consumer_group_id, all_queues, &(pub->queue_info_ids()), topic_config, filter);
             }
         }
     }
     return comm::RetCode::RET_OK;
+}
+
+void HeartBeatLock::GetQueuesWithFilter(const int pub_id, const int store_id, const int consumer_group_id, std::vector<Queue_t> &all_queues, const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >* queue_info_ids, shared_ptr<const config::TopicConfig> topic_config, set<pair<int, int> > &filter)
+{
+	if (queue_info_ids == nullptr) return ;
+	
+	comm::RetCode ret;
+	for (int i{0}; i < queue_info_ids->size(); ++i) {
+		auto &&queue_info_id = queue_info_ids->Get(i);
+
+		set<int> queue_ids;
+		if (comm::RetCode::RET_OK != (ret = topic_config->GetQueuesByQueueInfoID(queue_info_id, queue_ids))) {
+			QLErr("GetQueuesByQueueInfoID ret %d queue_info_id %d", comm::as_integer(ret), queue_info_id);
+			continue;
+		}
+
+		for (auto &&queue_id : queue_ids) {
+            if (topic_config->QueueShouldSkip(queue_id, consumer_group_id)) continue;
+
+			auto &&tmp = make_pair(store_id, queue_id);
+			if (filter.end() != filter.find(tmp)) continue;
+			filter.insert(tmp);
+
+			Queue_t queue;
+			queue.magic = 0;
+			queue.pub_id = pub_id;
+			queue.consumer_group_id = consumer_group_id;
+			queue.store_id = store_id;
+			queue.queue_id = queue_id;
+
+			QLVerb("add into all_queues. consumer_group_id %d store_id %d queue_id %d", consumer_group_id, store_id, queue_id);
+
+			all_queues.emplace_back(queue);
+		}
+	}
 }
 
 comm::RetCode HeartBeatLock::GetPendingQueues(const vector<Queue_t> &all_queues, const AddrScales &addr_scales, vector<Queue_t> &pending_queues) {
@@ -568,7 +602,9 @@ comm::RetCode HeartBeatLock::Sync() {
     QLInfo("nproc %d proc_used %d", impl_->nproc, impl_->proc_used);
 
     ConsumerGroupID2AddrScales consumer_group_id2addr_scales;
-    if (comm::RetCode::RET_OK != (ret = GetAddrScale(consumer_group_id2addr_scales))) {
+    ret = GetAddrScale(consumer_group_id2addr_scales);
+    if (comm::RetCode::RET_OK != ret &&
+        comm::RetCode::RET_ERR_RANGE_ADDR != ret /*clear queues while consumer's addr not found in consumer_config*/) {
         QLErr("ERR: GetAddrScale ret %d", comm::as_integer(ret));
         return ret;
     }

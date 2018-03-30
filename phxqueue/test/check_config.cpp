@@ -78,6 +78,13 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
         PHX_ASSERT(rank, ==, i);
     }
 
+	// sub
+    std::vector<std::shared_ptr<const config::proto::Sub>> subs;
+    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllSub(subs)));
+    std::set<int> sub_ids;
+    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllSubID(sub_ids)));
+    PHX_ASSERT(subs.size(), ==, sub_ids.size());
+
     // pub
     std::vector<std::shared_ptr<const config::proto::Pub>> pubs;
     PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllPub(pubs)));
@@ -99,12 +106,30 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
         {
             std::set<int> consumer_group_ids;
             PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetConsumerGroupIDsByPubID(pub_id, consumer_group_ids)));
-            PHX_ASSERT(pub->consumer_group_ids_size(), ==, consumer_group_ids.size());
+            if (pub->consumer_group_ids_size()) PHX_ASSERT(pub->consumer_group_ids_size(), ==, consumer_group_ids.size());
             for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
                 auto consumer_group_id = pub->consumer_group_ids(i);
                 PHX_ASSERT(consumer_group_ids.end() != consumer_group_ids.find(consumer_group_id), ==, true);
             }
         }
+
+		{
+            std::set<int> pub_sub_ids;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetSubIDsByPubID(pub_id, pub_sub_ids)));
+            PHX_ASSERT(pub->sub_ids_size(), ==, pub_sub_ids.size());
+            for (int i{0}; i < pub->sub_ids_size(); ++i) {
+                auto sub_id = pub->sub_ids(i);
+                PHX_ASSERT(pub_sub_ids.end() != pub_sub_ids.find(sub_id), ==, true);
+                PHX_ASSERT(sub_ids.end() != sub_ids.find(sub_id), ==, true);
+            }
+        }
+
+		{
+			if (pub->is_transaction()) {
+                PHX_ASSERT(pub->tx_query_sub_id() != 0, ==, true);
+                PHX_ASSERT(sub_ids.end() != sub_ids.find(pub->tx_query_sub_id()), ==, true);
+			}
+		}
     }
 
     // consumer_group
@@ -131,6 +156,7 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
         auto &&pub = pubs[i];
         auto pub_id = pub->pub_id();
 
+		// normal queue
         int cnt = 0;
         for (int j{0}; j < pub->queue_info_ids_size(); ++j) {
             auto queue_info_id = pub->queue_info_ids(j);
@@ -151,16 +177,14 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
 
             {
                 int tmp_queue_info_id;
-                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDByCount(pub_id, cnt, tmp_queue_info_id)));
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDByCount(pub_id, cnt, tmp_queue_info_id, comm::proto::QueueType::NORMAL_QUEUE)));
                 PHX_ASSERT(tmp_queue_info_id, ==, queue_info_id);
                 cnt += queue_info->count();
             }
 
             {
                 uint64_t rank;
-                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDRankByPub(queue_info_id, pub.get(), rank)));
-                PHX_ASSERT(j, ==, rank);
-                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDRankByPubID(queue_info_id, pub_id, rank)));
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDRankByPubID(queue_info_id, pub_id, rank, comm::proto::QueueType::NORMAL_QUEUE)));
                 PHX_ASSERT(j, ==, rank);
             }
 
@@ -195,6 +219,71 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
                 PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueByLoopRank(queue_info_id, 0, queue)));
             }
         }
+
+		// tx query queue
+		cnt = 0;
+		for (int j{0}; j < pub->tx_query_queue_info_ids_size(); ++j) {
+            auto queue_info_id = pub->tx_query_queue_info_ids(j);
+
+            std::shared_ptr<const config::proto::QueueInfo> queue_info;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoByQueueInfoID(queue_info_id, queue_info)));
+            PHX_ASSERT(queue_info_id, ==, queue_info->queue_info_id());
+
+            PHX_ASSERT(queue_info->freq_limit(), >=, 0);
+            PHX_ASSERT(queue_info->freq_interval(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_per_get(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_fail(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_no_item(), >=, 0);
+            PHX_ASSERT(queue_info->sleep_us_on_get_size_too_small(), >=, 0);
+            PHX_ASSERT(queue_info->get_size_too_small_threshold(), >=, 0);
+            PHX_ASSERT(queue_info->delay(), >=, 0);
+            PHX_ASSERT(queue_info->count(), >=, -1);
+
+            {
+                int tmp_queue_info_id;
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDByCount(pub_id, cnt, tmp_queue_info_id, comm::proto::QueueType::TX_QUERY_QUEUE)));
+                PHX_ASSERT(tmp_queue_info_id, ==, queue_info_id);
+                cnt += queue_info->count();
+            }
+
+            {
+                uint64_t rank;
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoIDRankByPubID(queue_info_id, pub_id, rank, comm::proto::QueueType::TX_QUERY_QUEUE)));
+                PHX_ASSERT(j, ==, rank);
+            }
+
+            std::set<int> queues;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueuesByQueueInfoID(queue_info_id, queues)));
+            int nqueue;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetNQueue(queue_info_id, nqueue)));
+            PHX_ASSERT(nqueue, ==, queues.size());
+            for (auto &&queue : queues) {
+                PHX_ASSERT(queue, >=, 0);
+                PHX_ASSERT(topic_config->IsValidQueue(queue), ==, true);
+                PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id), ==, true);
+                for (int l{0}; l < pub->consumer_group_ids_size(); ++l) {
+                    auto consumer_group_id = pub->consumer_group_ids(l);
+                    PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id, consumer_group_id), ==, true);
+                }
+
+                {
+                    int delay;
+                    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueDelay(queue, delay)));
+                }
+
+                {
+                    std::shared_ptr<const config::proto::QueueInfo> tmp_queue_info;
+                    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueInfoByQueue(queue, tmp_queue_info)));
+                    PHX_ASSERT(queue_info_id, ==, tmp_queue_info->queue_info_id());
+                }
+            }
+            if (nqueue > 0) {
+                int queue;
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueByRank(queue_info_id, 0, queue)));
+                PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetQueueByLoopRank(queue_info_id, 0, queue)));
+            }
+        }
+
     }
 
     // freq_info
@@ -306,4 +395,12 @@ void CheckConfig::CheckLockConfig(const int topic_id, const config::LockConfig *
 }  // namespace test
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

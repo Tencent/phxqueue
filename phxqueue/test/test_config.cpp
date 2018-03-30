@@ -141,7 +141,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
         uint64_t rank;
 
         assert(comm::RetCode::RET_OK ==
-               topic_config->GetQueueInfoIDRankByPub(queue_info_id, pub.get(), rank));
+               topic_config->GetQueueInfoIDRankByPubID(queue_info_id, pub->pub_id(), rank));
         assert(rank == expected_rank);
     }
 
@@ -232,7 +232,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
     // ShouldSkip
     {
         comm::proto::QItem item;
-        assert(!topic_config->ShouldSkip(item, 1, 1));
+        assert(!topic_config->ItemShouldSkip(item, 1, 1));
     }
 
     // GetQueueInfoIDByCount

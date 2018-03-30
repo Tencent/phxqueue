@@ -72,23 +72,34 @@ comm::RetCode Producer::Init() {
     return comm::RetCode::RET_OK;
 }
 
-static uint64_t ConsumerGroupIDs2Mask(const config::TopicConfig *topic_config, const set<int> *consumer_group_ids) {
-    uint64_t mask(-1);
-    if (consumer_group_ids) {
-        mask = 0;
-        int consumer_group_id;
-        for (auto &&it : *consumer_group_ids) {
-            consumer_group_id = it;
-            if (consumer_group_id > 0) mask |= (1uLL << (consumer_group_id - 1uLL));
-        }
+comm::RetCode Producer::Enqueue(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id) {
+    comm::RetCode ret;
+
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(topic_id, topic_config))) {
+        QLErr("GetTopicConfigByTopicID client_id %s ret %d", client_id.c_str(), as_integer(ret));
+        return ret;
     }
-    return mask;
+
+	int handle_id = topic_config->IsTransaction(pub_id) ? comm::proto::HANDLER_TX_QUERY : comm::proto::HANDLER_PUSH;
+
+	set<int> consumer_group_ids;
+	if (comm::RetCode::RET_OK != (ret = topic_config->GetConsumerGroupIDsByHandleID(handle_id, pub_id, consumer_group_ids))) {
+		QLErr("GetConsumerGroupIDsByHandleID client_id %s ret %d", client_id.c_str(), as_integer(ret));
+		return ret;
+	}
+
+	set<int> sub_ids;
+	if (comm::RetCode::RET_OK != (ret = topic_config->GetSubIDsByPubID(pub_id, sub_ids))) {
+		QLErr("GetSubIDsByPubID client_id %s ret %d", client_id.c_str(), as_integer(ret));
+		return ret;
+	}
+
+	return Enqueue(topic_id, uin, handle_id, buffer, pub_id, &consumer_group_ids, &sub_ids, client_id);
 }
 
-
-comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const int handle_id,
-                                const string &buffer, int pub_id,
-                                const set<int> *consumer_group_ids, const string client_id) {
+comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const int handle_id, const string &buffer,
+                                int pub_id, const set<int> *consumer_group_ids, const set<int> *sub_ids, const string client_id) {
 
     comm::RetCode ret;
 
@@ -118,8 +129,7 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     comm::ProducerConsumerGroupBP::GetThreadInstance()->
             OnConsumerGroupDistribute(topic_id, pub_id, handle_id, uin, consumer_group_ids);
 
-
-    auto now(comm::utils::Time::GetTimestampMS());
+    auto now = comm::utils::Time::GetTimestampMS();
 
     auto item(make_shared<comm::proto::QItem>());
     auto meta(item->mutable_meta());
@@ -130,7 +140,8 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     CompressBuffer(buffer, *item->mutable_buffer(), buffer_type);
     item->set_buffer_type(buffer_type);
 
-    item->set_consumer_group_ids(ConsumerGroupIDs2Mask(topic_config.get(), consumer_group_ids));
+	item->set_handle_id(handle_id);
+    item->set_consumer_group_ids(comm::utils::ConsumerGroupIDs2Mask(consumer_group_ids));
     item->set_pub_id(pub_id);
     item->set_atime(now / 1000);
     item->set_atime_ms(now % 1000);
@@ -138,9 +149,8 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     SetSysCookies(*item->mutable_sys_cookies());
     item->set_cursor_id(-1);
 
-
     meta->set_topic_id(topic_id);
-    meta->set_handle_id(handle_id);
+    meta->set_handle_id(item->handle_id());
     meta->set_uin(uin);
     meta->set_consumer_group_ids(item->consumer_group_ids());
     meta->set_pub_id(item->pub_id());
@@ -158,7 +168,14 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     meta->set_atime_ms(item->atime_ms());
     SetUserCookies(*meta->mutable_user_cookies());
 
-    vector<shared_ptr<comm::proto::QItem>> items;
+	if (sub_ids) {
+		for (auto sub_id : *sub_ids) {
+			item->add_sub_ids(sub_id);
+			meta->add_sub_ids(sub_id);
+		}
+	}
+
+    vector<shared_ptr<comm::proto::QItem> > items;
     items.emplace_back(move(item));
     QLVerb("item topic_id %d uin %" PRIu64, topic_id, uin);
 
@@ -171,8 +188,7 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     for (auto &&req : reqs) {
         comm::proto::AddResponse resp;
         if (comm::RetCode::RET_OK != (ret = SelectAndAdd(*req, resp, nullptr, nullptr))) {
-            comm::ProducerBP::GetThreadInstance()->OnSelectAndAddFail(topic_id, pub_id,
-                                                                      handle_id, uin);
+            comm::ProducerBP::GetThreadInstance()->OnSelectAndAddFail(topic_id, pub_id, handle_id, uin);
             QLErr("SelectAndAdd client_id %s ret %d", client_id.c_str(), as_integer(ret));
             return ret;
         }
@@ -217,22 +233,27 @@ comm::RetCode Producer::MakeAddRequests(const int topic_id,
         new_item->CopyFrom(*item);
         if (item_update_func) item_update_func(*new_item);
 
-        int queue_info_id{0};
-        if (comm::RetCode::RET_OK !=
-            (ret = topic_config->GetQueueInfoIDByCount(new_item->pub_id(),
-                                                       new_item->count(), queue_info_id))) {
+        int queue_info_id = 0;
+		comm::proto::QueueType queue_type;
+		if (new_item->handle_id() == comm::proto::HANDLER_TX_QUERY) {
+			queue_type = comm::proto::QueueType::TX_QUERY_QUEUE;
+		} 
+		else {
+			queue_type = comm::proto::QueueType::NORMAL_QUEUE;
+		}
+        if (comm::RetCode::RET_OK != (ret = topic_config->GetQueueInfoIDByCount(new_item->pub_id(), new_item->count(), queue_info_id, queue_type))) {
             if (comm::RetCode::RET_ERR_RANGE_CNT == ret) {
                 comm::ProducerBP::GetThreadInstance()->OnCountLimit(topic_id, new_item->pub_id(), *item);
-                NLInfo("skip. GetQueueInfoIDByCount ret %d count %d handle_id %d ori_pub_id %d "
-                       "pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
-                       as_integer(ret), new_item->count(), new_item->meta().handle_id(),
-                       new_item->meta().pub_id(), new_item->pub_id(), (uint64_t)new_item->consumer_group_ids(),
+                NLInfo("skip. GetQueueInfoIDByCount ret %d count %d "
+                       "handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
+                       as_integer(ret), new_item->count(),
+                       new_item->handle_id(), new_item->meta().pub_id(), new_item->pub_id(), (uint64_t)new_item->consumer_group_ids(),
                        (uint64_t)new_item->meta().hash(), (uint64_t)new_item->meta().uin());
             } else {
-                NLErr("GetQueueInfoIDByCount ret %d count %d handle_id %d ori_pub_id %d "
-                      "pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
-                      as_integer(ret), new_item->count(), new_item->meta().handle_id(),
-                      new_item->meta().pub_id(), new_item->pub_id(), (uint64_t)new_item->consumer_group_ids(),
+                NLErr("GetQueueInfoIDByCount ret %d count %d "
+                      "handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
+                      as_integer(ret), new_item->count(),
+                      new_item->handle_id(), new_item->meta().pub_id(), new_item->pub_id(), (uint64_t)new_item->consumer_group_ids(),
                       (uint64_t)new_item->meta().hash(), (uint64_t)new_item->meta().uin());
             }
             continue;
@@ -312,9 +333,15 @@ comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::
 
     if (0 == req.items_size()) return comm::RetCode::RET_OK;
 
-    auto pub_id(req.items(0).pub_id());
-    auto uin(req.items(0).meta().uin());
-    auto count(req.items(0).count());
+    auto pub_id = req.items(0).pub_id();
+    auto uin = req.items(0).meta().uin();
+	auto handle_id = req.items(0).handle_id();
+    auto count = req.items(0).count();
+	for (int i = 0; i < req.items_size(); i++) {
+		if (req.items(i).count() < count) {
+			count = req.items(i).count();
+		}
+	}
 
     comm::RetCode ret;
 
@@ -323,10 +350,25 @@ comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::
                                   GetTopicConfigByTopicID(req.topic_id(), topic_config))) {
         comm::ProducerBP::GetThreadInstance()->OnTopicIDInvalid(req);
         QLErr("GetTopicConfigByTopicID ret %d topic_id %d", as_integer(ret), req.topic_id(), uin);
+		if (ret == comm::RetCode::RET_ERR_RANGE_CNT) {
+			for (int i = 0; i < req.items_size(); i++) {
+                comm::ProducerBP::GetThreadInstance()->OnCountLimit(req.topic_id(), pub_id, req.items(i));
+			}
+			return comm::RetCode::RET_ADD_SKIP;
+		}
+
         return ret;
     }
 
-    unique_ptr<QueueSelector> default_qs;
+	comm::proto::QueueType queue_type;
+	if (handle_id == comm::proto::HANDLER_TX_QUERY) {
+		queue_type = comm::proto::QueueType::TX_QUERY_QUEUE;
+	}
+	else {
+		queue_type = comm::proto::QueueType::NORMAL_QUEUE;
+	}
+
+    std::unique_ptr<QueueSelector> default_qs;
     if (!qs) {
         default_qs = NewQueueSelector(req.topic_id(), pub_id, uin, count,
                                       topic_config->GetProto().topic().producer_retry_switch_queue());
@@ -349,7 +391,7 @@ comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::
     int nretry_raw_add{topic_config->GetProto().topic().producer_nretry_raw_add()};
     do {
         int queue_id;
-        if (comm::RetCode::RET_OK != (ret = qs->GetQueueID(queue_id))) {
+        if (comm::RetCode::RET_OK != (ret = qs->GetQueueID(queue_type, queue_id))) {
             comm::ProducerBP::GetThreadInstance()->OnGetQueueIDFail(req);
             QLErr("GetQueue ret %d", as_integer(ret));
             return ret;
@@ -456,4 +498,12 @@ unique_ptr<StoreSelector> Producer::NewStoreSelector(const int topic_id, const i
 }  // namespace producer
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

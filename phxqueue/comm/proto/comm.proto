@@ -21,11 +21,13 @@ message Meta { // 不变量
     optional uint64 atime  = 51;
     optional uint32 atime_ms  = 52;
     optional string client_id  = 55;
+	repeated int32 sub_ids = 56;
 
     optional Cookies user_cookies = 61; // 放业务cookie/票据
 }
 
 message QItem {
+    optional int32 handle_id = 3;
     optional bytes  buffer = 6;
     optional int32 buffer_type  = 7;
     optional uint64 consumer_group_ids = 8;
@@ -33,6 +35,7 @@ message QItem {
     optional uint64 atime  = 51;
     optional uint32 atime_ms  = 52;
     optional uint32 count  = 54;
+	repeated int32 sub_ids = 56;
 
     optional Cookies sys_cookies = 62; // 放队列参数
 
@@ -48,6 +51,7 @@ message ConsumerContext {
     optional int32 queue_id = 5 [default = -1];
     optional uint64 prev_cursor_id = 6 [default = 0xffffffffffffffff];
     optional uint64 next_cursor_id = 7 [default = 0xffffffffffffffff];
+	optional int32 back_log = 8[default = 0];
 }
 
 
@@ -68,7 +72,7 @@ message AddRequest {
 }
 
 message AddResponse {
-    optional uint64 cursor_id = 1;
+    optional uint64 cursor_id = 1 [default = 0xffffffffffffffff];
     optional Addr redirect_addr = 101;
 }
 
@@ -94,6 +98,7 @@ message GetResponse {
     optional uint64 prev_cursor_id = 11;
     optional uint64 next_cursor_id = 12;
     optional Addr redirect_addr = 101;
+	optional int32 back_log = 201;
 }
 
 message AddrScale {
@@ -202,4 +207,52 @@ message AcquireLockRequest {
 message AcquireLockResponse {
     optional Addr redirect_addr = 101;
 }
+
+enum QueueType {
+	NORMAL_QUEUE = 1;
+	TX_QUERY_QUEUE = 2;
+}
+
+enum EventHandleID {
+	HANDLER_PUSH = 1;
+	HANDLER_TX_QUERY = 2;
+}
+
+enum TxStatus {
+	TX_UNCERTAIN = 0;
+	TX_COMMIT = 1;
+	TX_ROLLBACK = 2;
+}
+
+message StatusInfo {
+	optional TxStatus tx_status = 1[default = TX_UNCERTAIN];
+	optional bytes commit_buffer = 2;
+}
+
+message TxQueryRequest {
+	optional int32 topic_id = 1;
+	optional int32 pub_id = 2;
+	optional string client_id = 3;
+	optional uint32 count = 4;
+	optional uint64 atime = 5;
+	optional bytes buffer = 6;
+}
+
+message TxQueryResponse {
+	optional StatusInfo status_info = 1;
+}
+
+message PushRequest {
+	optional int32 topic_id = 1;
+	optional int32 pub_id = 2;
+	optional string client_id = 3;
+	optional uint32 count = 4;
+	optional uint64 atime = 5;
+	optional bytes buffer = 6;
+}
+
+message PushResponse {
+	optional string result = 1;
+}
+
 

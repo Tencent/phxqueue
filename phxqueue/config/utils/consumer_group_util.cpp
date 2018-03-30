@@ -40,15 +40,10 @@ comm::RetCode GetConsumerGroupIDsByConsumerAddr(const int topic_id, const comm::
         return ret;
     }
 
-    set<int> ignore_consumer_group_ids;
-    for (int i{0}; i < topic_config->GetProto().topic().consumer_ignore_consumer_group_ids_size(); ++i) {
-        ignore_consumer_group_ids.insert(topic_config->GetProto().topic().consumer_ignore_consumer_group_ids(i));
-    }
-
     if (consumer->consumer_group_ids_size()) {
         for (int i{0}; i < consumer->consumer_group_ids_size(); ++i) {
             auto consumer_group_id = consumer->consumer_group_ids(i);
-            if (topic_config->IsValidConsumerGroupID(consumer_group_id) && ignore_consumer_group_ids.end() == ignore_consumer_group_ids.find(consumer_group_id)) {
+            if (topic_config->IsValidConsumerGroupID(consumer_group_id)) {
                 consumer_group_ids.insert(consumer_group_id);
             }
         }
@@ -58,10 +53,6 @@ comm::RetCode GetConsumerGroupIDsByConsumerAddr(const int topic_id, const comm::
     if (comm::RetCode::RET_OK != (ret = topic_config->GetAllConsumerGroupID(consumer_group_ids))) {
         NLErr("GetAllConsumerGroupID ret %d", comm::as_integer(ret));
         return ret;
-    }
-
-    for (auto &&ignore_consumer_group_id : ignore_consumer_group_ids) {
-        consumer_group_ids.erase(ignore_consumer_group_id);
     }
 
     return comm::RetCode::RET_OK;

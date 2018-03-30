@@ -27,6 +27,7 @@ namespace phxqueue {
 
 namespace consumer {
 
+using namespace std;
 
 class HeartBeatLock {
   public:
@@ -44,6 +45,7 @@ class HeartBeatLock {
     void DistubePendingQueues(const std::map<int, std::vector<Queue_t>> &consumer_group_id2pending_queues);
     comm::RetCode GetAddrScale(ConsumerGroupID2AddrScales &consumer_group_id2addr_scales);
     comm::RetCode GetAllQueues(const int consumer_group_id, std::vector<Queue_t> &all_queues);
+    void GetQueuesWithFilter(const int pub_id, const int store_id, const int consumer_group_id, std::vector<Queue_t> &all_queues, const ::google::protobuf::RepeatedField< ::google::protobuf::int32 >* queue_info_ids, std::shared_ptr<const config::TopicConfig> topic_config, set<pair<int, int> > &filter);
     comm::RetCode GetPendingQueues(const std::vector<Queue_t> &all_queues, const AddrScales &addr_scales, std::vector<Queue_t> &pending_queues);
     comm::RetCode DoLock(const int vpid, Queue_t *const info);
     void UpdateProcUsed();

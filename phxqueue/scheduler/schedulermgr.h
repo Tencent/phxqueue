@@ -299,6 +299,8 @@ class SchedulerMgr {
     //    master_expire_time_ = master_expire_time;
     //}
 
+    void OnBecomeNewMaster(const uint64_t now);
+
   private:
     // reload conf
     comm::RetCode ReloadSchedConfig();

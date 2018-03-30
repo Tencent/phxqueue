@@ -10,6 +10,7 @@ message TopicConfig {
     repeated SkipInfo skip_infos = 7;
     repeated FreqInfo freq_infos = 8;
     repeated ReplayInfo replay_infos = 9;
+    repeated Sub subs = 10;
 }
 
 message Topic {
@@ -50,7 +51,7 @@ message Topic {
 
     optional int32 consumer_lock_lease_time_s = 601 [default = 30]; // lease time of consumer handling a queue. (default value recommanded)
     optional int32 consumer_max_mem_size_mb_per_proc = 602 [default = 300]; // consumer process suicide when memory reach consumer_max_mem_size_mb_per_proc.
-    repeated int32 consumer_ignore_consumer_group_ids = 603; // consumer_group_id list that consumer do not handle.
+
     optional int32 consumer_lock_interval_s = 604 [default = 20]; // interval time of consumer refresh lease. must be less than consumer_lock_lease_time_s. (default value recommanded)
     optional int32 consumer_max_loop_per_proc = 606 [default = 0]; // consumer process suicide when process count reach consumer_max_loop_per_proc.
 
@@ -71,7 +72,7 @@ message Topic {
     optional int32 scheduler_max_init_weight_percent = 806 [default = 200]; // the new weight will not exceed the percentage of the initialized weight. (default value recommanded)
     optional int32 scheduler_load_sticky = 807 [default = 5]; // min load diff to trigger load banalced. (default value recommanded)
     optional int32 scheduler_weight_sticky = 808 [default = 500]; // min weight diff to trigger load banalced (default value recommanded)
-    optional int32 scheduler_load_balance_interval_s = 809 [default = 60]; // min time interval to load banalced. (default value recommanded)
+    optional int32 scheduler_load_balance_interval_s = 809 [default = 30]; // min time interval to load banalced. (default value recommanded)
     optional int32 scheduler_lock_lease_time_s = 810 [default = 20]; // lease time for being master. (default value recommanded)
     optional int32 scheduler_renew_lock_interval_s = 811 [default = 5]; // time interval to renew master. (default value recommanded)
     optional int32 scheduler_hash_keep_time_s = 812 [default = 20]; // if consumer does not sync load info for a while, consider it's die. (default value recommanded)
@@ -80,6 +81,7 @@ message Topic {
     optional string scheduler_lock_key = 815 [default = "__scheduler__.__master__"]; // lock key for lease master. (default value recommanded)
     optional int32 scheduler_load_use_proc_used_ratio = 816 [default = 0]; // use proc used ratio in load calculation.
     optional int32 scheduler_use_init_weight = 817 [default = 1]; // just use init weight, not the weight decided by load. (default value recommanded)
+    optional int32 scheduler_force_static_mode = 818 [default = 0]; // in static mode, scheduler consider all consumers live, and use static scale in consumerconfig.conf. (default value recommanded)
 
 
     // ------------------ lock general config ------------------
@@ -110,7 +112,6 @@ message Topic {
     optional int32 use_new_hash = 2000;
 }
 
-
 message QueueInfo {
     optional int32 queue_info_id = 1; // (required, unique)
     repeated string ranges = 2; // queue_id set. example: "ranges = 0-4 10-12". (required, unique)
@@ -132,15 +133,31 @@ message QueueInfo {
 
 message Pub {
     optional int32 pub_id = 1; // (required, unique)
+	optional string pub_name = 4;
     repeated int32 queue_info_ids = 2; // multi queue_info_id. enqueue to next queue_info after the number of retries of current queue_info's count specify. (required)
     repeated int32 consumer_group_ids = 3; // multi-consumption routing. The meaning here is that the request belonging to the pub will be consumed multi copies. (required)
+	repeated int32 sub_ids = 5;
+	optional int32 allow_clientid_duplicate = 6[default = 0];
+	optional int32 alarm_count_limit = 7[default = 10];
+
+	optional int32 is_transaction = 8[default = 0];
+	optional int32 tx_query_sub_id = 9[default = 0];
+	repeated int32 tx_query_queue_info_ids = 10;
+}
+
+message Sub {
+	optional int32 sub_id = 1;
+	optional string sub_name = 2;
+	optional int32 consumer_group_id = 3;
+	optional string proto_type = 5;
+	optional string route_conf = 6;
 }
 
 message ConsumerGroup {
     optional int32 consumer_group_id = 1; // (required, unique)
 
     optional int32 use_dynamic_scale = 11 [default = 1]; // use loadbalance.
-    optional int32 skip_lock = 12 [default = 0]; // consumer do not use lock to exclusive queue
+    optional int32 skip_lock = 12 [default = 0]; // consumer do not use lock to exclusive queue.
 }
 
 // skip item config. the relation of conditions(uin/pub_id/consumer_group_id/queue_info_id/handle_id) is &.
@@ -150,6 +167,7 @@ message SkipInfo {
     optional int32 consumer_group_id = 3 [default = -1];
     optional int32 queue_info_id = 4 [default = -1];
     optional int32 handle_id = 5 [default = -1];
+	optional string client_id = 6;
 }
 
 // consumer process freq config. the relation of conditions(pub_id/consumer_group_id/handle_id/queue_info_id) is &.

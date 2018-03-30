@@ -152,6 +152,7 @@ comm::RetCode KeepMasterThread::KeepMaster() {
     static thread_local uint64_t overdue_time_ms{0};
     uint64_t now{comm::utils::Time::GetSteadyClockMS()};
     bool need_acquire_lock{false};
+    bool is_master_origin{impl_->scheduler->GetSchedulerMgr()->IsMaster(now)};
     {
         comm::proto::GetLockInfoRequest req;
         comm::proto::GetLockInfoResponse resp;
@@ -196,6 +197,8 @@ comm::RetCode KeepMasterThread::KeepMaster() {
         comm::SchedulerKeepMasterBP::GetThreadInstance()->OnAcquireLock(topic_id, req);
         ret = impl_->scheduler->RawAcquireLock(req, resp);
         if (comm::RetCode::RET_OK == ret) {
+            if (!is_master_origin) impl_->scheduler->GetSchedulerMgr()->OnBecomeNewMaster(now);
+
             ret = impl_->scheduler->GetSchedulerMgr()->RenewMaster(expire_time_ms);
             QLVerb("MASTERSTAT: renew master %llu", lock_info->lease_time_ms());
             comm::SchedulerKeepMasterBP::GetThreadInstance()->OnAcquireLockSucc(topic_id, req, resp);

@@ -128,12 +128,12 @@ void FreqMan::UpdateConsumeStat(const int vpid, const comm::proto::ConsumerConte
         if (impl_->consumer->SkipHandle(cc, *item)) continue;
 
         int rank;
-        if (comm::RetCode::RET_OK != (ret = topic_config->GetHandleIDRank(item->meta().handle_id(), rank))) {
-            QLErr("GetHandleIDRank ret %d handle_id %d", as_integer(ret), item->meta().handle_id());
+        if (comm::RetCode::RET_OK != (ret = topic_config->GetHandleIDRank(item->handle_id(), rank))) {
+            QLErr("GetHandleIDRank ret %d handle_id %d", as_integer(ret), item->handle_id());
             continue;
         }
         if (rank > MAX_HANDLE_ID_NUM) {
-            QLErr("handle_id %d rank(%d) > MAX_HANDLE_ID_NUM(%d)", item->meta().handle_id(), rank, MAX_HANDLE_ID_NUM);
+            QLErr("handle_id %d rank(%d) > MAX_HANDLE_ID_NUM(%d)", item->handle_id(), rank, MAX_HANDLE_ID_NUM);
             continue;
         }
         ++consume_stat.nhandle_tot;
@@ -254,20 +254,14 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
             }
         }
 
-        shared_ptr<const config::proto::Pub> pub;
-        if (comm::RetCode::RET_OK != (ret = topic_config->GetPubByPubID(pub_id, pub))) {
-            QLErr("GetPubByPubID ret %d pub_id %d", as_integer(ret), pub_id);
+		std::set<int> consumer_group_ids;
+        if (comm::RetCode::RET_OK != (ret = topic_config->GetConsumerGroupIDsByPubID(pub_id, consumer_group_ids))) {
+            QLErr("GetConsumerGroupIDsByPubID ret %d pub_id %d", as_integer(ret), pub_id);
             continue;
         }
 
         {
-            bool consumer_group_id_found = false;
-            for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
-                if (pub->consumer_group_ids(i) == consumer_group_id) {
-                    consumer_group_id_found = true;
-                    break;
-                }
-            }
+            bool consumer_group_id_found = (consumer_group_ids.find(consumer_group_id) == consumer_group_ids.end()) ? false : true;
             QLVerb("consumer_group_id_found %d", (int)consumer_group_id_found);
             if (!consumer_group_id_found) continue;
         }

@@ -27,7 +27,7 @@ class QueueSelector {
   public:
     QueueSelector() {}
     virtual ~QueueSelector() {}
-    virtual comm::RetCode GetQueueID(int &queue_id) = 0;
+    virtual comm::RetCode GetQueueID(const comm::proto::QueueType queue_type, int &queue_id) = 0;
 };
 
 class QueueSelectorDefault : public QueueSelector {
@@ -35,7 +35,7 @@ class QueueSelectorDefault : public QueueSelector {
     QueueSelectorDefault(const int topic_id, const int pub_id, const uint64_t uin, const int count = 0, const bool retry_switch_queue = false);
     virtual ~QueueSelectorDefault();
 
-    virtual comm::RetCode GetQueueID(int &queue_id);
+    virtual comm::RetCode GetQueueID(const comm::proto::QueueType queue_type, int &queue_id);
 
   private:
     class QueueSelectorDefaultImpl;

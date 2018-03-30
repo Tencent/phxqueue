@@ -25,22 +25,23 @@ namespace config {
 
 using namespace std;
 
-
 class TopicConfig::TopicConfigImpl {
-  public:
-    TopicConfigImpl() {}
-    virtual ~TopicConfigImpl() {}
+	public:
+		TopicConfigImpl() {}
+		virtual ~TopicConfigImpl() {}
 
-    map<int, shared_ptr<proto::Pub>> pub_id2pub;
-    map<int, shared_ptr<proto::ConsumerGroup>> consumer_group_id2consumer_group;
-    map<int, shared_ptr<proto::QueueInfo>> queue_info_id2queue_info;
-    map<int, vector<pair<int, int>>> queue_info_id2ranges;
-    map<int, int> queue2queue_info_id;
-    map<int, set<int>> pub_id2consumer_group_ids;
-    map<int, set<int>> pub_id2queue_info_ids;
-    map<int, int> handle_id2rank;
-    vector<shared_ptr<proto::FreqInfo>> freq_infos;
-    vector<unique_ptr<proto::ReplayInfo>> replay_infos; // read only once
+		std::map<int, shared_ptr<proto::Pub>> pub_id2pub;
+		std::map<int, shared_ptr<proto::Sub>> sub_id2sub;
+		std::map<int, shared_ptr<proto::ConsumerGroup>> consumer_group_id2consumer_group;
+		std::map<int, shared_ptr<proto::QueueInfo>> queue_info_id2queue_info;
+		std::map<int, vector<pair<int, int>>> queue_info_id2ranges;
+		std::map<int, int> queue2queue_info_id;
+		std::map<int, int> pub_id2tx_query_consumer_group_id;
+		std::map<int, set<int>> pub_id2consumer_group_ids;
+		std::map<int, set<int>> pub_id2sub_ids;
+		std::map<int, int> handle_id2rank;
+		std::vector<shared_ptr<proto::FreqInfo>> freq_infos;
+		std::vector<unique_ptr<proto::ReplayInfo>> replay_infos; // read only once
 };
 
 TopicConfig::TopicConfig() : impl_(new TopicConfigImpl()){}
@@ -132,36 +133,19 @@ comm::RetCode TopicConfig::Rebuild() {
     bool need_check = NeedCheck();
 
     impl_->pub_id2pub.clear();
+	impl_->sub_id2sub.clear();
     impl_->consumer_group_id2consumer_group.clear();
     impl_->queue_info_id2queue_info.clear();
     impl_->queue_info_id2ranges.clear();
     impl_->queue2queue_info_id.clear();
+	impl_->pub_id2tx_query_consumer_group_id.clear();
     impl_->pub_id2consumer_group_ids.clear();
-    impl_->pub_id2queue_info_ids.clear();
+	impl_->pub_id2sub_ids.clear();
     impl_->handle_id2rank.clear();
     impl_->freq_infos.clear();
     impl_->replay_infos.clear();
 
     auto &&proto = GetProto();
-
-    for (int i{0}; proto.pubs_size() > i; ++i) {
-        const auto &pub(proto.pubs(i));
-        if (!pub.pub_id()) continue;
-        if (need_check) PHX_ASSERT(impl_->pub_id2pub.end() == impl_->pub_id2pub.find(pub.pub_id()), ==, true);
-        impl_->pub_id2pub.emplace(pub.pub_id(), make_shared<proto::Pub>(pub));
-
-        auto &&consumer_group_ids = impl_->pub_id2consumer_group_ids[pub.pub_id()];
-        for (int j{0}; j < pub.consumer_group_ids_size(); ++j) {
-            if (need_check) PHX_ASSERT(consumer_group_ids.end() == consumer_group_ids.find(pub.consumer_group_ids(j)), ==, true);
-            consumer_group_ids.insert(pub.consumer_group_ids(j));
-        }
-
-        auto &&queue_info_ids = impl_->pub_id2queue_info_ids[pub.pub_id()];
-        for (int j{0}; j < pub.queue_info_ids_size(); ++j) {
-            if (need_check) PHX_ASSERT(queue_info_ids.end() == queue_info_ids.find(pub.queue_info_ids(j)), ==, true);
-            queue_info_ids.insert(pub.queue_info_ids(j));
-        }
-    }
 
     for (int i{0}; proto.consumer_groups_size() > i; ++i) {
         const auto &consumer_group(proto.consumer_groups(i));
@@ -169,6 +153,55 @@ comm::RetCode TopicConfig::Rebuild() {
         if (need_check) PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(consumer_group.consumer_group_id()), ==, true);
         impl_->consumer_group_id2consumer_group.emplace(consumer_group.consumer_group_id(), make_shared<proto::ConsumerGroup>(consumer_group));
     }
+
+    for (int i{0}; proto.subs_size() > i; ++i) {
+        const auto &sub(proto.subs(i));
+        if (!sub.sub_id()) continue;
+        if (need_check) {
+            PHX_ASSERT(impl_->sub_id2sub.end() == impl_->sub_id2sub.find(sub.sub_id()), ==, true);
+            PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(sub.consumer_group_id()), ==, false);
+        }
+		impl_->sub_id2sub.emplace(sub.sub_id(), make_shared<proto::Sub>(sub));
+	}
+
+    for (int i{0}; proto.pubs_size() > i; ++i) {
+        auto &pub(proto.pubs(i));
+        if (!pub.pub_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->pub_id2pub.end() == impl_->pub_id2pub.find(pub.pub_id()), ==, true);
+        impl_->pub_id2pub.emplace(pub.pub_id(), make_shared<proto::Pub>(pub));
+
+        auto &&consumer_group_ids = impl_->pub_id2consumer_group_ids[pub.pub_id()];
+        for (int j{0}; j < pub.consumer_group_ids_size(); ++j) {
+            if (need_check) {
+                PHX_ASSERT(consumer_group_ids.end() == consumer_group_ids.find(pub.consumer_group_ids(j)), ==, true);
+                PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(pub.consumer_group_ids(j)), ==, false);
+            }
+            consumer_group_ids.insert(pub.consumer_group_ids(j));
+        }
+
+        auto &&sub_ids = impl_->pub_id2sub_ids[pub.pub_id()];
+        for (int j{0}; j < pub.sub_ids_size(); ++j) {
+            if (need_check) {
+                PHX_ASSERT(sub_ids.end() == sub_ids.find(pub.sub_ids(j)), ==, true);
+                PHX_ASSERT(impl_->sub_id2sub.end() == impl_->sub_id2sub.find(pub.sub_ids(j)), ==, false);
+            }
+            sub_ids.insert(pub.sub_ids(j));
+
+			auto sub = impl_->sub_id2sub[pub.sub_ids(j)];
+            if (need_check) PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(sub->consumer_group_id()), ==, false);
+			if (pub.consumer_group_ids_size() == 0) {
+				consumer_group_ids.insert(sub->consumer_group_id());
+			}
+        }
+
+		if (pub.tx_query_sub_id() > 0) {
+            if (need_check) PHX_ASSERT(impl_->sub_id2sub.end() == impl_->sub_id2sub.find(pub.tx_query_sub_id()), ==, false);
+			auto sub = impl_->sub_id2sub[pub.tx_query_sub_id()];
+            if (need_check) PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(sub->consumer_group_id()), ==, false);
+			impl_->pub_id2tx_query_consumer_group_id.emplace(pub.pub_id(), sub->consumer_group_id());
+		}
+    }
+
 
     for (int i{0}; proto.queue_infos_size() > i; ++i) {
         const auto &queue_info(proto.queue_infos(i));
@@ -256,16 +289,148 @@ comm::RetCode TopicConfig::GetPubByPubID(const int pub_id, shared_ptr<const prot
     return comm::RetCode::RET_OK;
 }
 
+comm::RetCode TopicConfig::GetPubNameByPubID(const int pub_id, std::string &pub_name) const {
+    comm::RetCode ret;
+    shared_ptr<const proto::Pub> pub;
+    if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub))) return ret;
+    if (!pub) return comm::RetCode::RET_ERR_RANGE_PUB;
+	pub_name = pub->pub_name();
+    return comm::RetCode::RET_OK;
+}
+
 comm::RetCode TopicConfig::GetConsumerGroupIDsByPubID(const int pub_id, set<int> &consumer_group_ids) const {
     consumer_group_ids.clear();
+
+	auto &&it = impl_->pub_id2consumer_group_ids.find(pub_id);
+    if (impl_->pub_id2consumer_group_ids.end() == it) {
+        return comm::RetCode::RET_ERR_RANGE_PUB;
+    }
+    consumer_group_ids = it->second;
+
+	auto &&iter = impl_->pub_id2tx_query_consumer_group_id.find(pub_id); 
+	if (iter != impl_->pub_id2tx_query_consumer_group_id.end()) {
+		consumer_group_ids.insert(iter->second);
+	}
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetConsumerGroupIDsByHandleID(const int handle_id, const int pub_id, std::set<int> &consumer_group_ids) const {
+	consumer_group_ids.clear();
+
+    comm::RetCode ret;
+	shared_ptr<const config::proto::Pub> pub;
+	if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub))) return ret;
+
+	if (pub->consumer_group_ids_size() > 0) {
+		for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
+			consumer_group_ids.insert(pub->consumer_group_ids(i));
+		}
+	}
+	else {
+		if (handle_id == comm::proto::HANDLER_TX_QUERY) {
+			if (pub->tx_query_sub_id() > 0) {
+				shared_ptr<const config::proto::Sub> sub;
+				if (comm::RetCode::RET_OK != (ret = GetSubBySubID(pub->tx_query_sub_id(), sub))) return ret;
+				consumer_group_ids.insert(sub->consumer_group_id());
+			}
+		}
+		else {
+			for (int i{0}; i < pub->sub_ids_size(); i++) {
+				shared_ptr<const config::proto::Sub> sub;
+				if (comm::RetCode::RET_OK != (ret = GetSubBySubID(pub->sub_ids(i), sub))) return ret;
+				consumer_group_ids.insert(sub->consumer_group_id());
+			}
+		}
+	}
+	return ret;
+}
+
+bool TopicConfig::IsTransaction(const int pub_id) const {
+    shared_ptr<const proto::Pub> pub;
+    if (comm::RetCode::RET_OK != GetPubByPubID(pub_id, pub)) return false;
+	if (!pub) return false;
+	return pub->is_transaction() ? true : false;
+}
+
+bool TopicConfig::IsAllowClientIDDuplicate(const int pub_id) const {
+    shared_ptr<const proto::Pub> pub;
+    if (comm::RetCode::RET_OK != GetPubByPubID(pub_id, pub)) return false;
+	if (!pub) return false;
+	return pub->allow_clientid_duplicate() ? true : false;
+}
+
+bool TopicConfig::IsNeedAlarm(const int pub_id, const int cnt) const {
+    shared_ptr<const proto::Pub> pub;
+    if (comm::RetCode::RET_OK != GetPubByPubID(pub_id, pub)) return false;
+	if (!pub) return false;
+	return cnt >= pub->alarm_count_limit();
+}
+
+/******************* sub ********************/
+comm::RetCode TopicConfig::GetAllSub(std::vector<std::shared_ptr<const proto::Sub>> &subs) const {
+	subs.clear();
+
+    for (auto &&it : impl_->sub_id2sub) {
+        subs.push_back(it.second);
+    }
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetAllSubID(set<int> &sub_ids) const {
+    sub_ids.clear();
+
+    for (auto &&it : impl_->sub_id2sub) {
+        sub_ids.insert(it.first);
+    }
+    return comm::RetCode::RET_OK;
+}
+
+bool TopicConfig::IsValidSubID(const int sub_id) const {
+    auto &&it = impl_->sub_id2sub.find(sub_id);
+    return impl_->sub_id2sub.end() != it;
+}
+
+comm::RetCode TopicConfig::GetSubBySubID(const int sub_id, shared_ptr<const proto::Sub> &sub) const {
+    sub = nullptr;
+
+    auto &&it = impl_->sub_id2sub.find(sub_id);
+    if (impl_->sub_id2sub.end() == it) {
+        return comm::RetCode::RET_ERR_RANGE_SUB;
+    }
+    sub = it->second;
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetSubNameBySubID(const int sub_id, std::string &sub_name) const {
+    comm::RetCode ret;
+    shared_ptr<const proto::Sub> sub;
+    if (comm::RetCode::RET_OK != (ret = GetSubBySubID(sub_id, sub))) return ret;
+    if (!sub) return comm::RetCode::RET_ERR_RANGE_SUB;
+	sub_name = sub->sub_name();
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetSubIDsByPubID(const int pub_id, std::set<int> &sub_ids) const {
+	sub_ids.clear();
 
     comm::RetCode ret;
     shared_ptr<const proto::Pub> pub;
     if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub))) return ret;
     if (!pub) return comm::RetCode::RET_ERR_RANGE_PUB;
-    for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
-        consumer_group_ids.insert(pub->consumer_group_ids(i));
+    for (int i{0}; i < pub->sub_ids_size(); ++i) {
+		sub_ids.insert(pub->sub_ids(i));
     }
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetTxQuerySubIDByPubID(const int pub_id, int &sub_id) const {
+    comm::RetCode ret;
+    shared_ptr<const proto::Pub> pub;
+    if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub))) return ret;
+    if (!pub) return comm::RetCode::RET_ERR_RANGE_PUB;
+	sub_id = pub->tx_query_sub_id();
     return comm::RetCode::RET_OK;
 }
 
@@ -307,11 +472,17 @@ comm::RetCode TopicConfig::GetConsumerGroupByConsumerGroupID(const int consumer_
 
 
 /******************* queue_info ********************/
-comm::RetCode TopicConfig::GetQueueInfoIDRankByPub(const int queue_info_id, const proto::Pub *pub, uint64_t &rank) const {
+
+comm::RetCode TopicConfig::GetQueueInfoIDRankByPubID(const int queue_info_id, const int pub_id, uint64_t &rank, const comm::proto::QueueType queue_type) const {
     rank = 0;
-    if (nullptr == pub) return comm::RetCode::RET_ERR_UNEXPECTED;
-    for (int i{0}; i < pub->queue_info_ids_size(); ++i) {
-        if (queue_info_id == pub->queue_info_ids(i)) {
+	comm::RetCode ret;
+	std::vector<int> queue_info_ids;
+	if (comm::RetCode::RET_OK != (ret = GetQueueInfoIDsByQueueType(pub_id, queue_info_ids, queue_type))) {
+		return ret;
+	}
+
+	for (int i{0}; i < queue_info_ids.size(); ++i) {
+        if (queue_info_id == queue_info_ids.at(i)) {
             rank = i;
             return comm::RetCode::RET_OK;
         }
@@ -319,141 +490,154 @@ comm::RetCode TopicConfig::GetQueueInfoIDRankByPub(const int queue_info_id, cons
     return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
 }
 
-
-
-comm::RetCode TopicConfig::GetQueueInfoIDRankByPubID(const int queue_info_id, const int pub_id, uint64_t &rank) const {
-    rank = 0;
-
-    shared_ptr<const proto::Pub> pub;
-
-    comm::RetCode ret;
-    if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub)) || !pub) {
-        return ret;
-    }
-    return GetQueueInfoIDRankByPub(queue_info_id, pub.get(), rank);
-}
-
-
 bool TopicConfig::IsValidQueue(const int queue_id, const int pub_id, const int consumer_group_id) const {
-    auto &&f = [&](const int arg_pub_id)->bool {
-        if (-1 != consumer_group_id) {
-            auto &&it = impl_->pub_id2consumer_group_ids.find(arg_pub_id);
-            if (impl_->pub_id2consumer_group_ids.end() == it) return false;
-            auto &&consumer_group_ids = it->second;
-            auto &&it1 = consumer_group_ids.find(consumer_group_id);
-            if (consumer_group_ids.end() == it1) return false;
-        }
-
-        {
-            auto &&it = impl_->pub_id2queue_info_ids.find(arg_pub_id);
-            if (impl_->pub_id2queue_info_ids.end() == it) return false;
-            auto &&queue_info_ids = it->second;
-            for (auto &&queue_info_id : queue_info_ids) {
-                auto &&it1 = impl_->queue_info_id2ranges.find(queue_info_id);
-                if (impl_->queue_info_id2ranges.end() == it1) return false;
-                auto &&ranges = it1->second;
-                for (auto &&range : ranges) {
-                    if (range.first <= queue_id && queue_id <= range.second) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
+    auto &&g = [&](const int queue_info_id)->bool {
+		auto &&it = impl_->queue_info_id2ranges.find(queue_info_id);
+		if (impl_->queue_info_id2ranges.end() == it) return false;
+		auto &&ranges = it->second;
+		for (auto &&range : ranges) {
+			if (range.first <= queue_id && queue_id <= range.second) {
+				return true;
+			}
+		}
+		return false;
     };
 
-    if (-1 != pub_id) {
-        return f(pub_id);
-    } else {
-        for (auto &&kv : impl_->pub_id2pub) {
-            if (f(kv.first)) return true;
-        }
-    }
+    auto &&f = [&](const int pub_id)->bool {
+		shared_ptr<const proto::Pub> pub;
+		if (comm::RetCode::RET_OK != GetPubByPubID(pub_id, pub) || !pub) {
+			return false;
+		}
+		if (pub->is_transaction()) {
+			bool valid_consumer_group = true;
+			if (consumer_group_id != -1) {
+				auto &&it = impl_->pub_id2tx_query_consumer_group_id.find(pub_id);
+				if (it == impl_->pub_id2tx_query_consumer_group_id.end() || it->second != consumer_group_id) {
+                    valid_consumer_group = false;
+                }
+			}
+			if (valid_consumer_group) {
+				for (int i{0}; i < pub->tx_query_queue_info_ids_size(); i++) {
+					if (g(pub->tx_query_queue_info_ids(i))) return true;
+				}
+			}
+		}
 
-    return false;
+		if (consumer_group_id != -1) {
+			auto &&it = impl_->pub_id2consumer_group_ids.find(pub_id);
+			if (it != impl_->pub_id2consumer_group_ids.end()) {
+				auto &&consumer_group_ids = it->second;
+				if (consumer_group_ids.find(consumer_group_id) == consumer_group_ids.end()) {
+					return false;
+				}
+			}
+			else return false;
+		}
+		for (int i{0}; i < pub->queue_info_ids_size(); i++) {
+			if (g(pub->queue_info_ids(i))) return true;
+		}
+		return false;
+	};
+
+	if (-1 != pub_id) {
+		return f(pub_id);
+	} else {
+		for (auto &&kv : impl_->pub_id2pub) {
+			if (f(kv.first)) return true;
+		}
+	}
+
+	return false;
 }
 
 comm::RetCode TopicConfig::GetQueuesByQueueInfoID(const int queue_info_id, set<int> &queues) const {
-    queues.clear();
+	queues.clear();
 
-    auto &&it = impl_->queue_info_id2ranges.find(queue_info_id);
-    if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
-    auto &&ranges = it->second;
+	auto &&it = impl_->queue_info_id2ranges.find(queue_info_id);
+	if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
+	auto &&ranges = it->second;
 
-    for (auto &&range : ranges) {
-        for (int queue{range.first}; queue <= range.second; ++queue) {
-            queues.insert(queue);
-        }
-    }
+	for (auto &&range : ranges) {
+		for (int queue{range.first}; queue <= range.second; ++queue) {
+			queues.insert(queue);
+		}
+	}
 
-    return comm::RetCode::RET_OK;
+	return comm::RetCode::RET_OK;
 }
 
 
 comm::RetCode TopicConfig::GetQueueDelay(const int queue, int &delay) const {
-    comm::RetCode ret;
-    shared_ptr<const proto::QueueInfo> queue_info;
-    if (comm::RetCode::RET_OK != (ret = GetQueueInfoByQueue(queue, queue_info))) {
-        return ret;
-    }
-    delay = queue_info->delay();
+	comm::RetCode ret;
+	shared_ptr<const proto::QueueInfo> queue_info;
+	if (comm::RetCode::RET_OK != (ret = GetQueueInfoByQueue(queue, queue_info))) {
+		return ret;
+	}
+	delay = queue_info->delay();
 
-    return comm::RetCode::RET_OK;
+	return comm::RetCode::RET_OK;
 }
 
 comm::RetCode TopicConfig::GetNQueue(const int queue_info_id, int &nqueue) const {
-    auto &&it(impl_->queue_info_id2ranges.find(queue_info_id));
-    if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
-    auto &&ranges = it->second;
+	auto &&it(impl_->queue_info_id2ranges.find(queue_info_id));
+	if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
+	auto &&ranges = it->second;
 
-    nqueue = 0;
-    for (auto &&range : ranges) {
-        nqueue += range.second - range.first + 1;
-    }
-    return comm::RetCode::RET_OK;
+	nqueue = 0;
+	for (auto &&range : ranges) {
+		nqueue += range.second - range.first + 1;
+	}
+	return comm::RetCode::RET_OK;
 }
 
 comm::RetCode TopicConfig::GetQueueByRank(const int queue_info_id, const uint64_t rank, int &queue) const {
-    auto &&it = impl_->queue_info_id2ranges.find(queue_info_id);
-    if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
-    auto &&ranges = it->second;
+	auto &&it = impl_->queue_info_id2ranges.find(queue_info_id);
+	if (it == impl_->queue_info_id2ranges.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
+	auto &&ranges = it->second;
 
-    if (0 == ranges.size()) return comm::RetCode::RET_ERR_RANGE_RANK;
+	if (0 == ranges.size()) return comm::RetCode::RET_ERR_RANGE_RANK;
 
-    uint64_t r{rank};
-    for (auto &&range : ranges) {
-        uint64_t w{range.second - range.first + 1};
-        if (r >= w) r -= w;
-        else {
-            queue = (int)(range.first + r);
-            return comm::RetCode::RET_OK;
-        }
-    }
-    return comm::RetCode::RET_ERR_RANGE_RANK;
+	uint64_t r{rank};
+	for (auto &&range : ranges) {
+		uint64_t w{range.second - range.first + 1};
+		if (r >= w) r -= w;
+		else {
+			queue = (int)(range.first + r);
+			return comm::RetCode::RET_OK;
+		}
+	}
+	return comm::RetCode::RET_ERR_RANGE_RANK;
 }
 
 comm::RetCode TopicConfig::GetQueueByLoopRank(const int queue_info_id, const uint64_t rank, int &queue) const {
-    comm::RetCode ret;
-    int nqueue{0};
-    if (comm::RetCode::RET_OK != (ret = GetNQueue(queue_info_id, nqueue))) {
-        return ret;
-    }
-    if (0 == nqueue) {
-        return comm::RetCode::RET_ERR_NQUEUE_INVALID;
-    }
-    return GetQueueByRank(queue_info_id, rank % nqueue, queue);
+	comm::RetCode ret;
+	int nqueue{0};
+	if (comm::RetCode::RET_OK != (ret = GetNQueue(queue_info_id, nqueue))) {
+		return ret;
+	}
+	if (0 == nqueue) {
+		return comm::RetCode::RET_ERR_NQUEUE_INVALID;
+	}
+	return GetQueueByRank(queue_info_id, rank % nqueue, queue);
+}
+
+comm::RetCode TopicConfig::GetQueueInfoIDByQueue(const int queue, int &queue_info_id) const {
+	auto &&it = impl_->queue2queue_info_id.find(queue);
+	if (it == impl_->queue2queue_info_id.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE;
+    queue_info_id = it->second;
+    return comm::RetCode::RET_OK;
 }
 
 comm::RetCode TopicConfig::GetQueueInfoByQueue(const int queue, shared_ptr<const proto::QueueInfo> &queue_info) const {
-    queue_info = nullptr;
-    auto &&it = impl_->queue2queue_info_id.find(queue);
-    if (it == impl_->queue2queue_info_id.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE;
+	queue_info = nullptr;
+	auto &&it = impl_->queue2queue_info_id.find(queue);
+	if (it == impl_->queue2queue_info_id.end()) return comm::RetCode::RET_ERR_RANGE_QUEUE;
 
-    return GetQueueInfoByQueueInfoID(it->second, queue_info);
+	return GetQueueInfoByQueueInfoID(it->second, queue_info);
 }
 
 comm::RetCode TopicConfig::GetQueueInfoByQueueInfoID(const int queue_info_id, shared_ptr<const proto::QueueInfo> &queue_info) const {
-    queue_info = nullptr;
+	queue_info = nullptr;
 
     auto &&it = impl_->queue_info_id2queue_info.find(queue_info_id);
     if (impl_->queue_info_id2queue_info.end() != it) {
@@ -463,31 +647,75 @@ comm::RetCode TopicConfig::GetQueueInfoByQueueInfoID(const int queue_info_id, sh
     return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
 }
 
-bool TopicConfig::ShouldSkip(const comm::proto::QItem &item, const int consumer_group_id, const int queue_info_id) const {
+bool TopicConfig::QueueShouldSkip(const int queue, const int consumer_group_id) const {
+    comm::RetCode ret;
+    int queue_info_id;
+    if (comm::RetCode::RET_OK != GetQueueInfoIDByQueue(queue, queue_info_id)) return true;
+
     auto &&proto = GetProto();
     for (int i{0}; i < proto.skip_infos_size(); ++i) {
         auto &&skip_info = proto.skip_infos(i);
-        if ((skip_info.uin() == 0 || skip_info.uin() == item.meta().uin()) &&
-            (skip_info.pub_id() == -1 || skip_info.pub_id() == item.pub_id()) &&
-            (skip_info.handle_id() == -1 || skip_info.handle_id() == item.meta().handle_id()) &&
-            (skip_info.consumer_group_id() == -1 || skip_info.consumer_group_id() == consumer_group_id) &&
-            (skip_info.queue_info_id() == -1 || skip_info.queue_info_id() == queue_info_id)) {
+        if (skip_info.uin() == 0 &&
+            skip_info.pub_id() == -1 &&
+            skip_info.handle_id() == -1 &&
+            (skip_info.consumer_group_id() == -1 || consumer_group_id == -1 || skip_info.consumer_group_id() == consumer_group_id) &&
+            (skip_info.queue_info_id() == -1 || skip_info.queue_info_id() == queue_info_id) &&
+			skip_info.has_client_id() == false) {
             return true;
         }
     }
     return false;
 }
 
-comm::RetCode TopicConfig::GetQueueInfoIDByCount(const int pub_id, const int cnt, int &queue_info_id) const {
+bool TopicConfig::ItemShouldSkip(const comm::proto::QItem &item, const int consumer_group_id, const int queue_info_id) const {
+    auto &&proto = GetProto();
+    for (int i{0}; i < proto.skip_infos_size(); ++i) {
+        auto &&skip_info = proto.skip_infos(i);
+        if ((skip_info.uin() == 0 || skip_info.uin() == item.meta().uin()) &&
+            (skip_info.pub_id() == -1 || skip_info.pub_id() == item.pub_id()) &&
+            (skip_info.handle_id() == -1 || skip_info.handle_id() == item.handle_id()) &&
+            (skip_info.consumer_group_id() == -1 || skip_info.consumer_group_id() == consumer_group_id) &&
+            (skip_info.queue_info_id() == -1 || skip_info.queue_info_id() == queue_info_id) &&
+			(skip_info.has_client_id() == false || skip_info.client_id() == item.meta().client_id()) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+comm::RetCode TopicConfig::GetQueueInfoIDsByQueueType(const int pub_id, std::vector<int> &queue_info_ids, const comm::proto::QueueType queue_type) const {
     comm::RetCode ret;
     shared_ptr<const proto::Pub> pub;
     if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub)) || !pub) {
         return comm::RetCode::RET_ERR_RANGE_PUB;
     }
 
+	if (queue_type == comm::proto::QueueType::NORMAL_QUEUE) {
+		for (int i{0}; i < pub->queue_info_ids_size(); i++) {
+			queue_info_ids.push_back(pub->queue_info_ids(i));
+		}
+	}
+	else if (queue_type == comm::proto::QueueType::TX_QUERY_QUEUE) {
+		for (int i{0}; i < pub->tx_query_queue_info_ids_size(); i++) {
+			queue_info_ids.push_back(pub->tx_query_queue_info_ids(i));
+		}
+	}
+	else {
+		return comm::RetCode::RET_ERR_ARG;
+	}
+	return comm::RetCode::RET_OK;
+}
+
+comm::RetCode TopicConfig::GetQueueInfoIDByCount(const int pub_id, const int cnt, int &queue_info_id, const comm::proto::QueueType queue_type) const {
+    comm::RetCode ret;
+	std::vector<int> queue_info_ids;
+	if (comm::RetCode::RET_OK != (ret = GetQueueInfoIDsByQueueType(pub_id, queue_info_ids, queue_type))) {
+		return ret;
+	}
+
     int c{cnt};
-    for (int i{0}; i < pub->queue_info_ids_size(); ++i) {
-        const int queue_info_id_tmp = pub->queue_info_ids(i);
+    for (int i{0}; i < queue_info_ids.size(); ++i) {
+        const int queue_info_id_tmp = queue_info_ids.at(i);
         shared_ptr<const proto::QueueInfo> queue_info;
         if (comm::RetCode::RET_OK != (ret = GetQueueInfoByQueueInfoID(queue_info_id_tmp, queue_info)) || !queue_info) {
             return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
@@ -509,13 +737,13 @@ comm::RetCode TopicConfig::GetHandleIDRank(const int handle_id, int &rank) const
     return comm::RetCode::RET_OK;
 }
 
-
-
+/******************* freq ********************/
 comm::RetCode TopicConfig::GetAllFreqInfo(std::vector<shared_ptr<proto::FreqInfo> > &freq_infos) const {
     freq_infos = impl_->freq_infos;
     return comm::RetCode::RET_OK;
 }
 
+/******************* replay ********************/
 comm::RetCode TopicConfig::GetAllReplayInfo(std::vector<unique_ptr<proto::ReplayInfo> > &replay_infos) const {
     for (auto &&replay_info : impl_->replay_infos) {
         replay_infos.push_back(move(replay_info));
@@ -528,4 +756,12 @@ comm::RetCode TopicConfig::GetAllReplayInfo(std::vector<unique_ptr<proto::Replay
 }  // namespace config
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 

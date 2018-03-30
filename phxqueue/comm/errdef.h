@@ -73,6 +73,7 @@ enum class RetCode {
     RET_ERR_RANGE_SCHEDULER = -10113,  // scheduler_id 不合法
     RET_ERR_RANGE_LOCK = -10114,  // lock_id 不合法
     RET_ERR_RANGE_VPID = -10115,  // vpid 不合法
+    RET_ERR_RANGE_SUB = -10116,
 
     RET_ERR_NQUEUE_INVALID = -10151,  // nqueue 不合法，一般为0
 

@@ -30,6 +30,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxqueue/store.h"
 #include "phxqueue/producer.h"
 
+#include "phxqueue/consumer/eventhandler.h"
 #include "phxqueue/consumer/freqman.h"
 #include "phxqueue/consumer/hblock.h"
 
@@ -163,6 +164,19 @@ int Consumer::GetTopicID() {
     return impl_->topic_id;
 }
 
+comm::RetCode Consumer::GetConsumerGroupIDsByHandleID(const int handle_id, const int pub_id, std::set<int> &consumer_group_ids) {
+    comm::RetCode ret = comm::RetCode::RET_OK;
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(GetTopicID(), topic_config))) {
+        QLErr("ERR: GetTopicConfigByTopicID err. topic_id %u ret %d", GetTopicID(), comm::as_integer(ret));
+        return ret;
+    }
+
+	ret = topic_config->GetConsumerGroupIDsByHandleID(handle_id, pub_id, consumer_group_ids);
+
+	return ret;
+}
+
 comm::RetCode Consumer::GetQueuesDistribute(vector<Queue_t> &queues) {
     queues.clear();
     return impl_->lock.GetQueuesDistribute(queues);
@@ -203,8 +217,8 @@ comm::RetCode Consumer::MakeHandleBuckets() {
     int max_handle_id{-1};
     uint64_t max_key(-1);
     for (int i{0}; i < impl_->items.size(); ++i) {
-        auto key(impl_->items[i]->meta().uin());
-        auto handle_id(impl_->items[i]->meta().handle_id());
+        auto key = impl_->items[i]->meta().uin();
+        auto handle_id = impl_->items[i]->handle_id();
 
         int bucket_idx{-1};
         bool update_uin2bucket_idx = false;
@@ -329,10 +343,8 @@ void Consumer::HandleRoutineFunc(const int idx) {
 
     if (SkipHandle(impl_->cc, *item)) {
         comm::ConsumerConsumeBP::GetThreadInstance()->OnSkipHandle(impl_->cc, *item);
-        QLInfo("Handle skip handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64
-               " hash %" PRIu64 " uin %" PRIu64, item->meta().handle_id(),
-               item->meta().pub_id(), item->pub_id(), (uint64_t)item->consumer_group_ids(),
-               (uint64_t)item->meta().hash(), (uint64_t)item->meta().uin());
+        QLInfo("Handle skip handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
+               item->handle_id(), item->meta().pub_id(), item->pub_id(), (uint64_t)item->consumer_group_ids(), (uint64_t)item->meta().hash(), (uint64_t)item->meta().uin());
         handle_result = comm::HandleResult::RES_OK;
         return;
     }
@@ -584,6 +596,7 @@ void Consumer::UpdateConsumerContextByGetResponse(const comm::proto::GetResponse
            (uint64_t)cc.next_cursor_id(), (uint64_t)resp.next_cursor_id());
     cc.set_prev_cursor_id(resp.prev_cursor_id());
     cc.set_next_cursor_id(resp.next_cursor_id());
+	cc.set_back_log(resp.back_log());
 }
 
 comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
@@ -778,7 +791,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
             QLVerb("get item hash %" PRIu64 " count %d", (uint64_t)item->meta().hash(), item->count());
 
-            if (!topic_config->ShouldSkip(*item, cc.consumer_group_id(), queue_info->queue_info_id())) {
+            if (!topic_config->ItemShouldSkip(*item, cc.consumer_group_id(), queue_info->queue_info_id())) {
                 items.emplace_back(make_shared<comm::proto::QItem>(), item);
             }
         }
@@ -791,11 +804,9 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
             vector<comm::HandleResult> &handle_results = impl_->handle_results;
             handle_results.clear();
 
-            if (items.size()) {
-                if (comm::RetCode::RET_OK != (ret = Consume(cc, items, handle_results))) {
-                    QLErr("BatchHandle ret %d", comm::as_integer(ret));
-                }
-            }
+			if (comm::RetCode::RET_OK != (ret = Consume(cc, items, handle_results))) {
+				QLErr("BatchHandle ret %d", comm::as_integer(ret));
+			}
 
             AfterConsume(cc, items, handle_results);
         }
@@ -925,9 +936,13 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
         return ret;
     }
 
-    auto &&handler = GetHandler(item.meta().handle_id());
+	if (item.handle_id() == 0) {
+		item.set_handle_id(item.meta().handle_id());
+	}
+
+    auto &&handler = GetHandler(item.handle_id());
     if (!handler) {
-        QLErr("GetHandler return null handle_id %d", item.meta().handle_id());
+        QLErr("GetHandler return null handle_id %d", item.handle_id());
         handle_result = comm::HandleResult::RES_ERROR;
         return comm::RetCode::RET_ERR_RANGE_HANDLE;
     }
@@ -943,17 +958,12 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
 
     auto &&client_id(item.meta().client_id());
     if (client_id.empty()) {
-        QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64
-               " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
-               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(),
-               (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(),
-               (uint64_t)item.meta().uin(), handle_result);
+        QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
+               item.handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result);
     } else {
-        QLInfo("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64
-               " hash %" PRIu64 " uin %" PRIu64 " handle_result %d client_id %s",
-               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(),
-               (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(),
-               (uint64_t)item.meta().uin(), handle_result, client_id.c_str());
+        QLInfo("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d client_id %s",
+               item.handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result,
+               client_id.c_str());
     }
 
     return comm::RetCode::RET_OK;
@@ -1041,8 +1051,16 @@ void Consumer::CustomGetRequest(const comm::proto::ConsumerContext &cc,
 }
 
 void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
-                            const vector<shared_ptr<comm::proto::QItem>> &items,
-                            const vector<comm::HandleResult> &handle_results) {
+                            const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
+                            const std::vector<comm::HandleResult> &handle_results) {
+	Forward(cc, items, handle_results);
+	AddRetry(cc, items, handle_results);
+}
+
+void Consumer::AddRetry(const comm::proto::ConsumerContext &cc,
+                            const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
+                            const std::vector<comm::HandleResult> &handle_results) {
+	if (items.size() == 0) return ;
 
     phxqueue::comm::RetCode ret;
 
@@ -1064,21 +1082,25 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
 
     vector<unique_ptr<phxqueue::comm::proto::AddRequest>> reqs;
 
-    uint64_t retry_consumer_group_ids(1uLL << (cc.consumer_group_id() - 1));
-    {
-        ret = phxqueue::producer::Producer::MakeAddRequests(cc.topic_id(), retry_items, reqs,
-                [&cc, retry_consumer_group_ids](phxqueue::comm::proto::QItem &item)->void {
-            item.set_count(item.count() + 1);
-            item.set_consumer_group_ids(retry_consumer_group_ids);
+    uint64_t retry_consumer_group_ids = (1ULL << (cc.consumer_group_id() - 1));
+	while (true) {
+        ret = phxqueue::producer::Producer::MakeAddRequests(cc.topic_id(), retry_items, reqs, 
+                                                                                        [&cc, retry_consumer_group_ids](phxqueue::comm::proto::QItem &item)->void {
+                                                                                            item.set_count(item.count() + 1);
+                                                                                            item.set_consumer_group_ids(retry_consumer_group_ids);
 
-            auto now = comm::utils::Time::GetTimestampMS();
-            item.set_atime(now / 1000);
-            item.set_atime_ms(now % 1000);
-        });
+                                                                                            auto now = comm::utils::Time::GetTimestampMS();
+                                                                                            item.set_atime(now / 1000);
+                                                                                            item.set_atime_ms(now % 1000);
+                                                                                        });
+
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             QLErr("MakeAddRequests ret %d", as_integer(ret));
-            return;
         }
+		else {
+			break;
+		}
+		poll(nullptr, 0, 1000);
     }
 
     for (auto &&req : reqs) {
@@ -1097,16 +1119,110 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
             } else {
                 ret = Add(*req, resp);
             }
-            if (comm::RetCode::RET_OK != ret) {
-                QLErr("Retry ret %d topic_id %d retry_pub_id %d consumer_group_id %d store_id %d "
-                      "queue_id %d item_size %zu retry_item_size %d",
-                      ret, cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(),
-                      cc.queue_id(), items.size(), req->items_size());
+			if (ret == comm::RetCode::RET_ADD_SKIP) {
+                QLErr("Retry Skip ret %d topic_id %d retry_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
+                      ret, cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
+				break;
+			}
+			else if (comm::RetCode::RET_OK != ret) {
+                QLErr("Retry ret %d topic_id %d retry_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
+                      ret, cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
             } else {
                 QLInfo("INFO: Retry succ topic_id %d retry_pub_id %d consumer_group_id %d store_id %d "
                        "queue_id %d item_size %zu retry_item_size %d",
                       cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(),
                       cc.queue_id(), items.size(), req->items_size());
+                break;
+            }
+
+            poll(nullptr, 0, 1000);
+        }
+
+        AfterAdd(*req, resp);
+
+    }
+}
+
+void Consumer::Forward(const comm::proto::ConsumerContext &cc,
+                            const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
+                            const std::vector<comm::HandleResult> &handle_results) {
+	if (items.size() == 0) return ;
+
+    phxqueue::comm::RetCode ret;
+
+    if (handle_results.size() < items.size()) {
+        QLErr("handle_results.size() %d < items.size() %d", (int)handle_results.size(), (int)items.size());
+        return;
+    }
+
+    vector<shared_ptr<phxqueue::comm::proto::QItem> > forward_items;
+    for (int i{0}; i < items.size(); ++i) {
+        auto &&item = items[i];
+        auto &&handle_result = handle_results[i];
+        if (phxqueue::comm::HandleResult::RES_OK == handle_result && item->handle_id() == comm::proto::HANDLER_TX_QUERY) {
+            forward_items.push_back(item);
+        }
+    }
+
+    if (0 == forward_items.size()) return;
+
+	int pub_id = forward_items[0]->pub_id();
+	std::set<int> consumer_group_ids;
+	while (true) {
+		if (comm::RetCode::RET_OK != (ret = GetConsumerGroupIDsByHandleID(comm::proto::HANDLER_PUSH, pub_id, consumer_group_ids))) {
+			QLErr("GetConsumerGroupIDsByHandleID ret %d topic_id %d", comm::as_integer(ret), cc.topic_id());
+		}
+		else {
+			break;
+		}
+		poll(nullptr, 0, 1000);
+	}
+	uint64_t forward_consumer_group_ids = comm::utils::ConsumerGroupIDs2Mask(&consumer_group_ids);
+
+    vector<unique_ptr<phxqueue::comm::proto::AddRequest> > reqs;
+
+	while (true) {
+        ret = phxqueue::producer::Producer::MakeAddRequests(cc.topic_id(), forward_items, reqs,
+                                                                                        [&cc, forward_consumer_group_ids](phxqueue::comm::proto::QItem &item)->void {
+                                                                                            item.set_count(0);
+                                                                                            item.set_consumer_group_ids(forward_consumer_group_ids);
+
+                                                                                            auto now = comm::utils::Time::GetTimestampMS();
+                                                                                            item.set_atime(now / 1000);
+                                                                                            item.set_atime_ms(now % 1000);
+
+																							item.set_handle_id(comm::proto::HANDLER_PUSH);
+                                                                                        });
+        if (phxqueue::comm::RetCode::RET_OK != ret) {
+            QLErr("MakeAddRequests ret %d", as_integer(ret));
+        }
+		else {
+			break;
+		}
+		poll(nullptr, 0, 1000);
+    }
+
+    for (auto &&req : reqs) {
+        if (!req || 0 == req->items_size()) continue;
+
+        int forward_pub_id = req->items(0).pub_id();
+
+        BeforeAdd(*req);
+
+        comm::proto::AddResponse resp;
+        while (true) { // retry forever
+            if (impl_->opt.use_store_master_client_on_add) {
+                store::StoreMasterClient<comm::proto::AddRequest, comm::proto::AddResponse> store_master_client;
+                ret = store_master_client.ClientCall(*req, resp, bind(&Consumer::Add, this, placeholders::_1, placeholders::_2));
+            } else {
+                ret = Add(*req, resp);
+            }
+            if (comm::RetCode::RET_OK != ret) {
+                QLErr("Forward ret %d topic_id %d forward_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu forward_item_size %d", 
+                      ret, cc.topic_id(), forward_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
+            } else {
+                QLInfo("INFO: Forward succ topic_id %d forward_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu forward_item_size %d", 
+                      cc.topic_id(), forward_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
                 break;
             }
 

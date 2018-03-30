@@ -257,7 +257,10 @@ void SyncCtrl::ClearSyncCtrl() {
                     break;
                 }
             }
-            if (!valid){
+
+            bool skip = topic_config->QueueShouldSkip(queue_id, consumer_group_id);
+            
+            if (!valid || skip){
                 if (comm::RetCode::RET_OK == (ret = GetCursorID(consumer_group_id, queue_id, cursor_id))) {
                     QLInfo("start to clear. consumer_group_id %d queue_id %d cursor_id %" PRIu64,
                            consumer_group_id, queue_id, cursor_id);
@@ -378,4 +381,12 @@ comm::RetCode SyncCtrl::SyncCursorID(const proto::SyncCtrlInfo &sync_ctrl_info) 
 }  // namespace store
 
 }  // namespace phxqueue
+
+
+//gzrd_Lib_CPP_Version_ID--start
+#ifndef GZRD_SVN_ATTR
+#define GZRD_SVN_ATTR "0"
+#endif
+static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
+// gzrd_Lib_CPP_Version_ID--end
 
