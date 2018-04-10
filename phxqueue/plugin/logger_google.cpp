@@ -51,7 +51,8 @@ using namespace std;
 
 int LoggerGoogle::GetLogger(const string &module_name, const string &log_path,
                             const int google_log_level, comm::LogFunc &log_func) {
-    google::InitGoogleLogging(module_name.c_str());
+    static const string log_name = module_name;
+    google::InitGoogleLogging(log_name.c_str());
     FLAGS_log_dir = log_path;
     FLAGS_stderrthreshold = google::FATAL;
     FLAGS_minloglevel = google_log_level;
