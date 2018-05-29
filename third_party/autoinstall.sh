@@ -146,7 +146,7 @@ function install_glog()
     go_back;
     cd $lib_name;
     ./autogen.sh
-    ./configure CXXFLAGS=-fPIC --prefix=$(pwd);
+    ./configure CXXFLAGS=-fPIC --prefix=$(pwd) --with-gflags=$current_path/gflags/;
     make && make install;
 
     check_lib_exist $lib_name;
@@ -171,6 +171,7 @@ function install_gflag()
     # end check.
     go_back;
     cd $lib_name;
+    export CXXFLAGS="$CXXFLAGS -fPIC";
     cmake . -DCMAKE_INSTALL_PREFIX=$(pwd);
     make && make install;
 
@@ -285,8 +286,8 @@ function install_phxrpc()
 
 install_leveldb;
 install_protobuf;
-install_glog;
 install_gflag;
+install_glog;
 install_colib;
 install_phxpaxos;
 install_phxrpc;
