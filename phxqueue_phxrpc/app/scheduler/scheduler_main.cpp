@@ -68,19 +68,19 @@ static int MakeArgs(SchedulerServerConfig &config, ServiceArgs_t &args) {
 }
 
 
-void Dispatch(const phxrpc::BaseRequest *const req,
-              phxrpc::BaseResponse *const resp,
+void Dispatch(const phxrpc::HttpRequest &req,
+              phxrpc::HttpResponse *const resp,
               phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
 
     SchedulerServiceImpl service(*service_args);
     SchedulerDispatcher dispatcher(service, args);
 
-    phxrpc::BaseDispatcher<SchedulerDispatcher> base_dispatcher(
-            dispatcher,  SchedulerDispatcher::GetMqttFuncMap(),
-            SchedulerDispatcher::GetURIFuncMap());
+    phxrpc::HttpDispatcher<SchedulerDispatcher> base_dispatcher(
+            dispatcher, SchedulerDispatcher::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
-        resp->DispatchErr();
+        resp->SetStatusCode(404);
+        resp->SetReasonPhrase("Not Found");
     }
 }
 

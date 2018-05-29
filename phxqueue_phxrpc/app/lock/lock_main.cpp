@@ -76,19 +76,19 @@ static int MakeArgs(LockServerConfig &config, ServiceArgs_t &args) {
 }
 
 
-void Dispatch(const phxrpc::BaseRequest *const req,
-              phxrpc::BaseResponse *const resp,
+void Dispatch(const phxrpc::HttpRequest &req,
+              phxrpc::HttpResponse *const resp,
               phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     LockServiceImpl service(*service_args);
     LockDispatcher dispatcher(service, args);
 
-    phxrpc::BaseDispatcher<LockDispatcher> base_dispatcher(
-            dispatcher,  LockDispatcher::GetMqttFuncMap(),
-            LockDispatcher::GetURIFuncMap());
+    phxrpc::HttpDispatcher<LockDispatcher> base_dispatcher(
+            dispatcher, LockDispatcher::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
-        resp->DispatchErr();
+        resp->SetStatusCode(404);
+        resp->SetReasonPhrase("Not Found");
     }
 }
 

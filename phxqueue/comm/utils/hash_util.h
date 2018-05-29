@@ -14,6 +14,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include <cstdint>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <list>
 #include <map>
