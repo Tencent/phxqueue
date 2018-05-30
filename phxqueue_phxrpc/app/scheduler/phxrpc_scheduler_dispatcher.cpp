@@ -34,22 +34,16 @@ SchedulerDispatcher::SchedulerDispatcher(SchedulerService &service, phxrpc::Disp
 
 SchedulerDispatcher::~SchedulerDispatcher() {}
 
-const phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap &
-SchedulerDispatcher::GetMqttFuncMap() {
-    static phxrpc::BaseDispatcher<SchedulerDispatcher>::MqttFuncMap mqtt_func_map = {};
-    return mqtt_func_map;
-}
-
-const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &
+const phxrpc::HttpDispatcher<SchedulerDispatcher>::URIFuncMap &
 SchedulerDispatcher::GetURIFuncMap() {
-    static phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
+    static phxrpc::HttpDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
         {"/phxqueue_phxrpc.scheduler/PhxEcho", &SchedulerDispatcher::PhxEcho},
         {"/phxqueue_phxrpc.scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
     return uri_func_map;
 }
 
-int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
-                                 phxrpc::BaseResponse *const resp) {
+int SchedulerDispatcher::PhxEcho(const phxrpc::HttpRequest &req,
+                                 phxrpc::HttpResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
 
     int ret{0};
@@ -59,9 +53,9 @@ int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
 
     // unpack request
     {
-        if (!req_pb.ParseFromString(req->GetContent())) {
+        if (!req_pb.ParseFromString(req.GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                        req->GetContent().size(), req->GetClientIP());
+                        req.GetContent().size(), req.GetClientIP());
             return -EINVAL;
         }
     }
@@ -75,7 +69,7 @@ int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
     {
         if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
             phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
-                        req->GetClientIP());
+                        req.GetClientIP());
             return -ENOMEM;
         }
     }
@@ -85,8 +79,8 @@ int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest *const req,
     return ret;
 }
 
-int SchedulerDispatcher::GetAddrScale(const phxrpc::BaseRequest *const req,
-                                      phxrpc::BaseResponse *const resp) {
+int SchedulerDispatcher::GetAddrScale(const phxrpc::HttpRequest &req,
+                                      phxrpc::HttpResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(1, "GetAddrScale", 1);
 
     int ret{0};
@@ -96,9 +90,9 @@ int SchedulerDispatcher::GetAddrScale(const phxrpc::BaseRequest *const req,
 
     // unpack request
     {
-        if (!req_pb.ParseFromString(req->GetContent())) {
+        if (!req_pb.ParseFromString(req.GetContent())) {
             phxrpc::log(LOG_ERR, "ERROR: FromBuffer fail size %zu ip %s",
-                        req->GetContent().size(), req->GetClientIP());
+                        req.GetContent().size(), req.GetClientIP());
             return -EINVAL;
         }
     }
@@ -112,7 +106,7 @@ int SchedulerDispatcher::GetAddrScale(const phxrpc::BaseRequest *const req,
     {
         if (!resp_pb.SerializeToString(&(resp->GetContent()))) {
             phxrpc::log(LOG_ERR, "ERROR: ToBuffer fail ip %s",
-                        req->GetClientIP());
+                        req.GetClientIP());
             return -ENOMEM;
         }
     }

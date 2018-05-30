@@ -73,19 +73,19 @@ static int MakeArgs(StoreServerConfig &config, ServiceArgs_t &args) {
 }
 
 
-void Dispatch(const phxrpc::BaseRequest *const req,
-              phxrpc::BaseResponse *const resp,
+void Dispatch(const phxrpc::HttpRequest &req,
+              phxrpc::HttpResponse *const resp,
               phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
 
     StoreServiceImpl service(*service_args);
     StoreDispatcher dispatcher(service, args);
 
-    phxrpc::BaseDispatcher<StoreDispatcher> base_dispatcher(
-            dispatcher, StoreDispatcher::GetMqttFuncMap(),
-            StoreDispatcher::GetURIFuncMap());
+    phxrpc::HttpDispatcher<StoreDispatcher> base_dispatcher(
+            dispatcher, StoreDispatcher::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
-        resp->DispatchErr();
+        resp->SetStatusCode(404);
+        resp->SetReasonPhrase("Not Found");
     }
 }
 
