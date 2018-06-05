@@ -25,7 +25,7 @@ class SchedulerServerConfig {
   public:
     SchedulerServerConfig();
 
-    ~SchedulerServerConfig();
+    virtual ~SchedulerServerConfig();
 
     bool Read(const char *config_file);
 

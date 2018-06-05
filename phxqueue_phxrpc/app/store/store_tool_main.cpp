@@ -36,7 +36,7 @@ void ShowUsage(const char *program) {
 
     StoreTool::Name2Func_t *name2func = StoreTool::GetName2Func();
 
-    for (int i = 0; ; i++) {
+    for (int i{0}; ; ++i) {
         StoreTool::Name2Func_t *iter = &(name2func[i]);
 
         if (nullptr == iter->name) break;
@@ -48,15 +48,15 @@ void ShowUsage(const char *program) {
 }
 
 int main(int argc, char *argv[]) {
-    const char *func = nullptr;
-    const char *config = nullptr;
+    const char *func{nullptr};
+    const char *config{nullptr};
 
-    for (int i = 1; i < argc - 1; i++) {
+    for (int i{1}; i < argc - 1; ++i) {
         if (0 == strcmp(argv[i], "-c")) {
-            config = argv[ ++i ];
+            config = argv[++i];
         }
         if (0 == strcmp(argv[i], "-f")) {
-            func = argv[ ++i ];
+            func = argv[++i];
         }
         if (0 == strcmp(argv[i], "-v")) {
             ShowUsage(argv[0]);
@@ -67,11 +67,11 @@ int main(int argc, char *argv[]) {
 
     if (nullptr != config) StoreClient::Init(config);
 
-    StoreTool::Name2Func_t *target = nullptr;
+    StoreTool::Name2Func_t *target{nullptr};
 
-    StoreTool::Name2Func_t *name2func = StoreTool::GetName2Func();
+    StoreTool::Name2Func_t *name2func{StoreTool::GetName2Func()};
 
-    for (int i = 0; i < 100; i++) {
+    for (int i{0}; i < 100; ++i) {
         StoreTool::Name2Func_t *iter = &(name2func[i]);
 
         if (nullptr == iter->name) break;

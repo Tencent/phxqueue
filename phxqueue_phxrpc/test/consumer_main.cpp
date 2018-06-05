@@ -47,7 +47,7 @@ int main(int argc, char ** argv) {
     bool daemonize{false};
     extern char *optarg;
     int c ;
-    while ((c = getopt(argc, argv, "c:vd")) != EOF) {
+    while (EOF != (c = getopt(argc, argv, "c:vd"))) {
         switch (c) {
             case 'c': config_file = optarg; break;
             case 'd': daemonize = true; break;

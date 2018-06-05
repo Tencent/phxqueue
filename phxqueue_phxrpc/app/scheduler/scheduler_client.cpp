@@ -136,9 +136,9 @@ SchedulerClient::ProtoGetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequ
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -161,7 +161,7 @@ SchedulerClient::ProtoGetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequ
         QLErr("GetAddrScale err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }

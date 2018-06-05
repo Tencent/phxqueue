@@ -23,8 +23,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxrpc/network.h"
 #include "phxrpc/rpc.h"
 
-#include "store.pb.h"
-
 
 StoreStub::StoreStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)
         : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {}

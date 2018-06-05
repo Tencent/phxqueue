@@ -181,7 +181,7 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
     uint64_t cli_prev_cursor_id{req.prev_cursor_id()};
     uint64_t cli_next_cursor_id{req.next_cursor_id()};
-    uint64_t svr_prev_cursor_id{-1};
+    uint64_t svr_prev_cursor_id(-1);
 
     StoreMetaQueue &meta_queue = impl_->meta_queues[req.queue_id()];
 

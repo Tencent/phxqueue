@@ -31,7 +31,7 @@ bool LockServerConfig::Read(const char *config_file) {
         ep_server_config_.SetPackageName("phxqueue_phxrpc.lock");
     }
 
-    // read Extra
+    // read extra
     phxrpc::Config config;
     if (!config.InitConfig(config_file)) {
         return false;
@@ -48,7 +48,6 @@ bool LockServerConfig::Read(const char *config_file) {
 phxrpc::HshaServerConfig &LockServerConfig::GetHshaServerConfig() {
     return ep_server_config_;
 }
-
 
 const char *LockServerConfig::GetTopic() const {
     return topic_;

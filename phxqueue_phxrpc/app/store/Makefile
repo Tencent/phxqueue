@@ -12,15 +12,15 @@ include ../../../makefile.mk
 
 
 SVR_OBJS = store.pb.o \
-		   store_service_impl.o \
-		   phxrpc_store_service.o \
-		   phxrpc_store_dispatcher.o \
-		   store_server_config.o \
-		   store_main.o
+		store_service_impl.o \
+		phxrpc_store_service.o \
+		phxrpc_store_dispatcher.o \
+		store_server_config.o \
+		store_main.o
 
 CLI_OBJS = store.pb.o \
-		   store_client.o \
-		   phxrpc_store_stub.o
+		store_client.o \
+		phxrpc_store_stub.o
 
 TARGETS = libstore_client.a store_main store_tool_main
 

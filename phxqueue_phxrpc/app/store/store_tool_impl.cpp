@@ -52,7 +52,6 @@ int StoreToolImpl::Add(phxrpc::OptMap &opt_map) {
 
     //TODO: fill req from opt_map
 
-
     StoreClient client;
     int ret = client.Add(req, &resp);
     printf("%s return %d\n", __func__, ret);
@@ -66,7 +65,6 @@ int StoreToolImpl::Get(phxrpc::OptMap &opt_map) {
     phxqueue::comm::proto::GetResponse resp;
 
     //TODO: fill req from opt_map
-
 
     StoreClient client;
     int ret = client.Get(req, &resp);

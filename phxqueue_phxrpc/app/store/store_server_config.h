@@ -25,7 +25,7 @@ class StoreServerConfig {
   public:
     StoreServerConfig();
 
-    ~StoreServerConfig();
+    virtual ~StoreServerConfig();
 
     bool Read(const char *config_file);
 

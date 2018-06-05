@@ -11,15 +11,15 @@ include ../../../makefile.mk
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS) # for boost
 
 SVR_OBJS = lock.pb.o \
-		   lock_service_impl.o \
-		   phxrpc_lock_service.o \
-		   phxrpc_lock_dispatcher.o \
-		   lock_server_config.o \
-		   lock_main.o
+		lock_service_impl.o \
+		phxrpc_lock_service.o \
+		phxrpc_lock_dispatcher.o \
+		lock_server_config.o \
+		lock_main.o
 
 CLI_OBJS = lock.pb.o \
-		   lock_client.o \
-		   phxrpc_lock_stub.o
+		lock_client.o \
+		phxrpc_lock_stub.o
 
 TARGETS = liblock_client.a lock_main lock_tool_main
 

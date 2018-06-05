@@ -33,7 +33,7 @@ int SchedulerToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     google::protobuf::StringValue req;
     google::protobuf::StringValue resp;
 
-    if (NULL == opt_map.Get('s')) return -1;
+    if (nullptr == opt_map.Get('s')) return -1;
 
     req.set_value(opt_map.Get('s'));
 
@@ -50,7 +50,6 @@ int SchedulerToolImpl::GetAddrScale(phxrpc::OptMap &opt_map) {
     phxqueue::comm::proto::GetAddrScaleResponse resp;
 
     //TODO: fill req from opt_map
-
 
     SchedulerClient client;
     int ret = client.GetAddrScale(req, &resp);

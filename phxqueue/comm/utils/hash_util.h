@@ -15,9 +15,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <cstdint>
 #include <cstdio>
 #include <functional>
-#include <memory>
 #include <list>
 #include <map>
+#include <memory>
+
 
 namespace phxqueue {
 
@@ -25,11 +26,12 @@ namespace comm {
 
 namespace utils {
 
+
 uint64_t MurmurHash64(const void *key, size_t len, uint64_t seed);
 
 template <typename Key, typename Node>
 class ConsistenHash {
-public:
+  public:
     ConsistenHash() {}
     ~ConsistenHash() {}
 
@@ -64,15 +66,15 @@ public:
         return true;
     }
 
-private:
+  private:
     std::map<uint64_t, Node> hash2node_;
     std::function<uint64_t (const Key &)> key_hash_func_;
 };
+
 
 }  // namespace utils
 
 }  // namespace comm
 
 }  // namespace phxqueue
-
 

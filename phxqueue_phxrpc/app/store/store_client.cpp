@@ -27,6 +27,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/comm.h"
 
+
+using namespace std;
+
+
 static phxrpc::ClientConfig global_storeclient_config_;
 static phxrpc::ClientMonitorPtr global_storeclient_monitor_;
 
@@ -44,7 +48,7 @@ const char *StoreClient::GetPackageName() {
 }
 
 StoreClient::StoreClient() {
-    static std::mutex monitor_mutex;
+    static mutex monitor_mutex;
     if (!global_storeclient_monitor_.get()) {
         monitor_mutex.lock();
         if (!global_storeclient_monitor_.get()) {
@@ -151,9 +155,9 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -176,7 +180,7 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
         QLErr("Add err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }
@@ -187,9 +191,9 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -212,7 +216,7 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
         QLErr("Get err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }

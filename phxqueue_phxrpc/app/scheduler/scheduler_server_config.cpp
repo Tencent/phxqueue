@@ -31,7 +31,7 @@ bool SchedulerServerConfig::Read(const char *config_file) {
         ep_server_config_.SetPackageName("phxqueue_phxrpc.scheduler");
     }
 
-    // read Extra
+    // read extra
     phxrpc::Config config;
     if (!config.InitConfig(config_file)) {
         return false;

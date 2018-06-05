@@ -12,10 +12,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/comm/utils/hash_util.h"
 
+#include <cassert>
 #include <chrono>
 #include <errno.h>
 #include <unistd.h>
-#include <assert.h>
+
 
 namespace phxqueue {
 
@@ -23,7 +24,9 @@ namespace comm {
 
 namespace utils {
 
+
 using namespace std;
+
 
 uint64_t MurmurHash64(const void *key, size_t len, uint64_t seed) {
     const uint64_t m = 0xc6a4a7935bd1e995LLU;

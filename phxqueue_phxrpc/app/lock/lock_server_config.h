@@ -25,7 +25,7 @@ class LockServerConfig {
   public:
     LockServerConfig();
 
-    ~LockServerConfig();
+    virtual ~LockServerConfig();
 
     bool Read(const char *config_file);
 

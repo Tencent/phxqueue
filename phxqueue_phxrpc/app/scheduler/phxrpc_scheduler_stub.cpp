@@ -18,11 +18,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 */
 
+#include "phxrpc_scheduler_stub.h"
+
 #include "phxrpc/rpc.h"
 #include "phxrpc/network.h"
-
-#include "phxrpc_scheduler_stub.h"
-#include "scheduler.pb.h"
 
 
 SchedulerStub::SchedulerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)

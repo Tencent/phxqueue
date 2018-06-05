@@ -12,7 +12,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxrpc_scheduler.h"
 
-#include "lock_client.h"
+#include "phxqueue_phxrpc/app/lock/lock_client.h"
 
 
 namespace phxqueue_phxrpc {

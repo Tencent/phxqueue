@@ -70,7 +70,7 @@ class Consumer::ConsumerImpl {
 
     int consume_fds[2];
 
-    vector<shared_ptr<comm::proto::QItem> > items;
+    vector<shared_ptr<comm::proto::QItem>> items;
     vector<comm::HandleResult> handle_results;
 
     DispatchCtx_t dispatch_ctx;
@@ -79,7 +79,7 @@ class Consumer::ConsumerImpl {
     unique_ptr<queue<int>[]> handle_buckets;
     unique_ptr<bool[]> batch_handle_finish;
 
-	stCoCond_t *cond = nullptr;
+    stCoCond_t *cond = nullptr;
     int nhandle_task_finished = 0;
     int nbatch_handle_task_finished = 0;
 
@@ -375,7 +375,7 @@ static void *HandleRoutineRun(void *arg) {
 static void *BatchHandleRoutineRun(void *arg) {
     co_enable_hook_sys();
 
-    ConsumeCtx_t *ctx = static_cast<ConsumeCtx_t*>(arg);
+    ConsumeCtx_t *ctx = static_cast<ConsumeCtx_t *>(arg);
 
     while (1) {
         if (ctx->consumer->HasBatchHandleTasks(ctx->cid)) {

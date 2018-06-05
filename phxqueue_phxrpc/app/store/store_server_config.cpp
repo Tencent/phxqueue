@@ -32,7 +32,7 @@ bool StoreServerConfig::Read(const char *config_file) {
         ep_server_config_.SetPackageName("phxqueue_phxrpc.store");
     }
 
-    // read Extra
+    // read extra
     phxrpc::Config config;
     if (!config.InitConfig(config_file)) {
         return false;
