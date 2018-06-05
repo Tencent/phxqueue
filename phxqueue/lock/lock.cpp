@@ -86,7 +86,8 @@ comm::RetCode Lock::Init() {
     }
 
     if (impl_->opt.break_point_factory_create_func) {
-        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(impl_->opt.break_point_factory_create_func);
+        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(
+                impl_->opt.break_point_factory_create_func);
     }
 
     impl_->addr.set_ip(impl_->opt.ip);
@@ -158,6 +159,166 @@ LockMgr *Lock::GetLockMgr() {
     return impl_->lock_mgr.get();
 }
 
+comm::RetCode Lock::GetString(const comm::proto::GetStringRequest &req,
+                              comm::proto::GetStringResponse &resp) {
+    if (0 >= req.key().size()) {
+        QLErr("key \"%s\" invalid", req.key().c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    uint32_t paxos_group_id{HashUi32(req.key()) % impl_->opt.nr_group};
+
+    comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
+    if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
+              paxos_group_id, req.key().c_str(), ret);
+
+        return ret;
+    }
+    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
+           paxos_group_id, req.key().c_str(), impl_->node->GetMyNodeID());
+
+    proto::LocalRecordInfo local_record_info;
+
+    // begin mutex
+    {
+
+        // prevent paxos from writing
+        comm::utils::MutexGuard guard(impl_->lock_mgr->map(paxos_group_id).mutex());
+        ret = impl_->lock_mgr->map(paxos_group_id).GetString(req.key(), local_record_info);
+
+    }
+    // end mutex
+
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+        QLVerb("paxos_group %d key \"%s\" GetString not exist", paxos_group_id, req.key().c_str());
+
+        return ret;
+    } else if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d key \"%s\" GetString err %d", paxos_group_id, req.key().c_str(), ret);
+
+        return ret;
+    }
+
+    const auto &string_info(resp.mutable_string_info());
+    string_info->set_key(req.key());
+    string_info->set_version(local_record_info.version());
+    string_info->set_value(local_record_info.value());
+    string_info->set_lease_time_ms(local_record_info.lease_time_ms());
+    QLInfo("paxos_group %d key \"%s\" GetString ok", paxos_group_id, req.key().c_str());
+
+    return ret;
+}
+
+comm::RetCode Lock::SetString(const comm::proto::SetStringRequest &req,
+                              comm::proto::SetStringResponse &resp) {
+    if (0 >= req.string_info().key().size()) {
+        QLErr("key \"%s\" invalid", req.string_info().key().c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
+
+    comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
+    if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
+              paxos_group_id, req.string_info().key().c_str(), ret);
+
+        return ret;
+    }
+    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
+           paxos_group_id, req.string_info().key().c_str(), impl_->node->GetMyNodeID());
+
+    return PaxosSetString(req, resp);
+}
+
+comm::RetCode Lock::DeleteString(const comm::proto::DeleteStringRequest &req,
+                                 comm::proto::DeleteStringResponse &resp) {
+    if (0 >= req.string_key_info().key().size()) {
+        QLErr("key \"%s\" invalid", req.string_key_info().key().c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    uint32_t paxos_group_id{HashUi32(req.string_key_info().key()) % impl_->opt.nr_group};
+
+    comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
+    if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
+              paxos_group_id, req.string_key_info().key().c_str(), ret);
+
+        return ret;
+    }
+    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
+           paxos_group_id, req.string_key_info().key().c_str(), impl_->node->GetMyNodeID());
+
+    return PaxosDeleteString(req, resp);
+}
+
+comm::RetCode Lock::GetLockInfo(const comm::proto::GetLockInfoRequest &req,
+                                comm::proto::GetLockInfoResponse &resp) {
+    comm::LockBP::GetThreadInstance()->OnGetLockInfo(req);
+
+    if (0 >= req.lock_key().size()) {
+        comm::LockBP::GetThreadInstance()->OnGetLockInfoRequestInvalid(req);
+        QLErr("lock \"%s\" invalid", req.lock_key().c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    uint32_t paxos_group_id{HashUi32(req.lock_key()) % impl_->opt.nr_group};
+
+    comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
+    if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d lock \"%s\" CheckMaster err %d",
+              paxos_group_id, req.lock_key().c_str(), ret);
+        // TODO:
+        //OssAttrInc(impl_->opt.oss_attr_id, 23u, 1u);
+
+        return ret;
+    }
+    comm::LockBP::GetThreadInstance()->OnGetLockInfoCheckMasterPass(req);
+    QLVerb("paxos_group %d lock \"%s\" node %" PRIu64 " master 1",
+           paxos_group_id, req.lock_key().c_str(), impl_->node->GetMyNodeID());
+
+    proto::LocalRecordInfo local_record_info;
+
+    // begin mutex
+    {
+
+        // prevent paxos from writing
+        comm::utils::MutexGuard guard(impl_->lock_mgr->map(paxos_group_id).mutex());
+        ret = impl_->lock_mgr->map(paxos_group_id).GetLock(req.lock_key(), local_record_info);
+
+    }
+    // end mutex
+
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+        QLVerb("paxos_group %d lock \"%s\" GetLock not exist",
+               paxos_group_id, req.lock_key().c_str());
+        // TODO:
+        //OssAttrInc(impl_->opt.oss_attr_id, 25u, 1u);
+
+        return ret;
+    } else if (comm::RetCode::RET_OK != ret) {
+        QLErr("paxos_group %d lock \"%s\" GetLock err %d",
+              paxos_group_id, req.lock_key().c_str(), ret);
+        // TODO:
+        //OssAttrInc(impl_->opt.oss_attr_id, 24u, 1u);
+
+        return ret;
+    }
+
+    LocalRecordInfo2LockInfo(local_record_info, *resp.mutable_lock_info());
+    QLInfo("paxos_group %d lock \"%s\" GetLock ok map.ver %llu map.client_id \"%s\"",
+           paxos_group_id, req.lock_key().c_str(), resp.lock_info().version(),
+           resp.lock_info().client_id().c_str());
+
+    return ret;
+}
+
 // ret: RET_OK if acquired, others if not acquired
 comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
                                 comm::proto::AcquireLockResponse &resp) {
@@ -187,25 +348,25 @@ comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
            lock_info.version(), lock_info.client_id().c_str());
 
     // compare version
-    proto::LocalLockInfo local_lock_info;
+    proto::LocalRecordInfo local_record_info;
 
     // begin mutex
     {
 
         // ensure clean thread not cleaning
         comm::utils::MutexGuard guard(impl_->lock_mgr->map(paxos_group_id).mutex());
-        ret = impl_->lock_mgr->map(paxos_group_id).Get(lock_info.lock_key(), local_lock_info);
+        ret = impl_->lock_mgr->map(paxos_group_id).GetLock(lock_info.lock_key(), local_record_info);
 
     }
     // end mutex
 
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-        QLVerb("paxos_group %d lock \"%s\" Get not exist",
+        QLVerb("paxos_group %d lock \"%s\" GetLock not exist",
                paxos_group_id, lock_info.lock_key().c_str());
         // TODO:
         //OssAttrInc(impl_->opt.oss_attr_id, 15u, 1u);
     } else if (comm::RetCode::RET_OK != ret) {
-        QLErr("paxos_group %d lock \"%s\" Get err %d",
+        QLErr("paxos_group %d lock \"%s\" GetLock err %d",
               paxos_group_id, lock_info.lock_key().c_str(), ret);
         // TODO:
         //OssAttrInc(impl_->opt.oss_attr_id, 14u, 1u);
@@ -213,9 +374,10 @@ comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
         return ret;
     }
 
-    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret && local_lock_info.version() != lock_info.version()) {
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret &&
+        local_record_info.version() != lock_info.version()) {
         QLErr("paxos_group %d lock \"%s\" map.ver %llu != req.ver %llu req.client_id \"%s\"",
-              paxos_group_id, lock_info.lock_key().c_str(), local_lock_info.version(),
+              paxos_group_id, lock_info.lock_key().c_str(), local_record_info.version(),
               lock_info.version(), lock_info.client_id().c_str());
         // TODO:
         //OssAttrInc(impl_->opt.oss_attr_id, 16u, 1u);
@@ -224,13 +386,14 @@ comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
     }
 
     uint64_t now{comm::utils::Time::GetSteadyClockMS()};
-    if (local_lock_info.client_id() != lock_info.client_id() && now < local_lock_info.expire_time_ms()) {
+    if (local_record_info.value() != lock_info.client_id() &&
+        now < local_record_info.expire_time_ms()) {
         // warning only
-        // if NOT accur in changing master, client has bug
+        // if NOT occur in changing master, client has bug
         QLErr("paxos_group %d lock \"%s\" (map.client_id \"%s\" != req.client_id \"%s\") && (now %"
               PRIu64 " < expire_time_ms %llu)",
-              paxos_group_id, lock_info.lock_key().c_str(), local_lock_info.client_id().c_str(),
-              lock_info.client_id().c_str(), now, local_lock_info.expire_time_ms());
+              paxos_group_id, lock_info.lock_key().c_str(), local_record_info.value().c_str(),
+              lock_info.client_id().c_str(), now, local_record_info.expire_time_ms());
         // TODO:
         //OssAttrInc(impl_->opt.oss_attr_id, 17u, 1u);
     }
@@ -241,70 +404,11 @@ comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
 
         // ensure clean thread not cleaning
         comm::utils::MutexGuard guard(impl_->lock_mgr->map(paxos_group_id).mutex());
-        ret = impl_->lock_mgr->map(paxos_group_id).Delete(lock_info.lock_key());
-        QLVerb("paxos_group %d lock \"%s\" Delete",
+        ret = impl_->lock_mgr->map(paxos_group_id).DeleteLock(lock_info.lock_key(), false);
+        QLVerb("paxos_group %d lock \"%s\" DeleteLock",
                paxos_group_id, lock_info.lock_key().c_str());
 
     }
-
-    return ret;
-}
-
-comm::RetCode Lock::GetLockInfo(const comm::proto::GetLockInfoRequest &req,
-                                comm::proto::GetLockInfoResponse &resp) {
-    comm::LockBP::GetThreadInstance()->OnGetLockInfo(req);
-
-    if (0 >= req.lock_key().size()) {
-        comm::LockBP::GetThreadInstance()->OnGetLockInfoRequestInvalid(req);
-        QLErr("lock \"%s\" invalid", req.lock_key().c_str());
-
-        return comm::RetCode::RET_ERR_KEY;
-    }
-
-    uint32_t paxos_group_id{HashUi32(req.lock_key()) % impl_->opt.nr_group};
-
-    comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
-    if (comm::RetCode::RET_OK != ret) {
-        QLErr("paxos_group %d lock \"%s\" CheckMaster err %d",
-              paxos_group_id, req.lock_key().c_str(), ret);
-        // TODO:
-        //OssAttrInc(impl_->opt.oss_attr_id, 23u, 1u);
-
-        return ret;
-    }
-    comm::LockBP::GetThreadInstance()->OnGetLockInfoCheckMasterPass(req);
-    QLVerb("paxos_group %d lock \"%s\" node %" PRIu64 " master 1",
-           paxos_group_id, req.lock_key().c_str(), impl_->node->GetMyNodeID());
-
-    proto::LocalLockInfo local_lock_info;
-
-    // begin mutex
-    {
-
-        // prevent paxos from writing
-        comm::utils::MutexGuard guard(impl_->lock_mgr->map(paxos_group_id).mutex());
-        ret = impl_->lock_mgr->map(paxos_group_id).Get(req.lock_key(), local_lock_info);
-
-    }
-    // end mutex
-
-    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-        QLVerb("paxos_group %d lock \"%s\" Get not exist", paxos_group_id, req.lock_key().c_str());
-        // TODO:
-        //OssAttrInc(impl_->opt.oss_attr_id, 25u, 1u);
-
-        return ret;
-    } else if (comm::RetCode::RET_OK != ret) {
-        QLErr("paxos_group %d lock \"%s\" Get err %d", paxos_group_id, req.lock_key().c_str(), ret);
-        // TODO:
-        //OssAttrInc(impl_->opt.oss_attr_id, 24u, 1u);
-
-        return ret;
-    }
-
-    LocalLockInfo2LockInfo(local_lock_info, *resp.mutable_lock_info());
-    QLInfo("paxos_group %d lock \"%s\" Get ok map.ver %llu map.client_id \"%s\"", paxos_group_id,
-           req.lock_key().c_str(), resp.lock_info().version(), resp.lock_info().client_id().c_str());
 
     return ret;
 }
@@ -437,6 +541,135 @@ comm::RetCode Lock::CheckMaster(const int paxos_group_id, comm::proto::Addr &red
     return comm::RetCode::RET_ERR_RANGE_ADDR;
 }
 
+// ret: RET_OK if set, others if not set
+comm::RetCode Lock::PaxosSetString(const comm::proto::SetStringRequest &req,
+                                   comm::proto::SetStringResponse &resp) {
+    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
+
+    // paxos
+    proto::LockPaxosArgs args;
+
+    // 1. make args
+    *args.mutable_set_string_req() = req;
+
+    // 2. serialize args to paxos value
+    string buf;
+    args.SerializeToString(&buf);
+
+    // 3. send to paxos
+    LockContext lc;
+    phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
+    uint64_t instance_id{0};
+
+    uint64_t t1{comm::utils::Time::GetSteadyClockMS()};
+    int paxos_ret{impl_->node->Propose(paxos_group_id, buf, instance_id, &sm_ctx)};
+    uint64_t t2{comm::utils::Time::GetSteadyClockMS()};
+    uint64_t used_time_ms{t2 - t1};
+
+    if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
+        QLErr("paxos_group %d key \"%s\" Propose err %d buf.size %zu",
+              paxos_group_id, req.string_info().key().c_str(),
+              paxos_ret, buf.size());
+        switch (paxos_ret) {
+            case phxpaxos::PaxosTryCommitRet_Timeout:
+                return comm::RetCode::RET_ERR_PROPOSE_TIMEOUT;
+            case phxpaxos::PaxosTryCommitRet_TooManyThreadWaiting_Reject:
+                return comm::RetCode::RET_ERR_PROPOSE_FAST_REJECT;
+            case phxpaxos::PaxosTryCommitRet_Value_Size_TooLarge:
+                return comm::RetCode::RET_ERR_SIZE_TOO_LARGE;
+            default:
+                return comm::RetCode::RET_ERR_PROPOSE;
+        };
+    }
+
+    if (comm::RetCode::RET_OK != lc.result) {
+        QLErr("paxos_group %d key \"%s\" Propose err %d instance_id %" PRIu64
+              " buf.size %zu", paxos_group_id,
+              req.string_info().key().c_str(), lc.result, instance_id, buf.size());
+
+        return lc.result;
+    }
+    QLInfo("paxos_group %d key \"%s\" Propose ok instance_id %" PRIu64
+           " buf.size %zu", paxos_group_id,
+           req.string_info().key().c_str(), instance_id, buf.size());
+
+    return comm::RetCode::RET_OK;
+}
+
+// ret: RET_OK if set, others if not set
+comm::RetCode Lock::PaxosDeleteString(const comm::proto::DeleteStringRequest &req,
+                                      comm::proto::DeleteStringResponse &resp) {
+    comm::proto::SetStringRequest set_string_req;
+    comm::proto::SetStringResponse set_string_resp;
+
+    set_string_req.set_topic_id(req.topic_id());
+    set_string_req.set_lock_id(req.lock_id());
+    set_string_req.mutable_string_info()->set_key(req.string_key_info().key());
+    set_string_req.mutable_string_info()->set_version(req.string_key_info().version());
+    set_string_req.mutable_master_addr()->CopyFrom(req.master_addr());
+
+    comm::RetCode ret{PaxosSetString(set_string_req, set_string_resp)};
+
+    resp.mutable_redirect_addr()->CopyFrom(set_string_resp.redirect_addr());
+
+    return ret;
+}
+
+// ret: RET_OK if set, others if not set
+//comm::RetCode Lock::PaxosDeleteString(const comm::proto::DeleteStringRequest &req,
+//                                      comm::proto::DeleteStringResponse &resp) {
+//    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
+//
+//    // paxos
+//    proto::LockPaxosArgs args;
+//
+//    // 1. make args
+//    *args.mutable_delete_string_req() = req;
+//
+//    // 2. serialize args to paxos value
+//    string buf;
+//    args.SerializeToString(&buf);
+//
+//    // 3. send to paxos
+//    LockContext lc;
+//    phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
+//    uint64_t instance_id{0};
+//
+//    uint64_t t1{comm::utils::Time::GetSteadyClockMS()};
+//    int paxos_ret{impl_->node->Propose(paxos_group_id, buf, instance_id, &sm_ctx)};
+//    uint64_t t2{comm::utils::Time::GetSteadyClockMS()};
+//    uint64_t used_time_ms{t2 - t1};
+//
+//    if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
+//        QLErr("paxos_group %d key \"%s\" Propose err %d buf.size %zu",
+//              paxos_group_id, req.string_info().key().c_str(),
+//              paxos_ret, buf.size());
+//        switch (paxos_ret) {
+//            case phxpaxos::PaxosTryCommitRet_Timeout:
+//                return comm::RetCode::RET_ERR_PROPOSE_TIMEOUT;
+//            case phxpaxos::PaxosTryCommitRet_TooManyThreadWaiting_Reject:
+//                return comm::RetCode::RET_ERR_PROPOSE_FAST_REJECT;
+//            case phxpaxos::PaxosTryCommitRet_Value_Size_TooLarge:
+//                return comm::RetCode::RET_ERR_SIZE_TOO_LARGE;
+//            default:
+//                return comm::RetCode::RET_ERR_PROPOSE;
+//        };
+//    }
+//
+//    if (comm::RetCode::RET_OK != lc.result) {
+//        QLErr("paxos_group %d key \"%s\" Propose err %d instance_id %" PRIu64
+//              " buf.size %zu", paxos_group_id,
+//              req.string_info().key().c_str(), lc.result, instance_id, buf.size());
+//
+//        return lc.result;
+//    }
+//    QLInfo("paxos_group %d key \"%s\" Propose ok instance_id %" PRIu64
+//           " buf.size %zu", paxos_group_id,
+//           req.string_info().key().c_str(), instance_id, buf.size());
+//
+//    return comm::RetCode::RET_OK;
+//}
+
 // ret: RET_OK if acquired, others if not acquired
 comm::RetCode Lock::PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
                                      comm::proto::AcquireLockResponse &resp) {
@@ -523,7 +756,8 @@ comm::RetCode Lock::InitTopicID() {
         return ret;
     }
 
-    QLInfo("find topic by addr %s:%d:%d", impl_->addr.ip().c_str(), impl_->addr.port(), impl_->addr.paxos_port());
+    QLInfo("find topic by addr %s:%d:%d", impl_->addr.ip().c_str(),
+           impl_->addr.port(), impl_->addr.paxos_port());
 
     set<int> topic_ids;
     comm::RetCode ret{config::GlobalConfig::GetThreadInstance()->GetAllTopicID(topic_ids)};
@@ -539,7 +773,8 @@ comm::RetCode Lock::InitTopicID() {
         QLInfo("check topic %d", topic_id);
 
         shared_ptr<const config::LockConfig> lock_config;
-        comm::RetCode topic_ret{config::GlobalConfig::GetThreadInstance()->GetLockConfig(topic_id, lock_config)};
+        comm::RetCode topic_ret{config::GlobalConfig::GetThreadInstance()->
+                GetLockConfig(topic_id, lock_config)};
         if (comm::RetCode::RET_OK != topic_ret) {
             QLErr("GetLockConfig ret %d", comm::as_integer(topic_ret));
 
@@ -549,7 +784,8 @@ comm::RetCode Lock::InitTopicID() {
         int lock_id{-1};
         topic_ret = lock_config->GetLockIDByAddr(impl_->addr, lock_id);
         if (comm::RetCode::RET_OK == topic_ret) {
-            QLInfo("found toipc %d addr %s:%d", topic_id, impl_->addr.ip().c_str(), impl_->addr.port());
+            QLInfo("found toipc %d addr %s:%d", topic_id,
+                   impl_->addr.ip().c_str(), impl_->addr.port());
             impl_->topic_id = topic_id;
 
             return comm::RetCode::RET_OK;

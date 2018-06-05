@@ -15,5 +15,23 @@ service Lock {
     rpc AcquireLock(phxqueue.comm.proto.AcquireLockRequest) returns(phxqueue.comm.proto.AcquireLockResponse) {
         option(phxrpc.CmdID) = 2;
     }
+
+    rpc GetString(phxqueue.comm.proto.GetStringRequest) returns(phxqueue.comm.proto.GetStringResponse) {
+        option(phxrpc.CmdID) = 11;
+        option(phxrpc.OptString) = "t:l:k:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key>";
+    }
+
+    rpc SetString(phxqueue.comm.proto.SetStringRequest) returns(phxqueue.comm.proto.SetStringResponse) {
+        option(phxrpc.CmdID) = 12;
+        option(phxrpc.OptString) = "t:l:k:r:s:l:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key> -r <version> -s <string> -l <lease_time_ms>";
+    }
+
+    rpc DeleteString(phxqueue.comm.proto.DeleteStringRequest) returns(phxqueue.comm.proto.DeleteStringResponse) {
+        option(phxrpc.CmdID) = 13;
+        option(phxrpc.OptString) = "t:l:k:r:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key> -r <version>";
+    }
 }
 

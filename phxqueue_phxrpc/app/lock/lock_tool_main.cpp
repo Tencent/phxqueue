@@ -39,7 +39,7 @@ void ShowUsage(const char *program) {
     for (int i{0}; ; ++i) {
         LockTool::Name2Func_t *iter = &(name2func[i]);
 
-        if( NULL == iter->name ) break;
+        if (nullptr == iter->name) break;
 
         printf("    -f %s %s\n", iter->name, iter->usage);
     }
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
     LockTool::Name2Func_t *name2func{LockTool::GetName2Func()};
 
     for (int i{0}; i < 100; ++i) {
-        LockTool::Name2Func_t * iter = &( name2func[i] );
+        LockTool::Name2Func_t *iter = &(name2func[i]);
 
         if (nullptr == iter->name) break;
 

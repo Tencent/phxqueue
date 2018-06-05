@@ -43,6 +43,12 @@ class LockTool {
 
     virtual int AcquireLock(phxrpc::OptMap &bigmap);
 
+    virtual int GetString(phxrpc::OptMap &bigmap);
+
+    virtual int SetString(phxrpc::OptMap &bigmap);
+
+    virtual int DeleteString(phxrpc::OptMap &bigmap);
+
   public:
     typedef int (LockTool::*ToolFunc_t) (phxrpc::OptMap &);
 
@@ -56,7 +62,10 @@ class LockTool {
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
             { "PhxEcho", &LockTool::PhxEcho, "c:f:vs:", "-s <string>" },
-            { NULL, NULL }
+            { "GetString", &LockTool::GetString, "c:f:vt:l:k:", "-t <topic_id> -l <lock_id> -k <key>" },
+            { "SetString", &LockTool::SetString, "c:f:vt:l:k:r:s:l:", "-t <topic_id> -l <lock_id> -k <key> -r <version> -s <string> -l <lease_time_ms>" },
+            { "DeleteString", &LockTool::DeleteString, "c:f:vt:l:k:r:", "-t <topic_id> -l <lock_id> -k <key> -r <version>" },
+            { nullptr, nullptr }
         };
 
         return name2func;

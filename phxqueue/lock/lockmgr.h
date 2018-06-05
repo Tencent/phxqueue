@@ -64,11 +64,11 @@ class LockMgr {
     comm::RetCode WriteRestartCheckpoint(const GroupVector::size_type paxos_group_id,
                                          const uint64_t checkpoint);
 
-    LockDb &leveldb(const GroupVector::size_type paxos_group_id);
-    const LockDb &leveldb(const GroupVector::size_type paxos_group_id) const;
-
     LockDb &map(const GroupVector::size_type paxos_group_id);
     const LockDb &map(const GroupVector::size_type paxos_group_id) const;
+
+    LockDb &leveldb(const GroupVector::size_type paxos_group_id);
+    const LockDb &leveldb(const GroupVector::size_type paxos_group_id) const;
 
     void set_last_instance_id(const GroupVector::size_type paxos_group_id,
                               const uint64_t instance_id);

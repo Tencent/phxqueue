@@ -20,8 +20,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 namespace {
 
 
-// for inner use only, user cannot use key with this prefix
+// for system only, user cannot use key with this prefix
 constexpr char *KEY_IGNORE_PREFIX{"__ignore__"};
+// for user
+constexpr char *KEY_USER_STRING_PREFIX{""};
+constexpr char *KEY_USER_LOCK_PREFIX{""};
 
 
 }  // namespace
@@ -44,7 +47,7 @@ LockDb::LockDb() {
 LockDb::LockDb(LockDb &&rhs) {
     mutex_ = rhs.mutex_;
     rhs.mutex_ = nullptr;
-    type_ = rhs.type_;
+    storage_type_ = rhs.storage_type_;
     map_ = move(rhs.map_);
     map_it_ = move(rhs.map_it_);
     leveldb_ = rhs.leveldb_;
@@ -77,7 +80,7 @@ LockDb::~LockDb() {
 LockDb &LockDb::operator=(LockDb &&rhs) {
     mutex_ = rhs.mutex_;
     rhs.mutex_ = nullptr;
-    type_ = rhs.type_;
+    storage_type_ = rhs.storage_type_;
     map_ = move(rhs.map_);
     map_it_ = move(rhs.map_it_);
     leveldb_ = rhs.leveldb_;
@@ -90,11 +93,11 @@ LockDb &LockDb::operator=(LockDb &&rhs) {
     return *this;
 }
 
-comm::RetCode LockDb::Init(const LockDb::Type type, const string &leveldb_file) {
-    type_ = type;
+comm::RetCode LockDb::Init(const LockDb::StorageType type, const string &leveldb_file) {
+    storage_type_ = type;
 
-    if (Type::MAP == type_) {
-    } else if (Type::LEVELDB == type_) {
+    if (StorageType::MAP == storage_type_) {
+    } else if (StorageType::LEVELDB == storage_type_) {
         leveldb::Options options;
         options.create_if_missing = true;
         // raise an error as soon as it detects an internal corruption
@@ -113,9 +116,9 @@ comm::RetCode LockDb::Init(const LockDb::Type type, const string &leveldb_file) 
 }
 
 comm::RetCode LockDb::Dispose() {
-    if (Type::MAP == type_) {
+    if (StorageType::MAP == storage_type_) {
         map_.clear();
-    } else if (Type::LEVELDB == type_) {
+    } else if (StorageType::LEVELDB == storage_type_) {
         if (nullptr != leveldb_) {
             delete leveldb_;
             leveldb_ = nullptr;
@@ -127,101 +130,130 @@ comm::RetCode LockDb::Dispose() {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode LockDb::AcquireLock(const proto::LockKeyInfo &lock_key_info,
-                                  const proto::LocalLockInfo &v, const bool sync) {
-    comm::LockDbBP::GetThreadInstance()->OnAcquireLock(sync);
-    proto::LocalLockInfo localv;
-    comm::RetCode ret{Get(lock_key_info.lock_key(), localv)};
+comm::RetCode LockDb::VersionSetString(const proto::RecordKeyInfo &record_key_info,
+                                       const proto::LocalRecordInfo &v, const bool sync) {
+    proto::LocalRecordInfo localv;
+    comm::RetCode ret{GetString(record_key_info.key(), localv)};
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-        QLVerb("lock_key \"%s\" not exist", lock_key_info.lock_key().c_str());
+        QLVerb("key \"%s\" not exist", record_key_info.key().c_str());
+    } else if (comm::RetCode::RET_OK != ret) {
+        QLErr("key \"%s\" err %d", record_key_info.key().c_str(), ret);
+
+        return ret;
+    }
+
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret && UINT64_MAX != record_key_info.version() &&
+        localv.version() != record_key_info.version()) {
+        QLErr("key \"%s\" local.ver %llu != req.ver %llu err",
+              record_key_info.key().c_str(),
+              localv.version(), record_key_info.version());
+
+        return comm::RetCode::RET_ERR_VERSION_NOT_EQUAL;
+    }
+
+    if (0 == v.lease_time_ms()) {
+        QLVerb("key \"%s\" delete", record_key_info.key().c_str());
+        return DeleteString(record_key_info.key(), sync);
+    }
+
+    // TODO: not copy?
+    proto::LocalRecordInfo v2;
+    v2.set_version(v.version());
+    v2.set_value(v.value());
+    v2.set_lease_time_ms(v.lease_time_ms());
+    if (-1 != v2.lease_time_ms()) {
+        v2.set_expire_time_ms(comm::utils::Time::GetSteadyClockMS() + v.lease_time_ms());
+    }
+    QLVerb("key \"%s\" ver %llu expire_time_ms %llu",
+           record_key_info.key().c_str(), v2.version(), v2.expire_time_ms());
+
+    return SetString(record_key_info.key(), v2, sync);
+}
+
+comm::RetCode LockDb::VersionDeleteString(const proto::RecordKeyInfo &record_key_info,
+                                          const bool sync) {
+    proto::LocalRecordInfo localv;
+    comm::RetCode ret{GetString(record_key_info.key(), localv)};
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+        QLVerb("key \"%s\" not exist", record_key_info.key().c_str());
+
+        return comm::RetCode::RET_OK;
+    } else if (comm::RetCode::RET_OK != ret) {
+        QLErr("key \"%s\" err %d", record_key_info.key().c_str(), ret);
+
+        return ret;
+    }
+
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret && UINT64_MAX != record_key_info.version() &&
+        localv.version() != record_key_info.version()) {
+        QLErr("key \"%s\" local.ver %llu != req.ver %llu err",
+              record_key_info.key().c_str(),
+              localv.version(), record_key_info.version());
+
+        return comm::RetCode::RET_ERR_VERSION_NOT_EQUAL;
+    }
+
+    return DeleteString(record_key_info.key(), sync);
+}
+
+comm::RetCode LockDb::AcquireLock(const proto::RecordKeyInfo &record_key_info,
+                                  const proto::LocalRecordInfo &v, const bool sync) {
+    comm::LockDbBP::GetThreadInstance()->OnAcquireLock(sync);
+    proto::LocalRecordInfo localv;
+    comm::RetCode ret{GetLock(record_key_info.key(), localv)};
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+        QLVerb("key \"%s\" not exist", record_key_info.key().c_str());
         // TODO:
         //OssAttrInc(oss_attr_id_, 55u, 1u);
     } else if (comm::RetCode::RET_OK != ret) {
-        QLErr("lock_key \"%s\" err %d", lock_key_info.lock_key().c_str(), ret);
+        QLErr("key \"%s\" err %d", record_key_info.key().c_str(), ret);
         // TODO:
         //OssAttrInc(oss_attr_id_, 54u, 1u);
 
         return ret;
     }
 
-    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret && localv.version() != lock_key_info.version()) {
-        QLErr("lock_key \"%s\" local.ver %llu != req.ver %llu err",
-                  lock_key_info.lock_key().c_str(),
-                  localv.version(), lock_key_info.version());
+    if (comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret && localv.version() != record_key_info.version()) {
+        QLErr("key \"%s\" local.ver %llu != req.ver %llu err",
+              record_key_info.key().c_str(),
+              localv.version(), record_key_info.version());
         // TODO:
         //OssAttrInc(oss_attr_id_, 56u, 1u);
 
         return comm::RetCode::RET_ERR_VERSION_NOT_EQUAL;
     }
 
-    if (Type::MAP == type_) {
-        if (0 >= v.lease_time_ms()) {  // release lock
-            map_.erase(lock_key_info.lock_key());
-            QLVerb("lock_key \"%s\" erase", lock_key_info.lock_key().c_str());
-
-            return comm::RetCode::RET_OK;
-        }
-
-        // TODO: not copy?
-        proto::LocalLockInfo v2;
-        v2.set_version(v.version());
-        v2.set_client_id(v.client_id());
-        v2.set_lease_time_ms(v.lease_time_ms());
-        v2.set_expire_time_ms(comm::utils::Time::GetSteadyClockMS() + v.lease_time_ms());
-        QLVerb("lock_key \"%s\" ver %llu client_id \"%s\" expire_time_ms %llu",
-               lock_key_info.lock_key().c_str(), v2.version(),
-               v2.client_id().c_str(), v2.expire_time_ms());
-
-        return Put(lock_key_info.lock_key(), v2);
-
-    } else if (Type::LEVELDB == type_) {
-        if (0 >= v.lease_time_ms()) {  // release lock
-            leveldb::WriteOptions write_options;
-            write_options.sync = sync;
-            leveldb::Status status(leveldb_->Delete(write_options, lock_key_info.lock_key()));
-            if (status.IsNotFound()) {
-                QLVerb("lock_key \"%s\" not exist", lock_key_info.lock_key().c_str());
-
-                return comm::RetCode::RET_ERR_KEY_NOT_EXIST;
-            }
-            if (!status.ok()) {
-                QLErr("%s", status.ToString().c_str());
-
-                return comm::RetCode::RET_ERR_LEVELDB;
-            }
-
-            return comm::RetCode::RET_OK;
-        }
-
-        // TODO: not copy?
-        proto::LocalLockInfo v2;
-        v2.set_version(v.version());
-        v2.set_client_id(v.client_id());
-        v2.set_lease_time_ms(v.lease_time_ms());
-        QLVerb("lock_key \"%s\" ver %llu client_id \"%s\"", lock_key_info.lock_key().c_str(),
-               v2.version(), v2.client_id().c_str());
-
-        return Put(lock_key_info.lock_key(), v2, sync);
-
-    } else {
-        return comm::RetCode::RET_ERR_NO_IMPL;
-
+    if (0 == v.lease_time_ms()) {
+        QLVerb("key \"%s\" delete", record_key_info.key().c_str());
+        return DeleteLock(record_key_info.key(), sync);
     }
 
-    return comm::RetCode::RET_OK;
+    // TODO: not copy?
+    proto::LocalRecordInfo v2;
+    v2.set_version(v.version());
+    v2.set_value(v.value());
+    v2.set_lease_time_ms(v.lease_time_ms());
+    if (-1 != v2.lease_time_ms()) {
+        v2.set_expire_time_ms(comm::utils::Time::GetSteadyClockMS() + v.lease_time_ms());
+    }
+    QLVerb("key \"%s\" ver %llu value \"%s\" expire_time_ms %llu",
+           record_key_info.key().c_str(), v2.version(),
+           v2.value().c_str(), v2.expire_time_ms());
+
+    return SetLock(record_key_info.key(), v2, sync);
 }
 
-comm::RetCode LockDb::AcquireLock(const proto::LockKeyInfo &lock_key_info,
+comm::RetCode LockDb::AcquireLock(const proto::RecordKeyInfo &record_key_info,
                                   const string &vstr, const bool sync) {
-    if (Type::LEVELDB == type_) {
-        proto::LocalLockInfo v;
+    if (StorageType::LEVELDB == storage_type_) {
+        proto::LocalRecordInfo v;
         bool succ{v.ParseFromString(vstr)};
         if (!succ) {
             QLErr("ParseFromString err");
 
             return comm::RetCode::RET_ERR_LOGIC;
         }
-        return AcquireLock(lock_key_info, v, sync);
+        return AcquireLock(record_key_info, v, sync);
     } else {
         return comm::RetCode::RET_ERR_NO_IMPL;
     }
@@ -254,9 +286,9 @@ comm::RetCode LockDb::AcquireLock(const proto::LockKeyInfo &lock_key_info,
 //        return comm::RetCode::RET_ERR_VERSION_NOT_EQUAL;
 //    }
 //
-//    if (Type::MAP == type_) {
-//        map_.erase(lock_key_info.lock_key());
-//    } else if (Type::LEVELDB == type_) {
+//    if (StorageType::MAP == storage_type_) {
+//        lock_map_.erase(lock_key_info.lock_key());
+//    } else if (StorageType::LEVELDB == storage_type_) {
 //        leveldb::WriteOptions write_options;
 //        write_options.sync = sync;
 //        leveldb::Status status(leveldb_->Delete(write_options, lock_key_info.lock_key()));
@@ -297,16 +329,16 @@ comm::RetCode LockDb::AcquireLock(const proto::LockKeyInfo &lock_key_info,
 //            continue;
 //        }
 //
-//        if (Type::MAP == type_) {
-//            map_.erase(lock_key_info.lock_key());
-//        } else if (Type::LEVELDB == type_) {
+//        if (StorageType::MAP == storage_type_) {
+//            lock_map_.erase(lock_key_info.lock_key());
+//        } else if (StorageType::LEVELDB == storage_type_) {
 //            batch.Delete(lock_key_info.lock_key());
 //        } else {
 //            return comm::RetCode::RET_ERR_NO_IMPL;
 //        }
 //    }
 //
-//    if (Type::LEVELDB == type_) {
+//    if (StorageType::LEVELDB == storage_type_) {
 //        leveldb::WriteOptions write_options;
 //        write_options.sync = sync;
 //        leveldb::Status status(leveldb_->Write(write_options, &batch));
@@ -320,69 +352,74 @@ comm::RetCode LockDb::AcquireLock(const proto::LockKeyInfo &lock_key_info,
 //    return comm::RetCode::RET_OK;
 //}
 
-comm::RetCode LockDb::Put(const string &k, const proto::LocalLockInfo &v, const bool sync) {
+comm::RetCode LockDb::GetString(const string &k, proto::LocalRecordInfo &v) const {
     if (0 >= k.size()) {
         QLErr("key \"%s\" invalid", k.c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    if (Type::MAP == type_) {
-        // TODO: emplace?
-        map_[k] = v;
-        QLVerb("key \"%s\" ver %llu", k.c_str(), v.version());
-    } else if (Type::LEVELDB == type_) {
-        string vstr;
-        // TODO: Not copy?
-        proto::LocalLockInfo v2 = v;
-        v2.clear_expire_time_ms();
-        bool succ{v2.SerializeToString(&vstr)};
-        if (!succ) {
-            QLErr("SerializeToString err");
-
-            return comm::RetCode::RET_ERR_LOGIC;
-        }
-        QLVerb("key \"%s\" ver %llu", k.c_str(), v.version());
-
-        return Put(k, vstr, sync);
-    } else {
-        return comm::RetCode::RET_ERR_NO_IMPL;
-    }
-
-    return comm::RetCode::RET_OK;
+    return GetRecord(string(KEY_USER_STRING_PREFIX) + k, v);
 }
 
-comm::RetCode LockDb::Put(const string &k, const string &vstr, const bool sync) {
+comm::RetCode LockDb::SetString(const string &k, const proto::LocalRecordInfo &v, const bool sync) {
     if (0 >= k.size()) {
         QLErr("key \"%s\" invalid", k.c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    if (Type::LEVELDB == type_) {
-        leveldb::WriteOptions write_options;
-        write_options.sync = sync;
-        leveldb::Status status(leveldb_->Put(write_options, k, vstr));
-        if (!status.ok()) {
-            QLErr("%s", status.ToString().c_str());
-
-            return comm::RetCode::RET_ERR_LEVELDB;
-        }
-    } else {
-        return comm::RetCode::RET_ERR_NO_IMPL;
-    }
-
-    return comm::RetCode::RET_OK;
+    return SetRecord(string(KEY_USER_STRING_PREFIX) + k, v, sync);
 }
 
-comm::RetCode LockDb::Get(const string &k, proto::LocalLockInfo &v) {
+comm::RetCode LockDb::DeleteString(const string &k, const bool sync) {
     if (0 >= k.size()) {
         QLErr("key \"%s\" invalid", k.c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    if (Type::MAP == type_) {
+    return DeleteRecord(string(KEY_USER_STRING_PREFIX) + k, sync);
+}
+
+comm::RetCode LockDb::GetLock(const string &k, proto::LocalRecordInfo &v) const {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    return GetRecord(string(KEY_USER_LOCK_PREFIX) + k, v);
+}
+
+comm::RetCode LockDb::SetLock(const string &k, const proto::LocalRecordInfo &v, const bool sync) {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    return SetRecord(string(KEY_USER_LOCK_PREFIX) + k, v, sync);
+}
+
+comm::RetCode LockDb::DeleteLock(const string &k, const bool sync) {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    return DeleteRecord(string(KEY_USER_LOCK_PREFIX) + k, sync);
+}
+
+comm::RetCode LockDb::GetRecord(const string &k, proto::LocalRecordInfo &v) const {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    if (StorageType::MAP == storage_type_) {
         auto it(map_.find(k));
         if (map_.end() == it) {
             QLVerb("key \"%s\" not exist", k.c_str());
@@ -391,10 +428,10 @@ comm::RetCode LockDb::Get(const string &k, proto::LocalLockInfo &v) {
             return comm::RetCode::RET_ERR_KEY_NOT_EXIST;
         }
         v = it->second;
-        QLVerb("key \"%s\" ver %llu", k.c_str(), v.version());
-    } else if (Type::LEVELDB == type_) {
+        QLVerb("key \"%s\"", k.c_str());
+    } else if (StorageType::LEVELDB == storage_type_) {
         string vstr;
-        comm::RetCode ret{Get(k, vstr)};
+        comm::RetCode ret{DiskGet(k, vstr)};
         if (comm::RetCode::RET_OK != ret) {
             return ret;
         }
@@ -402,7 +439,7 @@ comm::RetCode LockDb::Get(const string &k, proto::LocalLockInfo &v) {
         if (!succ) {
             QLErr("ParseFromString err");
 
-            return comm::RetCode::RET_ERR_LOGIC;
+            return comm::RetCode::RET_ERR_PROTOBUF_PARSE;
         }
         QLVerb("key \"%s\" ver %llu", k.c_str(), v.version());
     } else {
@@ -412,14 +449,66 @@ comm::RetCode LockDb::Get(const string &k, proto::LocalLockInfo &v) {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode LockDb::Get(const string &k, string &vstr) {
+comm::RetCode LockDb::SetRecord(const string &k, const proto::LocalRecordInfo &v, const bool sync) {
     if (0 >= k.size()) {
         QLErr("key \"%s\" invalid", k.c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    if (Type::LEVELDB == type_) {
+    if (StorageType::MAP == storage_type_) {
+        map_[k] = v;
+        QLVerb("key \"%s\"", k.c_str());
+    } else if (StorageType::LEVELDB == storage_type_) {
+        string vstr;
+        // TODO: Not copy?
+        proto::LocalRecordInfo local_record_info2 = v;
+        local_record_info2.clear_expire_time_ms();
+        bool succ{local_record_info2.SerializeToString(&vstr)};
+        if (!succ) {
+            QLErr("SerializeToString err");
+
+            return comm::RetCode::RET_ERR_PROTOBUF_SERIALIZE;
+        }
+        QLVerb("key \"%s\"", k.c_str());
+
+        return DiskSet(k, vstr, sync);
+    } else {
+        return comm::RetCode::RET_ERR_NO_IMPL;
+    }
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode LockDb::DeleteRecord(const string &k, const bool sync) {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    if (StorageType::MAP == storage_type_) {
+        map_.erase(k);
+        QLVerb("key \"%s\"", k.c_str());
+    } else if (StorageType::LEVELDB == storage_type_) {
+        QLVerb("key \"%s\"", k.c_str());
+
+        return DiskDelete(k, sync);
+    } else {
+        return comm::RetCode::RET_ERR_NO_IMPL;
+    }
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode LockDb::DiskGet(const string &k, string &vstr) const {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    if (StorageType::LEVELDB == storage_type_) {
         leveldb::ReadOptions options;
         // force checksum verification
         options.verify_checksums = leveldb_checks_;
@@ -441,20 +530,45 @@ comm::RetCode LockDb::Get(const string &k, string &vstr) {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode LockDb::Delete(const string &k, const bool sync) {
+comm::RetCode LockDb::DiskSet(const string &k, const string &vstr, const bool sync) {
     if (0 >= k.size()) {
         QLErr("key \"%s\" invalid", k.c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    if (Type::MAP == type_) {
-        map_.erase(k);
-        QLVerb("key \"%s\"", k.c_str());
-    } else if (Type::LEVELDB == type_) {
+    if (StorageType::LEVELDB == storage_type_) {
+        leveldb::WriteOptions write_options;
+        write_options.sync = sync;
+        leveldb::Status status(leveldb_->Put(write_options, k, vstr));
+        if (!status.ok()) {
+            QLErr("%s", status.ToString().c_str());
+
+            return comm::RetCode::RET_ERR_LEVELDB;
+        }
+    } else {
+        return comm::RetCode::RET_ERR_NO_IMPL;
+    }
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode LockDb::DiskDelete(const string &k, const bool sync) {
+    if (0 >= k.size()) {
+        QLErr("key \"%s\" invalid", k.c_str());
+
+        return comm::RetCode::RET_ERR_KEY;
+    }
+
+    if (StorageType::LEVELDB == storage_type_) {
         leveldb::WriteOptions write_options;
         write_options.sync = sync;
         leveldb::Status status(leveldb_->Delete(write_options, k));
+        if (status.IsNotFound()) {
+            QLVerb("key \"%s\" not exist", k.c_str());
+
+            return comm::RetCode::RET_ERR_KEY_NOT_EXIST;
+        }
         if (!status.ok()) {
             QLErr("%s", status.ToString().c_str());
 
@@ -468,57 +582,53 @@ comm::RetCode LockDb::Delete(const string &k, const bool sync) {
     return comm::RetCode::RET_OK;
 }
 
-void LockDb::SeekToFirst() {
-    if (Type::MAP == type_) {
+void LockDb::SeekToFirstRecord() {
+    if (StorageType::MAP == storage_type_) {
         map_it_ = map_.cbegin();
-    } else if (Type::LEVELDB == type_) {
-        leveldb::ReadOptions options;
-        // force checksum verification
-        options.verify_checksums = leveldb_checks_;
-        leveldb_it_ = leveldb_->NewIterator(options);
-        leveldb_it_->SeekToFirst();
+    } else if (StorageType::LEVELDB == storage_type_) {
+        DiskSeekToFirst();
     }
 }
 
-void LockDb::Next() {
-    if (Type::MAP == type_) {
+void LockDb::NextRecord() {
+    if (StorageType::MAP == storage_type_) {
         ++map_it_;
-    } else if (Type::LEVELDB == type_) {
-        leveldb_it_->Next();
+    } else if (StorageType::LEVELDB == storage_type_) {
+        DiskNext();
     }
 }
 
-bool LockDb::Valid() {
-    if (Type::MAP == type_) {
+bool LockDb::ValidRecord() const {
+    if (StorageType::MAP == storage_type_) {
         return map_.end() != map_it_;
-    } else if (Type::LEVELDB == type_) {
-        return leveldb_it_->Valid();
+    } else if (StorageType::LEVELDB == storage_type_) {
+        return DiskValid();
     }
 
     return false;
 }
 
-comm::RetCode LockDb::GetCurrent(string &k, proto::LocalLockInfo &v) {
-    if (Type::MAP == type_) {
+comm::RetCode LockDb::GetCurrentRecord(string &k, string &vstr, proto::LocalRecordInfo &local_record_info) {
+    if (StorageType::MAP == storage_type_) {
         k = map_it_->first;
-        v = map_it_->second;
-    } else if (Type::LEVELDB == type_) {
-        string vstr;
-        comm::RetCode ret{GetCurrent(k, vstr)};
+        local_record_info = map_it_->second;
+    } else if (StorageType::LEVELDB == storage_type_) {
+        DataType data_type{DataType::NONE};
+        comm::RetCode ret{DiskGetCurrent(k, vstr, data_type)};
         if (comm::RetCode::RET_OK != ret) {
             QLErr("key \"%s\" get value err", k.c_str());
 
             return ret;
         }
 
-        if (0u == k.find(KEY_IGNORE_PREFIX)) {
+        if (DataType::IGNORE == data_type) {
             // reserve key
-            return comm::RetCode::RET_ERR_IGNORE;
+            return comm::RetCode::RET_KEY_IGNORE;
         }
 
-        bool succ{v.ParseFromString(vstr)};
+        bool succ{local_record_info.ParseFromString(vstr)};
         if (!succ) {
-            QLErr("ParseFromString key \"%s\" value \"%s\" err", k.c_str(), vstr.c_str());
+            QLErr("ParseFromString key \"%s\" value.size \"%s\" err", k.c_str(), vstr.size());
 
             return comm::RetCode::RET_ERR_LOGIC;
         }
@@ -529,10 +639,40 @@ comm::RetCode LockDb::GetCurrent(string &k, proto::LocalLockInfo &v) {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode LockDb::GetCurrent(string &k, string &vstr) {
-    if (Type::LEVELDB == type_) {
+void LockDb::DiskSeekToFirst() {
+    if (StorageType::LEVELDB == storage_type_) {
+        leveldb::ReadOptions options;
+        // force checksum verification
+        options.verify_checksums = leveldb_checks_;
+        leveldb_it_ = leveldb_->NewIterator(options);
+        leveldb_it_->SeekToFirst();
+    }
+}
+
+void LockDb::DiskNext() {
+    if (StorageType::LEVELDB == storage_type_) {
+        leveldb_it_->Next();
+    }
+}
+
+bool LockDb::DiskValid() const {
+    if (StorageType::LEVELDB == storage_type_) {
+        return leveldb_it_->Valid();
+    }
+
+    return false;
+}
+
+comm::RetCode LockDb::DiskGetCurrent(string &k, string &vstr, DataType &data_type) {
+    if (StorageType::LEVELDB == storage_type_) {
         k = leveldb_it_->key().ToString();
         vstr = leveldb_it_->value().ToString();
+
+        if (0u == k.find(KEY_IGNORE_PREFIX)) {
+            data_type = DataType::IGNORE;
+        } else {
+            data_type = DataType::USER;
+        }
     } else {
         return comm::RetCode::RET_ERR_NO_IMPL;
     }
@@ -540,8 +680,8 @@ comm::RetCode LockDb::GetCurrent(string &k, string &vstr) {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode LockDb::CleanForward(string &k) {
-    if (Type::MAP == type_) {
+comm::RetCode LockDb::ForwardCleanKey(string &k) {
+    if (StorageType::MAP == storage_type_) {
         if (0 >= map_.size())
             return comm::RetCode::RET_OK;
         k = current_clean_key_;

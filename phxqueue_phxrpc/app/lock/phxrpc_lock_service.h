@@ -37,5 +37,14 @@ class LockService {
     virtual int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                             phxqueue::comm::proto::AcquireLockResponse *resp);
 
+    virtual int GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                          phxqueue::comm::proto::GetStringResponse *resp);
+
+    virtual int SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                          phxqueue::comm::proto::SetStringResponse *resp);
+
+    virtual int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                             phxqueue::comm::proto::DeleteStringResponse *resp);
+
 };
 

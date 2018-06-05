@@ -80,20 +80,20 @@ using namespace std;
 //    return comm::RetCode::RET_OK;
 //}
 
-void LocalLockInfo2LockInfo(const proto::LocalLockInfo &local_lock_info,
-                            comm::proto::LockInfo &lock_info) {
-    lock_info.set_version(local_lock_info.version());
-    lock_info.set_client_id(local_lock_info.client_id());
-    lock_info.set_lease_time_ms(local_lock_info.lease_time_ms());
+void LocalRecordInfo2LockInfo(const proto::LocalRecordInfo &local_record_info,
+                              comm::proto::LockInfo &lock_info) {
+    lock_info.set_version(local_record_info.version());
+    lock_info.set_client_id(local_record_info.value());
+    lock_info.set_lease_time_ms(local_record_info.lease_time_ms());
 }
 
-void LockInfo2LocalLockInfo(const comm::proto::LockInfo &lock_info,
-                            proto::LocalLockInfo &local_lock_info,
-                            const uint64_t expire_time_ms) {
-    local_lock_info.set_version(lock_info.version());
-    local_lock_info.set_client_id(lock_info.client_id());
-    local_lock_info.set_lease_time_ms(lock_info.lease_time_ms());
-    local_lock_info.set_expire_time_ms(expire_time_ms);
+void LockInfo2LocalRecordInfo(const comm::proto::LockInfo &lock_info,
+                              proto::LocalRecordInfo &local_record_info,
+                              const uint64_t expire_time_ms) {
+    local_record_info.set_version(lock_info.version());
+    local_record_info.set_value(lock_info.client_id());
+    local_record_info.set_lease_time_ms(lock_info.lease_time_ms());
+    local_record_info.set_expire_time_ms(expire_time_ms);
 }
 
 //void GetOssAttrId(int32_t paxos_port, uint32_t *const oss_attr_id) {

@@ -59,3 +59,27 @@ int LockStub::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
     return caller.Call(req, resp);
 }
 
+int LockStub::GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                        phxqueue::comm::proto::GetStringResponse *resp) {
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/GetString", 11);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
+}
+
+int LockStub::SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                        phxqueue::comm::proto::SetStringResponse *resp) {
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/SetString", 12);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
+}
+
+int LockStub::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                           phxqueue::comm::proto::DeleteStringResponse *resp) {
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/DeleteString", 13);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
+}
+

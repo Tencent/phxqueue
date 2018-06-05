@@ -28,7 +28,8 @@ namespace lock {
 // TODO: Change to template
 class LockDb {
   public:
-    enum class Type {MAP, LEVELDB};
+    enum class StorageType {NONE, MAP, LEVELDB, MAX};
+    enum class DataType {NONE, IGNORE, USER, MAX};
 
     LockDb();
 
@@ -44,12 +45,17 @@ class LockDb {
 
     LockDb &operator=(LockDb &&rhs);
 
-    comm::RetCode Init(const Type type, const std::string &leveldb_file);
+    comm::RetCode Init(const StorageType storage_type, const std::string &leveldb_file);
     comm::RetCode Dispose();
 
-    comm::RetCode AcquireLock(const proto::LockKeyInfo &lock_key_info,
-                              const proto::LocalLockInfo &v, const bool sync = true);
-    comm::RetCode AcquireLock(const proto::LockKeyInfo &lock_key_info,
+    comm::RetCode VersionSetString(const proto::RecordKeyInfo &record_key_info,
+                                   const proto::LocalRecordInfo &v, const bool sync = true);
+    comm::RetCode VersionDeleteString(const proto::RecordKeyInfo &record_key_info,
+                                      const bool sync = true);
+
+    comm::RetCode AcquireLock(const proto::RecordKeyInfo &record_key_info,
+                              const proto::LocalRecordInfo &v, const bool sync = true);
+    comm::RetCode AcquireLock(const proto::RecordKeyInfo &record_key_info,
                               const std::string &vstr, const bool sync = true);
 
 //    comm::RetCode ReleaseLock(const phxqueue_proto::LockKeyInfo &lock_key_info, const bool sync = true);
@@ -57,32 +63,45 @@ class LockDb {
 //    comm::RetCode CleanLock(const google::protobuf::RepeatedPtrField<phxqueue_proto::LockKeyInfo> &
 //                      lock_key_infos, const bool sync = true);
 
-    comm::RetCode Put(const std::string &k, const proto::LocalLockInfo &v,
-                const bool sync = true);
-    comm::RetCode Put(const std::string &k, const std::string &vstr, const bool sync = true);
+    comm::RetCode GetString(const std::string &k, proto::LocalRecordInfo &v) const;
+    comm::RetCode SetString(const std::string &k, const proto::LocalRecordInfo &v, const bool sync);
+    comm::RetCode DeleteString(const std::string &k, const bool sync);
 
-    comm::RetCode Get(const std::string &k, proto::LocalLockInfo &v);
-    comm::RetCode Get(const std::string &k, std::string &vstr);
-
-    comm::RetCode Delete(const std::string &k, const bool sync = true);
-
-    inline int GetSize() { return Type::MAP == type_ ? map_.size() : 0; }
-
-    void SeekToFirst();
-    void Next();
-    bool Valid();
-    comm::RetCode GetCurrent(std::string &k, proto::LocalLockInfo &v);
-    comm::RetCode GetCurrent(std::string &k, std::string &vstr);
-
-    comm::RetCode CleanForward(std::string &k);
+    comm::RetCode GetLock(const std::string &k, proto::LocalRecordInfo &v) const;
+    comm::RetCode SetLock(const std::string &k, const proto::LocalRecordInfo &v, const bool sync);
+    comm::RetCode DeleteLock(const std::string &k, const bool sync);
 
     inline pthread_mutex_t *const mutex() { return mutex_; }
 
   private:
+    friend class LockMgr;
+    friend class CleanThread;
+
+    comm::RetCode GetRecord(const std::string &k, proto::LocalRecordInfo &v) const;
+    comm::RetCode SetRecord(const std::string &k, const proto::LocalRecordInfo &v, const bool sync = true);
+    comm::RetCode DeleteRecord(const std::string &k, const bool sync = true);
+
+    comm::RetCode DiskGet(const std::string &k, std::string &vstr) const;
+    comm::RetCode DiskSet(const std::string &k, const std::string &vstr, const bool sync = true);
+    comm::RetCode DiskDelete(const std::string &k, const bool sync = true);
+
+    void SeekToFirstRecord();
+    void NextRecord();
+    bool ValidRecord() const;
+    comm::RetCode GetCurrentRecord(std::string &k, std::string &vstr, proto::LocalRecordInfo &local_record_info);
+
+    void DiskSeekToFirst();
+    void DiskNext();
+    bool DiskValid() const;
+    comm::RetCode DiskGetCurrent(std::string &k, std::string &vstr, DataType &data_type);
+
+    inline int GetSizeRecord() { return StorageType::MAP == storage_type_ ? map_.size() : 0; }
+    comm::RetCode ForwardCleanKey(std::string &k);
+
     pthread_mutex_t *mutex_{nullptr};
-    Type type_{Type::MAP};
-    std::map<std::string, proto::LocalLockInfo> map_;
-    std::map<std::string, proto::LocalLockInfo>::const_iterator map_it_;
+    StorageType storage_type_{StorageType::NONE};
+    std::map<std::string, proto::LocalRecordInfo> map_;
+    std::map<std::string, proto::LocalRecordInfo>::const_iterator map_it_;
     leveldb::DB *leveldb_{nullptr};
     leveldb::Iterator *leveldb_it_{nullptr};
     bool leveldb_checks_{true};

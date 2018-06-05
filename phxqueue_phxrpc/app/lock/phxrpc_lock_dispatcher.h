@@ -41,6 +41,12 @@ class LockDispatcher {
 
     int AcquireLock(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
+    int GetString(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+
+    int SetString(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+
+    int DeleteString(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+
   private:
     LockService &service_;
     phxrpc::DispatcherArgs_t *dispatcher_args_;

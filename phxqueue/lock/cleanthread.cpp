@@ -24,7 +24,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 namespace {
 
 
-constexpr char *CLIENT_ID_CLEAN_THREAD{"__lock__.__clean_thread__"};
+constexpr char *CLIENT_ID_CLEAN_THREAD{"__lock__:__clean_thread__"};
 
 
 }
@@ -107,7 +107,7 @@ void CleanThread::DoRun() {
             if (need_clean_key) {
                 int nr_group_key{0};
                 int nr_group_clean_key{0};
-                CleanLock(paxos_group_id, now, nr_group_key, nr_group_clean_key);
+                CleanRecord(paxos_group_id, now, nr_group_key, nr_group_clean_key);
                 nr_key += nr_group_key;
                 nr_clean_key += nr_group_clean_key;
             }
@@ -127,14 +127,14 @@ void CleanThread::DoRun() {
     }
 }
 
-void CleanThread::CleanLock(const int paxos_group_id, const uint64_t now,
-                            int &nr_group_key, int &nr_group_clean_key) {
+void CleanThread::CleanRecord(const int paxos_group_id, const uint64_t now,
+                              int &nr_group_key, int &nr_group_clean_key) {
     if (!impl_->lock->GetNode()->IsIMMaster(paxos_group_id))
         return;
 
     auto &&current_map(impl_->lock->GetLockMgr()->map(paxos_group_id));
     int i{0};
-    while (current_map.GetSize() > i &&
+    while (current_map.GetSizeRecord() > i &&
            impl_->lock->GetLockOption()->max_clean_lock_num > i) {
         ++i;
 
@@ -148,11 +148,11 @@ void CleanThread::CleanLock(const int paxos_group_id, const uint64_t now,
             comm::utils::MutexGuard guard(current_map.mutex());
 
             string current_clean_key;
-            current_map.CleanForward(current_clean_key);
-            proto::LocalLockInfo local_lock_info;
-            comm::RetCode ret{current_map.Get(current_clean_key, local_lock_info)};
-            if (comm::RetCode::RET_ERR_IGNORE == ret) {
-                QLInfo("paxos_group_id %d lock_key \"%s\" Get ignore",
+            current_map.ForwardCleanKey(current_clean_key);
+            proto::LocalRecordInfo local_record_info;
+            comm::RetCode ret{current_map.GetRecord(current_clean_key, local_record_info)};
+            if (comm::RetCode::RET_KEY_IGNORE == ret) {
+                QLInfo("paxos_group_id %d lock_key \"%s\" GetRecord ignore",
                        paxos_group_id, current_clean_key.c_str());
 
                 continue;
@@ -161,18 +161,20 @@ void CleanThread::CleanLock(const int paxos_group_id, const uint64_t now,
             ++nr_group_key;
 
             if (comm::RetCode::RET_OK != ret) {
-                QLErr("paxos_group_id %d lock_key \"%s\" Get err %d",
+                QLErr("paxos_group_id %d lock_key \"%s\" GetRecord err %d",
                       paxos_group_id, current_clean_key.c_str(), ret);
 
                 continue;
             }
 
             // add expired lock key
-            if (now > local_lock_info.expire_time_ms()) {
+            // if -1 == lease_time, keep it forever
+            if (-1 != local_record_info.lease_time_ms() &&
+                now > local_record_info.expire_time_ms()) {
                 // TODO: use move?
                 auto &&lock_info(args.mutable_acquire_lock_req()->mutable_lock_info());
                 lock_info->set_lock_key(current_clean_key);
-                lock_info->set_version(local_lock_info.version());
+                lock_info->set_version(local_record_info.version());
                 lock_info->set_client_id(CLIENT_ID_CLEAN_THREAD);
                 lock_info->set_lease_time_ms(0);
             }
@@ -309,54 +311,54 @@ void CleanThread::WriteRestartCheckpoint(const int paxos_group_id, const uint64_
 //    }
 //}
 
-comm::RetCode CleanThread::ProposeCleanLock(const int paxos_group_id,
-                                            const vector<proto::LockKeyInfo> &lock_key_infos) {
-    // TODO: clean one by one
-    //vector<phxqueue_proto::LockKeyInfo> lock_key_infos2;
-    //int max_clean_lock_num{impl_->lock->GetLockOption()->max_clean_lock_num};
-    //lock_key_infos2.reserve(max_clean_lock_num);
-    //for (auto &&lock_key_info : lock_key_infos) {
-    //    // TODO: use move?
-    //    lock_key_infos2.push_back(lock_key_info);
-    //    if (lock_key_infos2.size() >= max_clean_lock_num) {
-    //        phxqueue_proto::LockPaxosArgs args;
-
-    //        // 1. make args
-    //        for (auto &&lock_key_info : lock_key_infos2) {
-    //            phxqueue_proto::LockKeyInfo *new_lock_key_info{args.mutable_clean_lock_req()->add_lock_key_infos()};
-    //            new_lock_key_info->set_version(lock_key_info.version());
-    //            new_lock_key_info->set_lock_key(lock_key_info.lock_key());
-    //        }
-
-    //        // 2. serialize args to paxos value
-    //        string buf;
-    //        args.SerializeToString(&buf);
-
-    //        // 3. send to paxos
-    //        LockContext lc;
-    //        phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
-    //        uint64_t instance_id{0};
-    //        int paxos_ret{impl_->lock->GetNode()->Propose(paxos_group_id, buf, instance_id, &sm_ctx)};
-    //        if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
-    //            QLErr("paxos_group_id %d Propose err %d buf.size %zu", paxos_group_id, paxos_ret, buf.size());
-    //            // TODO:
-    //            //OssAttrInc(mgr_->oss_attr_id(), 107u, 1u);
-
-    //            continue;
-    //        } else {
-    //            QLInfo("paxos_group_id %d Propose ok instance_id %llu buf.size %zu",
-    //                   paxos_group_id, instance_id, buf.size());
-    //            // TODO:
-    //            //OssAttrInc(mgr_->oss_attr_id(), 106u, 1u);
-    //        }
-
-    //        // 4. reset
-    //        lock_key_infos2.clear();
-    //    }
-    //}
-
-    return comm::RetCode::RET_OK;
-}
+//comm::RetCode CleanThread::ProposeCleanLock(const int paxos_group_id,
+//                                            const vector<proto::LockKeyInfo> &lock_key_infos) {
+//    // TODO: clean one by one
+//    vector<phxqueue_proto::LockKeyInfo> lock_key_infos2;
+//    int max_clean_lock_num{impl_->lock->GetLockOption()->max_clean_lock_num};
+//    lock_key_infos2.reserve(max_clean_lock_num);
+//    for (auto &&lock_key_info : lock_key_infos) {
+//        // TODO: use move?
+//        lock_key_infos2.push_back(lock_key_info);
+//        if (lock_key_infos2.size() >= max_clean_lock_num) {
+//            phxqueue_proto::LockPaxosArgs args;
+//
+//            // 1. make args
+//            for (auto &&lock_key_info : lock_key_infos2) {
+//                phxqueue_proto::LockKeyInfo *new_lock_key_info{args.mutable_clean_lock_req()->add_lock_key_infos()};
+//                new_lock_key_info->set_version(lock_key_info.version());
+//                new_lock_key_info->set_lock_key(lock_key_info.lock_key());
+//            }
+//
+//            // 2. serialize args to paxos value
+//            string buf;
+//            args.SerializeToString(&buf);
+//
+//            // 3. send to paxos
+//            LockContext lc;
+//            phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
+//            uint64_t instance_id{0};
+//            int paxos_ret{impl_->lock->GetNode()->Propose(paxos_group_id, buf, instance_id, &sm_ctx)};
+//            if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
+//                QLErr("paxos_group_id %d Propose err %d buf.size %zu", paxos_group_id, paxos_ret, buf.size());
+//                // TODO:
+//                //OssAttrInc(mgr_->oss_attr_id(), 107u, 1u);
+//
+//                continue;
+//            } else {
+//                QLInfo("paxos_group_id %d Propose ok instance_id %llu buf.size %zu",
+//                       paxos_group_id, instance_id, buf.size());
+//                // TODO:
+//                //OssAttrInc(mgr_->oss_attr_id(), 106u, 1u);
+//            }
+//
+//            // 4. reset
+//            lock_key_infos2.clear();
+//        }
+//    }
+//
+//    return comm::RetCode::RET_OK;
+//}
 
 
 }  // namespace lock

@@ -42,5 +42,12 @@ class LockToolImpl : public LockTool {
     virtual int GetLockInfo(phxrpc::OptMap &opt_map) override;
 
     virtual int AcquireLock(phxrpc::OptMap &opt_map) override;
+
+    virtual int GetString(phxrpc::OptMap &opt_map) override;
+
+    virtual int SetString(phxrpc::OptMap &opt_map) override;
+
+    virtual int DeleteString(phxrpc::OptMap &opt_map) override;
+
 };
 

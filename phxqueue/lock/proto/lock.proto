@@ -6,18 +6,20 @@ import "phxqueue/comm/proto/comm.proto";
 
 message LockPaxosArgs {
     optional comm.proto.AcquireLockRequest acquire_lock_req = 1;
+    optional comm.proto.SetStringRequest set_string_req = 11;
+    optional comm.proto.DeleteStringRequest delete_string_req = 12;
     optional comm.proto.Addr master_addr = 102;
 }
 
-message LocalLockInfo {
+message LocalRecordInfo {
     optional uint64 version = 1;
-    optional string client_id = 2;
+    optional bytes value = 2;
     optional uint64 lease_time_ms = 3;
     optional uint64 expire_time_ms = 4;
 }
 
-message LockKeyInfo {
+message RecordKeyInfo {
     optional uint64 version = 1;
-    optional string lock_key = 2;
+    optional string key = 2;
 }
 

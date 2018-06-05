@@ -51,6 +51,15 @@ class LockStub {
     int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                     phxqueue::comm::proto::AcquireLockResponse *resp);
 
+    int GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                  phxqueue::comm::proto::GetStringResponse *resp);
+
+    int SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                  phxqueue::comm::proto::SetStringResponse *resp);
+
+    int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                     phxqueue::comm::proto::DeleteStringResponse *resp);
+
   private:
     phxrpc::BaseTcpStream &socket_;
     phxrpc::ClientMonitor &client_monitor_;

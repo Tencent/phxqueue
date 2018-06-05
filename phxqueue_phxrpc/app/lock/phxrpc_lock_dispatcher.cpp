@@ -157,3 +157,120 @@ int LockDispatcher::AcquireLock(const phxrpc::BaseRequest &req,
     return ret;
 }
 
+int LockDispatcher::GetString(const phxrpc::BaseRequest &req,
+                              phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(11, "GetString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::GetStringRequest req_pb;
+    phxqueue::comm::proto::GetStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.GetString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        ret = resp->FromPb(resp_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: GetString = %d", ret);
+
+    return ret;
+}
+
+int LockDispatcher::SetString(const phxrpc::BaseRequest &req,
+                              phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(12, "SetString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::SetStringRequest req_pb;
+    phxqueue::comm::proto::SetStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.SetString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        ret = resp->FromPb(resp_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: SetString = %d", ret);
+
+    return ret;
+}
+
+int LockDispatcher::DeleteString(const phxrpc::BaseRequest &req,
+                                 phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(13, "DeleteString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::DeleteStringRequest req_pb;
+    phxqueue::comm::proto::DeleteStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.DeleteString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        ret = resp->FromPb(resp_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: DeleteString = %d", ret);
+
+    return ret;
+}
+

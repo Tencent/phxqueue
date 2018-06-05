@@ -25,8 +25,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 namespace {
 
 
-constexpr char *KEY_IGNORE_CHECKPOINT{"__ignore__.__checkpoint__"};
-constexpr char *KEY_IGNORE_RESTART_CHECKPOINT{"__ignore__.__restart_checkpoint__"};
+constexpr char *KEY_IGNORE_CHECKPOINT{"__ignore__:__checkpoint__"};
+constexpr char *KEY_IGNORE_RESTART_CHECKPOINT{"__ignore__:__restart_checkpoint__"};
+constexpr char *KEY_IGNORE_CHECKPOINT_DEPRECATED{"__ignore__.__checkpoint__"};
+constexpr char *KEY_IGNORE_RESTART_CHECKPOINT_DEPRECATED{"__ignore__.__restart_checkpoint__"};
 
 
 }  // namespace
@@ -66,7 +68,7 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
 
         // recover leveldb
         string group_directory{mirror_dir_path + to_string(paxos_group_id)};
-        comm::RetCode ret{group.leveldb.Init(LockDb::Type::LEVELDB, group_directory)};
+        comm::RetCode ret{group.leveldb.Init(LockDb::StorageType::LEVELDB, group_directory)};
         if (comm::RetCode::RET_OK != ret) {
             QLErr("paxos_group_id %d init leveldb err %d path \"%s\"", paxos_group_id, ret, group_directory.c_str());
 
@@ -74,7 +76,7 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
         }
 
         // init map
-        ret = group.map.Init(LockDb::Type::MAP, "");
+        ret = group.map.Init(LockDb::StorageType::MAP, "");
         if (comm::RetCode::RET_OK != ret) {
             QLErr("paxos_group_id %d init map err %d", paxos_group_id, ret);
 
@@ -82,25 +84,34 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
         }
 
         // recover map
-        for (group.leveldb.SeekToFirst(); group.leveldb.Valid(); group.leveldb.Next()) {
-            string lock_key;
-            proto::LocalLockInfo local_lock_info;
-            comm::RetCode ret{group.leveldb.GetCurrent(lock_key, local_lock_info)};
-            if (comm::RetCode::RET_ERR_IGNORE == ret) {
-                QLInfo("paxos_group_id %d lock_key \"%s\" GetCurrent ignore", paxos_group_id, lock_key.c_str());
-
-                continue;
-            }
-
+        for (group.leveldb.DiskSeekToFirst(); group.leveldb.DiskValid(); group.leveldb.DiskNext()) {
+            string key;
+            string value;
+            LockDb::DataType data_type{LockDb::DataType::NONE};
+            comm::RetCode ret{group.leveldb.DiskGetCurrent(key, value, data_type)};
             if (comm::RetCode::RET_OK != ret) {
-                QLErr("paxos_group_id %d lock_key \"%s\" GetCurrent err %d", paxos_group_id, lock_key.c_str(), ret);
+                QLErr("paxos_group_id %d key \"%s\" DiskGetCurrent err %d", paxos_group_id, key.c_str(), ret);
 
                 assert(false);
             }
-            // reset expire time
-            local_lock_info.set_expire_time_ms(comm::utils::Time::GetSteadyClockMS() +
-                                               local_lock_info.lease_time_ms());
-            group.map.Put(lock_key, move(local_lock_info));
+
+            if (LockDb::DataType::IGNORE != data_type) {
+                proto::LocalRecordInfo local_record_info;
+                bool succ{local_record_info.ParseFromString(value)};
+                if (!succ) {
+                    QLErr("ParseFromString key \"%s\" value.size \"%s\" err", key.c_str(), value.size());
+
+                    assert(false);
+                }
+
+                // reset expire time
+                local_record_info.set_expire_time_ms(comm::utils::Time::GetSteadyClockMS() +
+                                                     local_record_info.lease_time_ms());
+                QLInfo("paxos_group_id %d key \"%s\" SetRecord", paxos_group_id, key.c_str());
+                group.map.SetRecord(move(key), move(local_record_info));
+            } else {
+                QLInfo("paxos_group_id %d key \"%s\" ignore", paxos_group_id, key.c_str());
+            }
         }
 
         // recover checkpoint
@@ -161,13 +172,13 @@ comm::RetCode LockMgr::Dispose() {
         // dispose leveldb
         ret = impl_->groups[i].leveldb.Dispose();
         if (comm::RetCode::RET_OK != ret) {
-            QLErr("dispose err %d", ret);
+            QLErr("dispose leveldb err %d", ret);
         }
 
         // dispose map
         ret = impl_->groups[i].map.Dispose();
         if (comm::RetCode::RET_OK != ret) {
-            QLErr("dispose err %d", ret);
+            QLErr("dispose map err %d", ret);
         }
     }
 
@@ -180,12 +191,24 @@ comm::RetCode LockMgr::ReadCheckpoint(const GroupVector::size_type paxos_group_i
             OnReadCheckpoint(impl_->lock->GetTopicID(), paxos_group_id);
 
     string vstr;
-    comm::RetCode ret{leveldb(paxos_group_id).Get(KEY_IGNORE_CHECKPOINT, vstr)};
+    comm::RetCode ret{leveldb(paxos_group_id).DiskGet(KEY_IGNORE_CHECKPOINT, vstr)};
 
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-        checkpoint = phxpaxos::NoCheckpoint;
-        QLErr("topic_id %d paxos_group_id %d not exist",
-              impl_->lock->GetTopicID(), paxos_group_id);
+        // TODO: deprecated
+        ret = leveldb(paxos_group_id).DiskGet(KEY_IGNORE_CHECKPOINT_DEPRECATED, vstr);
+        if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+            checkpoint = phxpaxos::NoCheckpoint;
+            QLErr("topic_id %d paxos_group_id %d not exist",
+                  impl_->lock->GetTopicID(), paxos_group_id);
+        } else if (comm::RetCode::RET_OK == ret) {
+            checkpoint = strtoul(vstr.c_str(), nullptr, 10);
+            QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
+                  impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+        } else {
+            checkpoint = phxpaxos::NoCheckpoint;
+            QLErr("topic_id %d paxos_group_id %d err %d",
+                  impl_->lock->GetTopicID(), paxos_group_id, ret);
+        }
     } else if (comm::RetCode::RET_OK == ret) {
         checkpoint = strtoul(vstr.c_str(), nullptr, 10);
         QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
@@ -209,8 +232,8 @@ comm::RetCode LockMgr::WriteCheckpoint(const GroupVector::size_type paxos_group_
     impl_->groups[paxos_group_id].set_checkpoint(checkpoint);
 
     if (phxpaxos::NoCheckpoint != checkpoint) {
-        comm::RetCode ret{leveldb(paxos_group_id).Put(KEY_IGNORE_CHECKPOINT,
-                                                      to_string(checkpoint) , true)};
+        comm::RetCode ret{leveldb(paxos_group_id).DiskSet(KEY_IGNORE_CHECKPOINT,
+                                                          to_string(checkpoint) , true)};
 
         if (comm::RetCode::RET_OK == ret) {
             QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
@@ -232,12 +255,23 @@ comm::RetCode LockMgr::ReadRestartCheckpoint(const GroupVector::size_type paxos_
             OnReadCheckpoint(impl_->lock->GetTopicID(), paxos_group_id);
 
     string vstr;
-    comm::RetCode ret{leveldb(paxos_group_id).Get(KEY_IGNORE_RESTART_CHECKPOINT, vstr)};
+    comm::RetCode ret{leveldb(paxos_group_id).DiskGet(KEY_IGNORE_RESTART_CHECKPOINT, vstr)};
 
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-        restart_checkpoint = phxpaxos::NoCheckpoint;
-        QLErr("topic_id %d paxos_group_id %d not exist",
-              impl_->lock->GetTopicID(), paxos_group_id);
+        ret = leveldb(paxos_group_id).DiskGet(KEY_IGNORE_RESTART_CHECKPOINT_DEPRECATED, vstr);
+        if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
+            restart_checkpoint = phxpaxos::NoCheckpoint;
+            QLErr("topic_id %d paxos_group_id %d not exist",
+                  impl_->lock->GetTopicID(), paxos_group_id);
+        } else if (comm::RetCode::RET_OK == ret) {
+            restart_checkpoint = strtoul(vstr.c_str(), nullptr, 10);
+            QLInfo("topic_id %d paxos_group_id %d restart_cp %llu ok",
+                  impl_->lock->GetTopicID(), paxos_group_id, restart_checkpoint);
+        } else {
+            restart_checkpoint = phxpaxos::NoCheckpoint;
+            QLErr("topic_id %d paxos_group_id %d err %d",
+                  impl_->lock->GetTopicID(), paxos_group_id, ret);
+        }
     } else if (comm::RetCode::RET_OK == ret) {
         restart_checkpoint = strtoul(vstr.c_str(), nullptr, 10);
         QLInfo("topic_id %d paxos_group_id %d restart_cp %llu ok",
@@ -258,8 +292,8 @@ comm::RetCode LockMgr::WriteRestartCheckpoint(const GroupVector::size_type paxos
                                      paxos_group_id, restart_checkpoint);
 
     if (phxpaxos::NoCheckpoint != restart_checkpoint) {
-        comm::RetCode ret{leveldb(paxos_group_id).Put(KEY_IGNORE_RESTART_CHECKPOINT,
-                                                      to_string(restart_checkpoint) , true)};
+        comm::RetCode ret{leveldb(paxos_group_id).DiskSet(KEY_IGNORE_RESTART_CHECKPOINT,
+                                                          to_string(restart_checkpoint) , true)};
 
         if (comm::RetCode::RET_OK == ret) {
             QLInfo("topic_id %d paxos_group_id %d restart_cp %llu ok",
@@ -275,20 +309,20 @@ comm::RetCode LockMgr::WriteRestartCheckpoint(const GroupVector::size_type paxos
     return comm::RetCode::RET_OK;
 }
 
-LockDb &LockMgr::leveldb(const GroupVector::size_type paxos_group_id) {
-    return impl_->groups[paxos_group_id].leveldb;
-}
-
-const LockDb &LockMgr::leveldb(const GroupVector::size_type paxos_group_id) const {
-    return impl_->groups.at(paxos_group_id).leveldb;
-}
-
 LockDb &LockMgr::map(const GroupVector::size_type paxos_group_id) {
     return impl_->groups[paxos_group_id].map;
 }
 
 const LockDb &LockMgr::map(const GroupVector::size_type paxos_group_id) const {
     return impl_->groups.at(paxos_group_id).map;
+}
+
+LockDb &LockMgr::leveldb(const GroupVector::size_type paxos_group_id) {
+    return impl_->groups[paxos_group_id].leveldb;
+}
+
+const LockDb &LockMgr::leveldb(const GroupVector::size_type paxos_group_id) const {
+    return impl_->groups.at(paxos_group_id).leveldb;
 }
 
 void LockMgr::set_last_instance_id(const GroupVector::size_type paxos_group_id,

@@ -56,3 +56,36 @@ int LockServiceImpl::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest
     return ret;
 }
 
+int LockServiceImpl::GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                               phxqueue::comm::proto::GetStringResponse *resp) {
+    int ret{static_cast<int>(lock_->GetString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock GetString err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                               phxqueue::comm::proto::SetStringResponse *resp) {
+    int ret{static_cast<int>(lock_->SetString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock SetString err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                                  phxqueue::comm::proto::DeleteStringResponse *resp) {
+    int ret{static_cast<int>(lock_->DeleteString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock DeleteString err %d", ret);
+    }
+
+    return ret;
+}
+

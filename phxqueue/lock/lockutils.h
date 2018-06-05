@@ -37,15 +37,15 @@ struct IpPort {
 
 // TODO:
 //comm::RetCode GetAllIpPort(const int topic_id, const int group_id,
-//                     std::vector<phxqueue::IpPort> &ip_ports);
+//                           std::vector<phxqueue::IpPort> &ip_ports);
 //comm::RetCode GetAllIpPort(std::shared_ptr<const phxqueue_proto::Group> group,
-//                     std::vector<phxqueue::IpPort> &ip_ports);
+//                           std::vector<phxqueue::IpPort> &ip_ports);
 
-void LocalLockInfo2LockInfo(const proto::LocalLockInfo &local_lock_info,
-                            comm::proto::LockInfo &lock_info);
-void LockInfo2LocalLockInfo(const comm::proto::LockInfo &lock_info,
-                            proto::LocalLockInfo &local_lock_info,
-                            const uint64_t expire_time_ms);
+void LocalRecordInfo2LockInfo(const proto::LocalRecordInfo &local_record_info,
+                              comm::proto::LockInfo &lock_info);
+void LockInfo2LocalRecordInfo(const comm::proto::LockInfo &lock_info,
+                              proto::LocalRecordInfo &local_record_info,
+                              const uint64_t expire_time_ms);
 
 //void GetOssAttrId(int32_t paxos_port, uint32_t *const oss_attr_id);
 

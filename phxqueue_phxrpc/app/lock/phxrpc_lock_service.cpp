@@ -46,3 +46,21 @@ int LockService::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &/*
     return -1;
 }
 
+int LockService::GetString(const phxqueue::comm::proto::GetStringRequest &/* req */,
+                           phxqueue::comm::proto::GetStringResponse */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: GetString unimplemented");
+    return -1;
+}
+
+int LockService::SetString(const phxqueue::comm::proto::SetStringRequest &/* req */,
+                           phxqueue::comm::proto::SetStringResponse */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: SetString unimplemented");
+    return -1;
+}
+
+int LockService::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &/* req */,
+                           phxqueue::comm::proto::DeleteStringResponse */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: DeleteString unimplemented");
+    return -1;
+}
+

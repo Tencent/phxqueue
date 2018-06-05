@@ -33,7 +33,7 @@ int LockToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     google::protobuf::StringValue req;
     google::protobuf::StringValue resp;
 
-    if (NULL == opt_map.Get('s')) return -1;
+    if (nullptr == opt_map.Get('s')) return -1;
 
     req.set_value(opt_map.Get('s'));
 
@@ -51,7 +51,6 @@ int LockToolImpl::GetLockInfo(phxrpc::OptMap &opt_map) {
 
     //TODO: fill req from opt_map
 
-
     LockClient client;
     int ret = client.GetLockInfo(req, &resp);
     printf("%s return %d\n", __func__, ret);
@@ -66,9 +65,87 @@ int LockToolImpl::AcquireLock(phxrpc::OptMap &opt_map) {
 
     //TODO: fill req from opt_map
 
-
     LockClient client;
     int ret = client.AcquireLock(req, &resp);
+    printf("%s return %d\n", __func__, ret);
+    printf("resp: {\n%s}\n", resp.DebugString().c_str());
+
+    return ret;
+}
+
+int LockToolImpl::GetString(phxrpc::OptMap &opt_map) {
+    phxqueue::comm::proto::GetStringRequest req;
+    phxqueue::comm::proto::GetStringResponse resp;
+
+    int topic_id{-1};
+    int lock_id{-1};
+    if (!opt_map.GetInt('t', &topic_id)) return -1;
+    if (!opt_map.GetInt('l', &lock_id)) return -1;
+    if (nullptr == opt_map.Get('k')) return -1;
+
+    req.set_topic_id(topic_id);
+    req.set_lock_id(lock_id);
+    req.set_key(opt_map.Get('k'));
+
+    LockClient client;
+    int ret = client.GetString(req, &resp);
+    printf("%s return %d\n", __func__, ret);
+    printf("resp: {\n%s}\n", resp.DebugString().c_str());
+
+    return ret;
+}
+
+int LockToolImpl::SetString(phxrpc::OptMap &opt_map) {
+    phxqueue::comm::proto::SetStringRequest req;
+    phxqueue::comm::proto::SetStringResponse resp;
+
+    int topic_id{-1};
+    int lock_id{-1};
+    if (!opt_map.GetInt('t', &topic_id)) return -1;
+    if (!opt_map.GetInt('l', &lock_id)) return -1;
+    if (nullptr == opt_map.Get('k')) return -1;
+    uint64_t version{static_cast<uint64_t>(-1)};
+    opt_map.GetUInt64('r', &version);
+    if (nullptr == opt_map.Get('s')) return -1;
+    uint64_t lease_time_ms{static_cast<uint64_t>(-1)};
+    opt_map.GetUInt64('l', &lease_time_ms);
+
+    req.set_topic_id(topic_id);
+    req.set_lock_id(lock_id);
+    const auto &string_info(req.mutable_string_info());
+    string_info->set_key(opt_map.Get('k'));
+    string_info->set_version(version);
+    string_info->set_value(opt_map.Get('s'));
+    string_info->set_lease_time_ms(lease_time_ms);
+
+    LockClient client;
+    int ret = client.SetString(req, &resp);
+    printf("%s return %d\n", __func__, ret);
+    printf("resp: {\n%s}\n", resp.DebugString().c_str());
+
+    return ret;
+}
+
+int LockToolImpl::DeleteString(phxrpc::OptMap &opt_map) {
+    phxqueue::comm::proto::DeleteStringRequest req;
+    phxqueue::comm::proto::DeleteStringResponse resp;
+
+    int topic_id{-1};
+    int lock_id{-1};
+    if (!opt_map.GetInt('t', &topic_id)) return -1;
+    if (!opt_map.GetInt('l', &lock_id)) return -1;
+    if (nullptr == opt_map.Get('k')) return -1;
+    uint64_t version{static_cast<uint64_t>(-1)};
+    opt_map.GetUInt64('r', &version);
+
+    req.set_topic_id(topic_id);
+    req.set_lock_id(lock_id);
+    const auto &string_key_info(req.mutable_string_key_info());
+    string_key_info->set_key(opt_map.Get('k'));
+    string_key_info->set_version(version);
+
+    LockClient client;
+    int ret = client.DeleteString(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
