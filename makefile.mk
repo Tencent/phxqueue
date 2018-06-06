@@ -7,6 +7,7 @@ PREFIX := $(PHXQUEUE_BASE_DIR)
 
 PROTOBUF_BIN_DIR := $(PHXQUEUE_BASE_DIR)/third_party/protobuf/bin
 
+GFLAGS_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/gflags/include
 GLOG_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/glog/include
 PROTOBUF_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/protobuf/include
 LEVELDB_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/leveldb/include
@@ -16,8 +17,8 @@ PHXPAXOS_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/phxpaxos/include
 PHXPAXOS_PLUGIN_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)/third_party/phxpaxos/plugin/include
 PHXQUEUE_INCLUDE_DIR := $(PHXQUEUE_BASE_DIR)
 
-GLOG_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/glog/lib
 GFLAGS_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/gflags/lib
+GLOG_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/glog/lib
 PROTOBUF_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/protobuf/lib
 LEVELDB_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/leveldb/lib
 LIBCO_LIB_DIR := $(PHXQUEUE_BASE_DIR)/third_party/colib/lib
@@ -53,6 +54,6 @@ LDFLAGS := -L$(PHXRPC_LIB_DIR) -lphxrpc \
 		   -lrt -lz -ldl -lpthread
 #PBFLAGS = --proto_path=$(PROTOBUF_INCLUDE_DIR) --proto_path=$(PHXQUEUE_INCLUDE_DIR) --cpp_out=.
 PBFLAGS := --proto_path=$(PROTOBUF_INCLUDE_DIR) --proto_path=. --cpp_out=.
-INC_COMM := -I$(PHXQUEUE_INCLUDE_DIR) -I$(GLOG_INCLUDE_DIR) -I$(PROTOBUF_INCLUDE_DIR) -I$(LEVELDB_INCLUDE_DIR) -I$(LIBCO_INCLUDE_DIR) -I$(PHXPAXOS_INCLUDE_DIR) \
+INC_COMM := -I$(PHXQUEUE_INCLUDE_DIR) -I$(GFLAGS_INCLUDE_DIR) -I$(GLOG_INCLUDE_DIR) -I$(PROTOBUF_INCLUDE_DIR) -I$(LEVELDB_INCLUDE_DIR) -I$(LIBCO_INCLUDE_DIR) -I$(PHXPAXOS_INCLUDE_DIR) \
 		-I$(PHXPAXOS_INCLUDE_DIR) -I$(PHXRPC_INCLUDE_DIR) -I$(PHXPAXOS_PLUGIN_INCLUDE_DIR)
 
