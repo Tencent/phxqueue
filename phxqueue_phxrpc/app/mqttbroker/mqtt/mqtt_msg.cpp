@@ -30,7 +30,208 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/network/socket_stream_base.h"
 #include "phxrpc/rpc/phxrpc.pb.h"
 
-#include "../mqttbroker.pb.h"
+
+namespace {
+
+
+using namespace std;
+
+
+int EncodeUint16(string &dest, const uint16_t src) {
+    dest.clear();
+    dest.resize(2);
+    dest[0] = static_cast<uint8_t>(src >> 8);
+    dest[1] = static_cast<uint8_t>(src);
+
+    return 0;
+}
+
+int EncodeUint16(char *const dest, const size_t dest_size, const uint16_t src) {
+    if (2 != dest_size)
+        return -1;
+
+    dest[0] = static_cast<uint8_t>(src >> 8);
+    dest[1] = static_cast<uint8_t>(src);
+
+    return 0;
+}
+
+int EncodeUnicode(string &dest, const string &src) {
+    dest.clear();
+    dest.resize(2 + src.size());
+    uint16_t src_size{static_cast<uint16_t>(src.size())};
+    dest[0] = static_cast<uint8_t>(src_size >> 8);
+    dest[1] = static_cast<uint8_t>(src_size);
+    for (int i{0}; src_size > i; ++i) {
+        dest[i + 2] = src.at(i);
+    }
+
+    return 0;
+}
+
+int EncodeUnicode(char *const dest, const size_t dest_size, const string &src) {
+    if (2 + src.size() != dest_size)
+        return -1;
+
+    uint16_t src_size{static_cast<uint16_t>(src.size())};
+    dest[0] = static_cast<uint8_t>(src_size >> 8);
+    dest[1] = static_cast<uint8_t>(src_size);
+    for (int i{0}; src_size > i; ++i) {
+        dest[i + 2] = src.at(i);
+    }
+
+    return 0;
+}
+
+phxrpc::ReturnCode SendChar(ostringstream &out_stream, const char &content) {
+    out_stream.put(content);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvChar(istringstream &in_stream, char &content) {
+    in_stream.get(content);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendUint16(ostringstream &out_stream, const uint16_t content) {
+    out_stream.put(static_cast<char>(content >> 8));
+    out_stream.put(static_cast<char>(content));
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvUint16(istringstream &in_stream, uint16_t &content) {
+    char temp{'\0'};
+    in_stream.get(temp);
+    content = (static_cast<uint8_t>(temp) << 8);
+    temp = '\0';
+    in_stream.get(temp);
+    content |= static_cast<uint8_t>(temp);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendChars(ostringstream &out_stream, const char *const content,
+                             const int content_length) {
+    out_stream.write(content, content_length);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvChars(istringstream &in_stream, char *const content,
+                             const int content_length) {
+    in_stream.read(content, content_length);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendUnicode(ostringstream &out_stream, const string &content) {
+    uint16_t content_size{static_cast<uint16_t>(content.size())};
+    phxrpc::ReturnCode ret{SendUint16(out_stream, content_size)};
+    if (phxrpc::ReturnCode::OK != ret) {
+        phxrpc::log(LOG_ERR, "SendUint16 err %d", static_cast<int>(ret));
+
+        return ret;
+    }
+
+    out_stream.write(content.data(), content.size());
+
+    return ret;
+}
+
+phxrpc::ReturnCode RecvUnicode(istringstream &in_stream, string &content) {
+    uint16_t content_size{0};
+    phxrpc::ReturnCode ret{RecvUint16(in_stream, content_size)};
+    if (phxrpc::ReturnCode::OK != ret) {
+        phxrpc::log(LOG_ERR, "RecvUint16 err %d", static_cast<int>(ret));
+
+        return ret;
+    }
+
+    content.resize(content_size);
+    in_stream.read(&content[0], content_size);
+
+    return ret;
+}
+
+
+phxrpc::ReturnCode SendChar(phxrpc::BaseTcpStream &out_stream, const char &content) {
+    out_stream.put(content);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvChar(phxrpc::BaseTcpStream &in_stream, char &content) {
+    in_stream.get(content);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendUint16(phxrpc::BaseTcpStream &out_stream, const uint16_t content) {
+    out_stream.put(static_cast<char>(content >> 8));
+    out_stream.put(static_cast<char>(content));
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvUint16(phxrpc::BaseTcpStream &in_stream, uint16_t &content) {
+    char temp{'\0'};
+    in_stream.get(temp);
+    content = (static_cast<uint8_t>(temp) << 8);
+    temp = '\0';
+    in_stream.get(temp);
+    content |= static_cast<uint8_t>(temp);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendChars(phxrpc::BaseTcpStream &out_stream, const char *const content,
+                             const int content_length) {
+    out_stream.write(content, content_length);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode RecvChars(phxrpc::BaseTcpStream &in_stream, char *const content,
+                             const int content_length) {
+    in_stream.read(content, content_length);
+
+    return phxrpc::ReturnCode::OK;
+}
+
+phxrpc::ReturnCode SendUnicode(phxrpc::BaseTcpStream &out_stream, const string &content) {
+    uint16_t content_size{static_cast<uint16_t>(content.size())};
+    phxrpc::ReturnCode ret{SendUint16(out_stream, content_size)};
+    if (phxrpc::ReturnCode::OK != ret) {
+        phxrpc::log(LOG_ERR, "SendUint16 err %d", static_cast<int>(ret));
+
+        return ret;
+    }
+
+    out_stream.write(content.data(), content.size());
+
+    return ret;
+}
+
+phxrpc::ReturnCode RecvUnicode(phxrpc::BaseTcpStream &in_stream, string &content) {
+    uint16_t content_size{0};
+    phxrpc::ReturnCode ret{RecvUint16(in_stream, content_size)};
+    if (phxrpc::ReturnCode::OK != ret) {
+        phxrpc::log(LOG_ERR, "RecvUint16 err %d", static_cast<int>(ret));
+
+        return ret;
+    }
+
+    content.resize(content_size);
+    in_stream.read(&content[0], content_size);
+
+    return ret;
+}
+
+
+}  // namespace
 
 
 namespace phxqueue_phxrpc {
@@ -60,351 +261,8 @@ const char MqttMessage::SampleFixedHeader[]{
     '\xf0',  // FAKE_DISCONNACK
 };
 
-int MqttMessage::EncodeUint16(string &dest, const uint16_t src) {
-    dest.clear();
-    dest.resize(2);
-    dest[0] = static_cast<uint8_t>(src >> 8);
-    dest[1] = static_cast<uint8_t>(src);
-
-    return 0;
-}
-
-int MqttMessage::EncodeUint16(char *const dest, const size_t dest_size,
-                              const uint16_t src) {
-    if (2 != dest_size)
-        return -1;
-
-    dest[0] = static_cast<uint8_t>(src >> 8);
-    dest[1] = static_cast<uint8_t>(src);
-
-    return 0;
-}
-
-int MqttMessage::EncodeUnicode(string &dest, const string &src) {
-    dest.clear();
-    dest.resize(2 + src.size());
-    uint16_t src_size{static_cast<uint16_t>(src.size())};
-    dest[0] = static_cast<uint8_t>(src_size >> 8);
-    dest[1] = static_cast<uint8_t>(src_size);
-    for (int i{0}; src_size > i; ++i) {
-        dest[i + 2] = src.at(i);
-    }
-
-    return 0;
-}
-
-int MqttMessage::EncodeUnicode(char *const dest, const size_t dest_size,
-                               const string &src) {
-    if (2 + src.size() != dest_size)
-        return -1;
-
-    uint16_t src_size{static_cast<uint16_t>(src.size())};
-    dest[0] = static_cast<uint8_t>(src_size >> 8);
-    dest[1] = static_cast<uint8_t>(src_size);
-    for (int i{0}; src_size > i; ++i) {
-        dest[i + 2] = src.at(i);
-    }
-
-    return 0;
-}
-
-
-phxrpc::ReturnCode MqttMessage::SendChar(ostringstream &out_stream,
-                                         const char &content) {
-    out_stream.put(content);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChar(istringstream &in_stream,
-                                         char &content) {
-    in_stream.get(content);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUint16(ostringstream &out_stream,
-                                           const uint16_t content) {
-    out_stream.put(static_cast<char>(content >> 8));
-    out_stream.put(static_cast<char>(content));
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUint16(istringstream &in_stream,
-                                           uint16_t &content) {
-    char temp{'\0'};
-    in_stream.get(temp);
-    content = (static_cast<uint8_t>(temp) << 8);
-    temp = '\0';
-    in_stream.get(temp);
-    content |= static_cast<uint8_t>(temp);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendChars(ostringstream &out_stream,
-                                          const char *const content,
-                                          const int content_length) {
-    out_stream.write(content, content_length);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChars(istringstream &in_stream,
-                                          char *const content,
-                                          const int content_length) {
-    in_stream.read(content, content_length);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUnicode(ostringstream &out_stream,
-                                            const string &content) {
-    uint16_t content_size{static_cast<uint16_t>(content.size())};
-    phxrpc::ReturnCode ret{SendUint16(out_stream, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    out_stream.write(content.data(), content.size());
-
-    return ret;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUnicode(istringstream &in_stream,
-                                            string &content) {
-    uint16_t content_size{0};
-    phxrpc::ReturnCode ret{RecvUint16(in_stream, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    content.resize(content_size);
-    in_stream.read(&content[0], content_size);
-
-    return ret;
-}
-
-
-phxrpc::ReturnCode MqttMessage::SendChar(phxrpc::BaseTcpStream &out_stream,
-                                         const char &content) {
-    out_stream.put(content);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChar(phxrpc::BaseTcpStream &in_stream,
-                                         char &content) {
-    in_stream.get(content);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUint16(phxrpc::BaseTcpStream &out_stream,
-                                           const uint16_t content) {
-    out_stream.put(static_cast<char>(content >> 8));
-    out_stream.put(static_cast<char>(content));
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUint16(phxrpc::BaseTcpStream &in_stream,
-                                           uint16_t &content) {
-    char temp{'\0'};
-    in_stream.get(temp);
-    content = (static_cast<uint8_t>(temp) << 8);
-    temp = '\0';
-    in_stream.get(temp);
-    content |= static_cast<uint8_t>(temp);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendChars(phxrpc::BaseTcpStream &out_stream,
-                                          const char *const content,
-                                          const int content_length) {
-    out_stream.write(content, content_length);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChars(phxrpc::BaseTcpStream &in_stream,
-                                          char *const content,
-                                          const int content_length) {
-    in_stream.read(content, content_length);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUnicode(phxrpc::BaseTcpStream &out_stream,
-                                            const string &content) {
-    uint16_t content_size{static_cast<uint16_t>(content.size())};
-    phxrpc::ReturnCode ret{SendUint16(out_stream, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    out_stream.write(content.data(), content.size());
-
-    return ret;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUnicode(phxrpc::BaseTcpStream &in_stream,
-                                            string &content) {
-    uint16_t content_size{0};
-    phxrpc::ReturnCode ret{RecvUint16(in_stream, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    content.resize(content_size);
-    in_stream.read(&content[0], content_size);
-
-    return ret;
-}
-
-
-phxrpc::ReturnCode MqttMessage::SendChar(const int fd, const char &content) {
-    ssize_t ret{write(fd, &content, sizeof(char))};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "write err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChar(const int fd, char &content) {
-    ssize_t ret{read(fd, &content, sizeof(char))};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "read err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUint16(const int fd, const uint16_t content) {
-    char temp{static_cast<char>(content >> 8)};
-    ssize_t ret{write(fd, &temp, sizeof(char))};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "write err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    temp = static_cast<char>(content);
-    ret = write(fd, &temp, sizeof(char));
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "write err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUint16(const int fd, uint16_t &content) {
-    char temp{'\0'};
-    ssize_t ret{read(fd, &temp, sizeof(char))};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "read err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    content = (static_cast<uint8_t>(temp) << 8);
-    temp = '\0';
-    ret = read(fd, &temp, sizeof(char));
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "read err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    content |= static_cast<uint8_t>(temp);
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendChars(const int fd, const char *const content,
-                                  const int content_length) {
-    ssize_t ret{write(fd, content, content_length)};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "write err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvChars(const int fd, char *const content,
-                                  const int content_length) {
-    ssize_t ret{read(fd, content, content_length)};
-    if (-1 == ret) {
-        phxrpc::log(LOG_ERR, "read err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::SendUnicode(const int fd, const string &content) {
-    uint16_t content_size{static_cast<uint16_t>(content.size())};
-    phxrpc::ReturnCode ret{SendUint16(fd, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    ssize_t ret2{write(fd, content.data(), content.size())};
-    if (-1 == ret2) {
-        phxrpc::log(LOG_ERR, "write err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return ret;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvUnicode(const int fd, string &content) {
-    uint16_t content_size{0};
-    phxrpc::ReturnCode ret{RecvUint16(fd, content_size)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvUint16 err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    content.resize(content_size);
-    ssize_t ret2{read(fd, &content[0], content_size)};
-    if (-1 == ret2) {
-        phxrpc::log(LOG_ERR, "read err %d %s", errno, strerror(errno));
-
-        return phxrpc::ReturnCode::ERROR_SOCKET;
-    }
-
-    return ret;
-}
-
 
 MqttMessage::MqttMessage() {
-    SetVersion("MQTT/3.1.1");
-    memset(client_ip_, 0, sizeof(client_ip_));
 }
 
 MqttMessage::~MqttMessage() {}
@@ -524,77 +382,6 @@ phxrpc::ReturnCode MqttMessage::RecvFixedHeaderAndRemainingBuffer(
     return phxrpc::ReturnCode::OK;
 }
 
-phxrpc::ReturnCode MqttMessage::SendFixedHeaderAndRemainingBuffer(
-        const int fd, const FixedHeader &fixed_header,
-        const string &remaining_buffer) {
-    uint8_t fixed_header_byte{EncodeFixedHeader(fixed_header)};
-    phxrpc::ReturnCode ret{SendChar(fd, static_cast<char>(fixed_header_byte))};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendChar err %d", static_cast<int>(ret));
-
-        return ret;
-    } else {
-        phxrpc::log(LOG_DEBUG, "SendChar type %d fixed_header_byte %u",
-                    static_cast<int>(fixed_header.control_packet_type),
-                    static_cast<uint8_t>(fixed_header_byte));
-    }
-
-    const int remaining_length{static_cast<const int>(remaining_buffer.size())};
-    ret = SendRemainingLength(fd, remaining_length);
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendRemainingLength err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    ret = SendChars(fd, remaining_buffer.data(),
-                    remaining_buffer.size());
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendChars err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvFixedHeaderAndRemainingBuffer(
-        const int fd, FixedHeader &fixed_header,
-        string &remaining_buffer) {
-    char fixed_header_char{0x0};
-    phxrpc::ReturnCode ret{RecvChar(fd, fixed_header_char)};
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvChar err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    fixed_header = DecodeFixedHeader(static_cast<uint8_t>(fixed_header_char));
-
-    phxrpc::log(LOG_DEBUG, "RecvChar type %d fixed_header %x",
-                static_cast<int>(fixed_header.control_packet_type),
-                static_cast<uint8_t>(fixed_header_char));
-
-    int remaining_length{0};
-    ret = RecvRemainingLength(fd, remaining_length);
-
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvRemainingLength err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    remaining_buffer.resize(remaining_length);
-    ret = RecvChars(fd, &remaining_buffer[0], remaining_length);
-    if (phxrpc::ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvChars err %d", static_cast<int>(ret));
-
-        return ret;
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
 phxrpc::ReturnCode MqttMessage::SendRemainingLength(phxrpc::BaseTcpStream &out_stream,
                                                     const int remaining_length) {
     char temp{0x0};
@@ -655,67 +442,6 @@ phxrpc::ReturnCode MqttMessage::RecvRemainingLength(phxrpc::BaseTcpStream &in_st
     return phxrpc::ReturnCode::OK;
 }
 
-phxrpc::ReturnCode MqttMessage::SendRemainingLength(const int fd,
-                                                    const int remaining_length) {
-    char temp{0x0};
-    char continue_bit{0x0};
-    uint32_t temp_remaining_length{static_cast<uint32_t>(remaining_length)};
-
-    for (int i{0}; 4 > i; ++i) {
-        temp = (temp_remaining_length & 0x7f);
-        temp_remaining_length >>= 8;
-        continue_bit = (temp_remaining_length > 0) ? 0x80 : 0x0;
-        char temp2{static_cast<char>(static_cast<uint8_t>(temp) | static_cast<uint8_t>(continue_bit))};
-        write(fd, &temp2, sizeof(char));
-        if (0x0 == continue_bit) {
-            return phxrpc::ReturnCode::OK;
-        }
-    }
-
-    return phxrpc::ReturnCode::OK;
-}
-
-phxrpc::ReturnCode MqttMessage::RecvRemainingLength(const int fd,
-                                                    int &remaining_length) {
-    uint32_t temp_remaining_length{0};
-
-    char temp{0x0};
-    read(fd, &temp, sizeof(char));
-    temp_remaining_length = (static_cast<uint8_t>(temp) & 0x7f);
-
-    if (!(static_cast<uint8_t>(temp) & 0x80)) {
-        remaining_length = temp_remaining_length;
-
-        return phxrpc::ReturnCode::OK;
-    }
-
-    temp = 0x0;
-    read(fd, &temp, sizeof(char));
-    temp_remaining_length |= (static_cast<uint8_t>(temp) & 0x7f) << 7;
-    if (!(static_cast<uint8_t>(temp) & 0x80)) {
-        remaining_length = temp_remaining_length;
-
-        return phxrpc::ReturnCode::OK;
-    }
-
-    temp = 0x0;
-    read(fd, &temp, sizeof(char));
-    temp_remaining_length |= (static_cast<uint8_t>(temp) & 0x7f) << 14;
-    if (!(static_cast<uint8_t>(temp) & 0x80)) {
-        remaining_length = temp_remaining_length;
-
-        return phxrpc::ReturnCode::OK;
-    }
-
-    temp = 0x0;
-    read(fd, &temp, sizeof(char));
-    temp_remaining_length |= (static_cast<uint8_t>(temp) & 0x7f) << 21;
-
-    remaining_length = temp_remaining_length;
-
-    return phxrpc::ReturnCode::OK;
-}
-
 phxrpc::ReturnCode MqttMessage::Send(phxrpc::BaseTcpStream &socket) const {
     ostringstream ss;
     phxrpc::ReturnCode ret{SendRemaining(ss)};
@@ -739,6 +465,11 @@ phxrpc::ReturnCode MqttMessage::Send(phxrpc::BaseTcpStream &socket) const {
     }
 
     return ret;
+}
+
+size_t MqttMessage::size() const {
+    // TODO: add header size
+    return data_.size();
 }
 
 phxrpc::ReturnCode MqttMessage::SendRemaining(ostringstream &out_stream) const {
@@ -795,7 +526,7 @@ phxrpc::ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream) {
 
         return ret;
     }
-    //phxrpc::log(LOG_DEBUG, "RecvPayload \"%s\"", GetContent().c_str());
+    //phxrpc::log(LOG_DEBUG, "RecvPayload \"%s\"", data_.c_str());
 
     return ret;
 }
@@ -834,7 +565,7 @@ MqttFakeResponse::MqttFakeResponse() {
 
 
 MqttConnect::MqttConnect() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttConnect");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttConnect");
     mutable_fixed_header().control_packet_type = ControlPacketType::CONNECT;
 }
 
@@ -1150,7 +881,7 @@ phxrpc::ReturnCode MqttConnack::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttPublish::MqttPublish() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPublish");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPublish");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBLISH;
 }
 
@@ -1162,7 +893,7 @@ phxrpc::ReturnCode MqttPublish::ToPb(google::protobuf::Message *const message) c
     publish.set_retain(fixed_header().retain);
 
     publish.set_topic_name(topic_name_);
-    publish.set_content(GetContent());
+    publish.set_content(data_);
     publish.set_packet_identifier(packet_identifier());
 
     try {
@@ -1189,7 +920,7 @@ phxrpc::ReturnCode MqttPublish::FromPb(const google::protobuf::Message &message)
     fixed_header.retain = publish.retain();
 
     topic_name_ = publish.topic_name();
-    SetContent(publish.content().data(), publish.content().length());
+    data_ = publish.content();
     set_packet_identifier(publish.packet_identifier());
 
     return phxrpc::ReturnCode::OK;
@@ -1238,7 +969,7 @@ phxrpc::ReturnCode MqttPublish::RecvVariableHeader(istringstream &in_stream) {
 }
 
 phxrpc::ReturnCode MqttPublish::SendPayload(ostringstream &out_stream) const {
-    return SendChars(out_stream, GetContent().data(), GetContent().size());
+    return SendChars(out_stream, data_.data(), data_.size());
 }
 
 phxrpc::ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
@@ -1252,14 +983,14 @@ phxrpc::ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
     if (0 > payload_length)
       return phxrpc::ReturnCode::ERROR_LENGTH_UNDERFLOW;
 
-    string &payload_buffer(GetContent());
+    string &payload_buffer(data_);
     payload_buffer.resize(payload_length);
     return RecvChars(in_stream, &payload_buffer[0], payload_length);
 }
 
 
 MqttPuback::MqttPuback() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPuback");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPuback");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBACK;
 }
 
@@ -1303,7 +1034,7 @@ phxrpc::ReturnCode MqttPuback::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttPubrec::MqttPubrec() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrec");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrec");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBREC;
 }
 
@@ -1351,7 +1082,7 @@ phxrpc::ReturnCode MqttPubrec::RecvPayload(istringstream &in_stream) {
 
 
 MqttPubrel::MqttPubrel() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrel");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrel");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBREL;
 }
 
@@ -1399,7 +1130,7 @@ phxrpc::ReturnCode MqttPubrel::RecvPayload(istringstream &in_stream) {
 
 
 MqttPubcomp::MqttPubcomp() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPubcomp");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubcomp");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBCOMP;
 }
 
@@ -1447,7 +1178,7 @@ phxrpc::ReturnCode MqttPubcomp::RecvPayload(istringstream &in_stream) {
 
 
 MqttSubscribe::MqttSubscribe() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttSubscribe");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttSubscribe");
     mutable_fixed_header().control_packet_type = ControlPacketType::SUBSCRIBE;
 }
 
@@ -1646,7 +1377,7 @@ phxrpc::ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
 
 
 MqttUnsubscribe::MqttUnsubscribe() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttUnsubscribe");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttUnsubscribe");
     mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBSCRIBE;
 }
 
@@ -1784,7 +1515,7 @@ phxrpc::ReturnCode MqttUnsuback::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttPingreq::MqttPingreq() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttPing");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPing");
     mutable_fixed_header().control_packet_type = ControlPacketType::PINGREQ;
 }
 
@@ -1845,7 +1576,7 @@ phxrpc::ReturnCode MqttPingresp::FromPb(const google::protobuf::Message &message
 
 
 MqttDisconnect::MqttDisconnect() {
-    SetURI("/phxqueue_phxrpc.mqttbroker/PhxMqttDisconnect");
+    set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttDisconnect");
     mutable_fixed_header().control_packet_type = ControlPacketType::DISCONNECT;
 }
 

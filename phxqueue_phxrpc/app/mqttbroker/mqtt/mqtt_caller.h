@@ -88,7 +88,7 @@ class MqttCaller {
     int PhxMqttPingCall(const MqttPingreqPb &req, MqttPingrespPb *resp);
     int PhxMqttDisconnectCall(const MqttDisconnectPb &req, google::protobuf::Empty *resp);
 
-    void SetURI(const char *const uri, const int cmdid);
+    void set_uri(const char *const uri, const int cmd_id);
 
     void SetKeepAlive(const bool keep_alive);
 

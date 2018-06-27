@@ -52,8 +52,8 @@ class SearchTool {
         static Name2Func_t name2func[]{
             {"PHXEcho", &SearchTool::PHXEcho, "c:f:vs:",
                     "-s <string>"},
-            {"PhxHttpPublish", &SearchTool::PhxHttpPublish, "c:f:ve:d:q:r:t:p:s:",
-                    "-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>"},
+            {"PhxHttpPublish", &SearchTool::PhxHttpPublish, "c:f:vx:y:d:q:r:t:p:s:",
+                    "-x <pub_client_id> -y <sub_client_id> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>"},
             {"PhxMqttConnect", &SearchTool::PhxMqttConnect, "c:f:vl:",
                     "-l <client_identifier>"},
             {"PhxMqttPublish", &SearchTool::PhxMqttPublish, "c:f:vl:d:q:r:t:p:s:",

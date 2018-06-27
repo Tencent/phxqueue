@@ -80,12 +80,12 @@ message MqttDisconnectPb {
 }
 
 message HttpPublishPb {
-    string client_id = 1;
+    string pub_client_id = 1;
+    string sub_client_id = 2;
     MqttPublishPb mqtt_publish = 11;
 }
 
 message HttpPubackPb {
-    string client_id = 1;
     MqttPubackPb mqtt_puback = 11;
 }
 

@@ -42,9 +42,8 @@ int SearchToolImpl::PhxHttpPublish(phxrpc::OptMap &opt_map) {
     phxqueue_phxrpc::mqttbroker::HttpPublishPb req;
     phxqueue_phxrpc::mqttbroker::HttpPubackPb resp;
 
-    const char *session_id_string{opt_map.Get('e')};
-    if (!session_id_string) return -1;
-    uint64_t session_id{strtoull(session_id_string, nullptr, 16)};
+    const char *pub_client_id{opt_map.Get('x')};
+    const char *sub_client_id{opt_map.Get('y')};
 
     uint32_t dup{0u};
     if (!opt_map.GetUInt('d', &dup)) dup = 0;
@@ -58,7 +57,8 @@ int SearchToolImpl::PhxHttpPublish(phxrpc::OptMap &opt_map) {
     if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;
     if (nullptr == opt_map.Get('s')) return -1;
 
-    req.set_session_id(session_id);
+    req.set_pub_client_id(pub_client_id);
+    req.set_sub_client_id(sub_client_id);
 
     req.mutable_mqtt_publish()->set_dup(0 != dup);
     req.mutable_mqtt_publish()->set_qos(qos);

@@ -26,6 +26,8 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/msg.h"
 
+#include "../mqttbroker.pb.h"
+
 
 namespace phxqueue_phxrpc {
 
@@ -62,57 +64,6 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
 
     static const char SampleFixedHeader[];
 
-    static int EncodeUint16(std::string &dest, const uint16_t src);
-    static int EncodeUint16(char *const dest, const size_t dest_size,
-                            const uint16_t src);
-    static int EncodeUnicode(std::string &dest, const std::string &src);
-    static int EncodeUnicode(char *const dest, const size_t dest_size,
-                             const std::string &src);
-
-    static phxrpc::ReturnCode SendChar(std::ostringstream &out_stream, const char &content);
-    static phxrpc::ReturnCode RecvChar(std::istringstream &in_stream, char &content);
-    static phxrpc::ReturnCode SendUint16(std::ostringstream &out_stream,
-                                 const uint16_t content);
-    static phxrpc::ReturnCode RecvUint16(std::istringstream &in_stream,
-                                 uint16_t &content);
-    static phxrpc::ReturnCode SendChars(std::ostringstream &out_stream,
-                                const char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode RecvChars(std::istringstream &in_stream,
-                                char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode SendUnicode(std::ostringstream &out_stream,
-                                  const std::string &content);
-    static phxrpc::ReturnCode RecvUnicode(std::istringstream &in_stream,
-                                  std::string &content);
-
-    static phxrpc::ReturnCode SendChar(phxrpc::BaseTcpStream &out_stream, const char &content);
-    static phxrpc::ReturnCode RecvChar(phxrpc::BaseTcpStream &in_stream, char &content);
-    static phxrpc::ReturnCode SendUint16(phxrpc::BaseTcpStream &out_stream,
-                                 const uint16_t content);
-    static phxrpc::ReturnCode RecvUint16(phxrpc::BaseTcpStream &in_stream, uint16_t &content);
-    static phxrpc::ReturnCode SendChars(phxrpc::BaseTcpStream &out_stream,
-                                const char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode RecvChars(phxrpc::BaseTcpStream &in_stream,
-                                char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode SendUnicode(phxrpc::BaseTcpStream &out_stream,
-                                  const std::string &content);
-    static phxrpc::ReturnCode RecvUnicode(phxrpc::BaseTcpStream &in_stream,
-                                  std::string &content);
-
-    static phxrpc::ReturnCode SendChar(const int fd, const char &content);
-    static phxrpc::ReturnCode RecvChar(const int fd, char &content);
-    static phxrpc::ReturnCode SendUint16(const int fd, const uint16_t content);
-    static phxrpc::ReturnCode RecvUint16(const int fd, uint16_t &content);
-    static phxrpc::ReturnCode SendChars(const int fd, const char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode RecvChars(const int fd, char *const content,
-                                const int content_length);
-    static phxrpc::ReturnCode SendUnicode(const int fd, const std::string &content);
-    static phxrpc::ReturnCode RecvUnicode(const int fd, std::string &content);
-
     static uint8_t EncodeFixedHeader(const FixedHeader &fixed_header);
     static FixedHeader DecodeFixedHeader(const uint8_t fixed_header_byte);
 
@@ -126,21 +77,11 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
             FixedHeader &fixed_header,
             std::string &remaining_buffer);
 
-    static phxrpc::ReturnCode SendFixedHeaderAndRemainingBuffer(
-            const int fd, const FixedHeader &fixed_header,
-            const std::string &remaining_buffer);
-    static phxrpc::ReturnCode RecvFixedHeaderAndRemainingBuffer(
-            const int fd, FixedHeader &fixed_header,
-            std::string &remaining_buffer);
-
     // remaining length
     static phxrpc::ReturnCode SendRemainingLength(phxrpc::BaseTcpStream &out_stream,
                                           const int remaining_length);
     static phxrpc::ReturnCode RecvRemainingLength(phxrpc::BaseTcpStream &in_stream,
                                           int &remaining_length);
-
-    static phxrpc::ReturnCode SendRemainingLength(const int fd, const int remaining_length);
-    static phxrpc::ReturnCode RecvRemainingLength(const int fd, int &remaining_length);
 
     MqttMessage();
     virtual ~MqttMessage() override;
@@ -152,6 +93,8 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
     virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) = 0;
 
     virtual phxrpc::ReturnCode Send(phxrpc::BaseTcpStream &socket) const override;
+
+    virtual size_t size() const override;
 
     phxrpc::ReturnCode SendRemaining(std::ostringstream &out_stream) const;
     phxrpc::ReturnCode RecvRemaining(std::istringstream &in_stream);
@@ -181,6 +124,9 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
     void set_remaining_length(const int remaining_length) {
         remaining_length_ = remaining_length;
     }
+
+  protected:
+    std::string data_;
 
   private:
     FixedHeader fixed_header_;

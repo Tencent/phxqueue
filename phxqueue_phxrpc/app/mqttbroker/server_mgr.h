@@ -23,14 +23,12 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/rpc.h"
 
-#include "event_loop_server.h"
 
+class EventLoopServer;
 
 class ServerMgr {
   public:
-    // TODO:
-    //ServerMgr(const HshaServerConfig *const config);
-    ServerMgr();
+    ServerMgr(const phxrpc::HshaServerConfig *const config);
     virtual ~ServerMgr();
 
     phxrpc::HshaServer *hsha_server() const;
@@ -47,8 +45,7 @@ class ServerMgr {
   private:
     phxrpc::HshaServer *hsha_server_{nullptr};
     EventLoopServer *event_loop_server_{nullptr};
-    // TODO:
-    //const HshaServerConfig *config_{nullptr};
+    const phxrpc::HshaServerConfig *config_{nullptr};
     std::map<std::string, std::unique_ptr<phxrpc::UThreadNotifier>> notifier_map_;
 };
 

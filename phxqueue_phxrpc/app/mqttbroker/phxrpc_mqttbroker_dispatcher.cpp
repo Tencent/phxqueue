@@ -53,7 +53,7 @@ int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -70,7 +70,7 @@ int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }
@@ -93,7 +93,7 @@ int MqttBrokerDispatcher::PhxMqttConnect(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -110,7 +110,7 @@ int MqttBrokerDispatcher::PhxMqttConnect(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }
@@ -133,7 +133,7 @@ int MqttBrokerDispatcher::PhxMqttPublish(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -163,7 +163,7 @@ int MqttBrokerDispatcher::PhxMqttPuback(const phxrpc::BaseRequest *const req, ph
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -193,7 +193,7 @@ int MqttBrokerDispatcher::PhxMqttPubrec(const phxrpc::BaseRequest *const req, ph
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -223,7 +223,7 @@ int MqttBrokerDispatcher::PhxMqttPubrel(const phxrpc::BaseRequest *const req, ph
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -253,7 +253,7 @@ int MqttBrokerDispatcher::PhxMqttPubcomp(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -283,7 +283,7 @@ int MqttBrokerDispatcher::PhxMqttSubscribe(const phxrpc::BaseRequest *const req,
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -300,7 +300,7 @@ int MqttBrokerDispatcher::PhxMqttSubscribe(const phxrpc::BaseRequest *const req,
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }
@@ -323,7 +323,7 @@ int MqttBrokerDispatcher::PhxMqttUnsubscribe(const phxrpc::BaseRequest *const re
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -340,7 +340,7 @@ int MqttBrokerDispatcher::PhxMqttUnsubscribe(const phxrpc::BaseRequest *const re
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }
@@ -363,7 +363,7 @@ int MqttBrokerDispatcher::PhxMqttPing(const phxrpc::BaseRequest *const req, phxr
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -380,7 +380,7 @@ int MqttBrokerDispatcher::PhxMqttPing(const phxrpc::BaseRequest *const req, phxr
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }
@@ -403,7 +403,7 @@ int MqttBrokerDispatcher::PhxMqttDisconnect(const phxrpc::BaseRequest *const req
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -433,7 +433,7 @@ int MqttBrokerDispatcher::PhxHttpPublish(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "ToPb ip %s err %d", req->GetClientIP(), static_cast<int>(ret_code));
+            phxrpc::log(LOG_ERR, "ToPb err %d", static_cast<int>(ret_code));
 
             return -EINVAL;
         }
@@ -450,7 +450,7 @@ int MqttBrokerDispatcher::PhxHttpPublish(const phxrpc::BaseRequest *const req, p
     {
         phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};
         if (phxrpc::ReturnCode::OK != ret_code) {
-            phxrpc::log(LOG_ERR, "FromPb err %d ip %s", static_cast<int>(ret_code), req->GetClientIP());
+            phxrpc::log(LOG_ERR, "FromPb err %d", static_cast<int>(ret_code));
 
             return -ENOMEM;
         }

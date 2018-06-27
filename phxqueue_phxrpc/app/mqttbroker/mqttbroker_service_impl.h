@@ -16,17 +16,22 @@
 
 
 class MqttBrokerServerConfig;
+class MqttPacketIdMgr;
+class MqttSession;
+class MqttSessionMgr;
 
 typedef struct tagServiceArgs {
     MqttBrokerServerConfig *config;
     ServerMgr *server_mgr;
+    MqttSessionMgr *mqtt_session_mgr;
+    MqttPacketIdMgr *mqtt_packet_id_mgr;
 } ServiceArgs_t;
 
 class MqttBrokerServiceImpl : public MqttBrokerService {
   public:
     MqttBrokerServiceImpl(ServiceArgs_t &app_args,
             phxrpc::UThreadEpollScheduler *worker_uthread_scheduler,
-            SessionContext *context);
+            phxrpc::DataFlowArgs *data_flow_args);
     virtual ~MqttBrokerServiceImpl() override;
 
     virtual int PHXEcho(const google::protobuf::StringValue &req,
@@ -54,29 +59,15 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
     virtual int PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &req,
                                   google::protobuf::Empty *resp) override;
 
+    phxqueue::comm::RetCode CheckSession(MqttSession *&mqtt_session);
+    phxqueue::comm::RetCode FinishSession();
     phxqueue::comm::RetCode
-    FinishSession(const phxqueue_phxrpc::mqttbroker::SessionPb &session_pb);
+    FinishRemoteSession(const std::string &client_id,
+                        const phxqueue_phxrpc::mqttbroker::SessionPb &session_pb);
     phxqueue::comm::RetCode
-    EnqueueMessage(const std::string &topic_name, const std::string &message);
-    phxqueue::comm::RetCode
-    GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                phxqueue::comm::proto::GetLockInfoResponse &resp);
-    phxqueue::comm::RetCode
-    AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                phxqueue::comm::proto::AcquireLockResponse &resp);
-    phxqueue::comm::RetCode
-    GetString(const phxqueue::comm::proto::GetStringRequest &req,
-              phxqueue::comm::proto::GetStringResponse &resp);
-    phxqueue::comm::RetCode
-    SetString(const phxqueue::comm::proto::SetStringRequest &req,
-              phxqueue::comm::proto::SetStringResponse &resp);
-    phxqueue::comm::RetCode
-    DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
-                 phxqueue::comm::proto::DeleteStringResponse &resp);
+    EnqueueMessage(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &message);
 
   private:
-    phxqueue::comm::RetCode GetTopicIDAndLockID(int &topic_id, int &lock_id);
-
     phxqueue::comm::RetCode GetStringRemote(const std::string &prefix, const std::string &key,
                                             uint64_t &version, std::string &value);
 
@@ -101,8 +92,25 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
     phxqueue::comm::RetCode DeleteSessionByClientIdRemote(const std::string &client_id,
                                                           const uint64_t version);
 
+    phxqueue::comm::RetCode
+    GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                phxqueue::comm::proto::GetLockInfoResponse &resp);
+    phxqueue::comm::RetCode
+    AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                phxqueue::comm::proto::AcquireLockResponse &resp);
+    phxqueue::comm::RetCode
+    GetString(const phxqueue::comm::proto::GetStringRequest &req,
+              phxqueue::comm::proto::GetStringResponse &resp);
+    phxqueue::comm::RetCode
+    SetString(const phxqueue::comm::proto::SetStringRequest &req,
+              phxqueue::comm::proto::SetStringResponse &resp);
+    phxqueue::comm::RetCode
+    DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                 phxqueue::comm::proto::DeleteStringResponse &resp);
+    phxqueue::comm::RetCode GetTopicIDAndLockID(int &topic_id, int &lock_id);
+
     ServiceArgs_t &args_;
     phxrpc::UThreadEpollScheduler *worker_uthread_scheduler_{nullptr};
-    SessionContext *context_{nullptr};
+    phxrpc::DataFlowArgs *data_flow_args_{nullptr};
 };
 

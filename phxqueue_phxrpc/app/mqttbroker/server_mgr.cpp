@@ -21,13 +21,13 @@ See the AUTHORS file for names of contributors.
 
 #include "server_mgr.h"
 
+#include "event_loop_server.h"
+
 
 using namespace std;
 
 
-// TODO:
-//ServerMgr::ServerMgr(const HshaServerConfig *const config) : config_(config) {
-ServerMgr::ServerMgr() {
+ServerMgr::ServerMgr(const phxrpc::HshaServerConfig *const config) : config_(config) {
 }
 
 ServerMgr::~ServerMgr() {}
@@ -57,8 +57,7 @@ int ServerMgr::SendAndWaitAck(const uint64_t session_id, phxrpc::BaseResponse *c
                               const string &ack_key, void *&ack_value) {
     auto &&notifier(notifier_map_[ack_key]);
     notifier.reset(new phxrpc::UThreadNotifier);
-    // TODO: config_->GetSocketTimeoutMS()
-    int ret{notifier->Init(uthread_scheduler, 4)};
+    int ret{notifier->Init(uthread_scheduler, config_->GetSocketTimeoutMS())};
     if (0 != ret) {
         phxrpc::log(LOG_ERR, "%s notifier.Init err %d", __func__, ret);
         notifier_map_.erase(ack_key);

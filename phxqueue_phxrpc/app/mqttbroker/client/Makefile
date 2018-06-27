@@ -2,7 +2,8 @@ include ../../../../makefile.mk
 
 LDFLAGS := -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS)
 
-LIB_MQTT_OBJS = ../mqtt/mqtt_client.o ../mqtt/mqtt_msg.o ../mqtt/mqtt_protocol.o ../mqtt/mqtt_caller.o
+LIB_MQTT_OBJS = ../mqtt/mqtt_client.o ../mqtt/mqtt_msg.o ../mqtt/mqtt_msg_handler.o \
+		../mqtt/mqtt_msg_handler_factory.o ../mqtt/mqtt_caller.o
 
 CLI_OBJS = mqttbroker.pb.o \
 		search_client.o \
