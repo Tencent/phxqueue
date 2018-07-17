@@ -59,11 +59,11 @@ class Producer {
 
     // Process a batch add to Store.
     // Customize StoreSelector/QueueSelector can be specified to determine which store/queue to add.
-    comm::RetCode SelectAndAdd(comm::proto::AddRequest &req,
+    comm::RetCode SelectAndAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp,
                                StoreSelector *ss, QueueSelector *qs);
 
     // Process a batch add to Store.
-    comm::RetCode RawAdd(comm::proto::AddRequest &req);
+    comm::RetCode RawAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp);
 
 
     // ------------------------ Interfaces MUST be overrided ------------------------

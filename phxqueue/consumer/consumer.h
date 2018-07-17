@@ -76,7 +76,7 @@ class Consumer : public comm::MultiProc {
     // Add items to Store.
     // Handling failed items requires retry.
     // Need to implement an RPC that corresponds to Store::Add().
-    virtual comm::RetCode Add(const comm::proto::AddRequest &req, comm::proto::AddResponse &resp) = 0;
+    virtual comm::RetCode Add(comm::proto::AddRequest &req, comm::proto::AddResponse &resp) = 0;
 
     // Consumer reports its own machine load to the Scheduler, which, after statistics, returns the dynamic weight to the Consumer.
     // Depending on the dynamic weight, each Consumer uses a same algorithm to calculate which queues should be handled by themselves.

@@ -163,7 +163,8 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     }
 
     for (auto &&req : reqs) {
-        if (comm::RetCode::RET_OK != (ret = SelectAndAdd(*req, nullptr, nullptr))) {
+        comm::proto::AddResponse resp;
+        if (comm::RetCode::RET_OK != (ret = SelectAndAdd(*req, resp, nullptr, nullptr))) {
             comm::ProducerBP::GetThreadInstance()->OnSelectAndAddFail(topic_id, pub_id, handle_id, uin);
             QLErr("SelectAndAdd client_id %s ret %d", client_id.c_str(), as_integer(ret));
             return ret;
@@ -297,7 +298,7 @@ comm::RetCode Producer::MakeAddRequests(const int topic_id,
 }
 
 
-comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, StoreSelector *ss, QueueSelector *qs) {
+comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp, StoreSelector *ss, QueueSelector *qs) {
     QLVerb("SelectAndAdd");
 
     comm::ProducerBP::GetThreadInstance()->OnSelectAndAdd(req);
@@ -359,7 +360,7 @@ comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, StoreSelector
                 QLErr("BatchRawEnqueue ret %d store %d queue %d uin %" PRIu64, as_integer(ret), store_id, queue_id, uin);
             }
         } else {
-            if (comm::RetCode::RET_OK != (ret = RawAdd(req))) {
+            if (comm::RetCode::RET_OK != (ret = RawAdd(req, resp))) {
                 comm::ProducerBP::GetThreadInstance()->OnRawAddFail(req);
                 QLErr("RawEnqueue ret %d store %d queue %d uin %" PRIu64, as_integer(ret), store_id, queue_id, uin);
             }
@@ -374,7 +375,7 @@ comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, StoreSelector
     return ret;
 }
 
-comm::RetCode Producer::RawAdd(comm::proto::AddRequest &req) {
+comm::RetCode Producer::RawAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp) {
     QLVerb("RawEnqueue");
 
     comm::ProducerBP::GetThreadInstance()->OnRawAdd(req);
@@ -395,8 +396,6 @@ comm::RetCode Producer::RawAdd(comm::proto::AddRequest &req) {
         return ret;
     }
     if (queue_info->drop_all()) return comm::RetCode::RET_OK;
-
-    comm::proto::AddResponse resp;
 
     BeforeAdd(req);
 

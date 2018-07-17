@@ -29,7 +29,7 @@ class SimpleConsumer : public consumer::Consumer {
 
     virtual comm::RetCode Get(const comm::proto::GetRequest &req,
                               comm::proto::GetResponse &resp) override;
-    virtual comm::RetCode Add(const comm::proto::AddRequest &req,
+    virtual comm::RetCode Add(comm::proto::AddRequest &req,
                               comm::proto::AddResponse &resp) override;
 
     virtual comm::RetCode UncompressBuffer(const std::string &buffer,

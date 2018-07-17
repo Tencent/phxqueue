@@ -86,7 +86,7 @@ int main(int argc, char ** argv) {
     opt.proc_pid_path = config.GetProto().consumer().proc_pid_path();
     opt.lock_path_base = config.GetProto().consumer().lock_path_base();
     opt.use_store_master_client_on_get = 1;
-    opt.use_store_master_client_on_add = 1;
+    opt.use_store_master_client_on_add = 0;
     opt.shm_key_base = config.GetProto().consumer().shm_key_base();
 
 
