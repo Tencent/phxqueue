@@ -1,13 +1,10 @@
 include ../../phxrpc.mk
 
-TEST_TARGETS = test_mqtt_msg_handler test_mqtt_client
+TEST_TARGETS = test_mqtt_msg_handler
 
 all: $(TEST_TARGETS)
 
 test_mqtt_msg_handler: test_mqtt_msg_handler.o
-	$(LINKER) $^ -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS) -o $@
-
-test_mqtt_client: test_mqtt_client.o
 	$(LINKER) $^ -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS) -o $@
 
 clean:

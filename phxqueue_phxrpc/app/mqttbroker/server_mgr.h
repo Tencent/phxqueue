@@ -41,6 +41,7 @@ class ServerMgr {
                        phxrpc::UThreadEpollScheduler *const uthread_scheduler,
                        const std::string &ack_key, void *&ack_value);
     int Ack(const std::string &ack_key, void *const ack_value);
+    void DestroySession(const uint64_t session_id);
 
   private:
     phxrpc::HshaServer *hsha_server_{nullptr};

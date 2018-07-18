@@ -27,7 +27,7 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/msg.h"
 
 #include "../mqttbroker.pb.h"
-#include "mqtt_utils.h"
+#include "mqtt_protocol.h"
 
 
 namespace phxqueue_phxrpc {
@@ -68,9 +68,9 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
     int SendRemaining(std::ostringstream &out_stream) const;
     int RecvRemaining(std::istringstream &in_stream);
 
-    ControlPacketType control_packet_type() const { return control_packet_type_; }
+    MqttProtocol::ControlPacketType control_packet_type() const { return control_packet_type_; }
 
-    void set_control_packet_type(const ControlPacketType control_packet_type) {
+    void set_control_packet_type(const MqttProtocol::ControlPacketType control_packet_type) {
         control_packet_type_ = control_packet_type;
     }
 
@@ -81,7 +81,7 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
     }
 
   private:
-    ControlPacketType control_packet_type_{ControlPacketType::FAKE_NONE};
+    MqttProtocol::ControlPacketType control_packet_type_{MqttProtocol::ControlPacketType::FAKE_NONE};
     int remaining_length_{0};
     google::protobuf::Message &base_pb_;
 };
@@ -91,6 +91,9 @@ class MqttRequest : public virtual MqttMessage, public phxrpc::BaseRequest {
   public:
     MqttRequest(google::protobuf::Message &base_pb);
     virtual ~MqttRequest() = default;
+
+    virtual bool keep_alive() const override { return true; };
+    virtual void set_keep_alive(const bool) override {};
 };
 
 
@@ -99,10 +102,13 @@ class MqttResponse : public virtual MqttMessage, public phxrpc::BaseResponse {
     MqttResponse(google::protobuf::Message &base_pb);
     virtual ~MqttResponse() = default;
 
-    virtual void SetPhxRpcResult(const int result) override {}
-    virtual void DispatchErr() override {}
 
-    virtual int ModifyResp(const bool keep_alive, const std::string &version) override;
+    virtual void SetFake(FakeReason reason) override;
+
+    virtual int Modify(const bool keep_alive, const std::string &version) override;
+
+    virtual int result() override { return 0; }
+    virtual void set_result(const int) override {}
 };
 
 
@@ -136,7 +142,6 @@ class MqttConnect final : public MqttRequest {
     virtual ~MqttConnect() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -181,7 +186,6 @@ class MqttPublish final : public MqttRequest, public MqttResponse {
     virtual ~MqttPublish() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual uint8_t EncodeFixedHeader() const override;
 
@@ -208,7 +212,6 @@ class MqttPuback final : public MqttRequest, public MqttResponse {
     virtual ~MqttPuback() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -232,7 +235,6 @@ class MqttPubrec final : public MqttRequest, public MqttResponse {
     virtual ~MqttPubrec() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -251,7 +253,6 @@ class MqttPubrel final : public MqttRequest, public MqttResponse {
     virtual ~MqttPubrel() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -270,7 +271,6 @@ class MqttPubcomp final : public MqttRequest, public MqttResponse {
     virtual ~MqttPubcomp() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -289,7 +289,6 @@ class MqttSubscribe final : public MqttRequest {
     virtual ~MqttSubscribe() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -326,7 +325,6 @@ class MqttUnsubscribe final : public MqttRequest {
     virtual ~MqttUnsubscribe() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual int RecvVariableHeader(std::istringstream &in_stream) override;
@@ -368,7 +366,6 @@ class MqttPingreq final : public MqttRequest {
     virtual ~MqttPingreq() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
         return 0;
@@ -423,7 +420,6 @@ class MqttDisconnect final : public MqttRequest {
     virtual ~MqttDisconnect() = default;
 
     virtual phxrpc::BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override { return 1; };
 
     virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
         return 0;

@@ -34,8 +34,8 @@ namespace mqttbroker {
 using namespace std;
 
 
-MqttMessageHandlerFactory::MqttMessageHandlerFactory() {
-    AddProtocol(unique_ptr<phxrpc::BaseMessageHandler>(new MqttMessageHandler));
+unique_ptr<phxrpc::BaseMessageHandler> MqttMessageHandlerFactory::Create() {
+    return move(unique_ptr<phxrpc::BaseMessageHandler>(new MqttMessageHandler));
 }
 
 

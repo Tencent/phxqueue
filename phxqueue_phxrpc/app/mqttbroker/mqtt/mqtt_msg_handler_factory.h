@@ -31,8 +31,10 @@ namespace mqttbroker {
 
 class MqttMessageHandlerFactory : virtual public phxrpc::BaseMessageHandlerFactory {
   public:
-    MqttMessageHandlerFactory();
+    MqttMessageHandlerFactory() = default;
     virtual ~MqttMessageHandlerFactory() override = default;
+
+    virtual std::unique_ptr<phxrpc::BaseMessageHandler> Create() override;
 };
 
 

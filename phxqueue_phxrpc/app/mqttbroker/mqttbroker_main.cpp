@@ -25,6 +25,7 @@ See the AUTHORS file for names of contributors.
 #include <unistd.h>
 
 #include "phxrpc/file.h"
+#include "phxrpc/http.h"
 #include "phxrpc/msg.h"
 #include "phxrpc/rpc.h"
 
@@ -68,19 +69,19 @@ static int MakeArgs(ServiceArgs_t &args, MqttBrokerServerConfig &config, ServerM
 }
 
 
-void Dispatch(const phxrpc::BaseRequest *request,
-              phxrpc::BaseResponse *response,
+void Dispatch(const phxrpc::BaseRequest *req,
+              phxrpc::BaseResponse *resp,
               phxrpc::DispatcherArgs_t *args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     MqttBrokerServiceImpl service(*service_args, args->server_worker_uthread_scheduler,
-            (phxrpc::DataFlowArgs *)(args->data_flow_args));
+            *(uint64_t *)args->data_flow_args);
     MqttBrokerDispatcher dispatcher(service, args);
 
     phxrpc::BaseDispatcher<MqttBrokerDispatcher> base_dispatcher(
             dispatcher, MqttBrokerDispatcher::GetURIFuncMap());
-    if (!base_dispatcher.Dispatch(request, response)) {
-        response->DispatchErr();
+    if (!base_dispatcher.Dispatch(req, resp)) {
+        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
     }
 }
 

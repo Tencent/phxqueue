@@ -23,7 +23,7 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/msg.h"
 
-#include "mqtt_utils.h"
+#include "mqtt_protocol.h"
 
 
 namespace phxrpc {
@@ -49,26 +49,29 @@ class MqttMessageHandler : public phxrpc::BaseMessageHandler {
     MqttMessageHandler() = default;
     virtual ~MqttMessageHandler() override = default;
 
-    // accept
-    virtual bool Accept(phxrpc::BaseTcpStream &in_stream) override;
+    virtual int RecvRequest(phxrpc::BaseTcpStream &socket,
+                            phxrpc::BaseRequest *&req) override;
+    virtual int RecvResponse(phxrpc::BaseTcpStream &socket,
+                             phxrpc::BaseResponse *&resp) override;
 
-    // gen
-    int GenConnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenPublish(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenPuback(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenSubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenUnsubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenPingreq(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-    int GenDisconnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
-
-    // server receive
-    virtual int ServerRecv(phxrpc::BaseTcpStream &socket,
-                           phxrpc::BaseRequest *&req) override;
-
-    // client receive
-    int RecvMessage(phxrpc::BaseTcpStream &socket, MqttMessage *const msg);
-
+    virtual int GenRequest(phxrpc::BaseRequest *&req) override;
     virtual int GenResponse(phxrpc::BaseResponse *&resp) override;
+
+    virtual bool keep_alive() const override;
+
+    int GenConnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenConnack(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenPublish(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPublish(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenPuback(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPuback(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenSubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenSuback(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenUnsubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenUnsuback(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenPingreq(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPingresp(const std::string &remaining_buffer, phxrpc::BaseResponse *&resp);
+    int GenDisconnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
 
   private:
     static int RecvRemainingLength(phxrpc::BaseTcpStream &in_stream,
@@ -81,7 +84,7 @@ class MqttMessageHandler : public phxrpc::BaseMessageHandler {
 
     void DecodeFixedHeader(const uint8_t fixed_header_byte);
 
-    ControlPacketType control_packet_type_{ControlPacketType::FAKE_NONE};
+    MqttProtocol::ControlPacketType control_packet_type_{MqttProtocol::ControlPacketType::FAKE_NONE};
     uint8_t flags_{0x00};
 };
 

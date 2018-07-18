@@ -80,6 +80,7 @@ class EventLoopServerIO final {
     phxrpc::UThreadSocket_t *ActiveSocketFunc();
     void UThreadIFunc(const uint64_t session_id);
     void UThreadOFunc(const uint64_t session_id);
+    void DestroySession(const uint64_t session_id);
 
   private:
     int idx_{-1};
@@ -98,26 +99,29 @@ class EventLoopServerIO final {
 
 class EventLoopServer;
 
-class EventLoopServerUnit : public phxrpc::BaseServerUnit {
+class EventLoopServerUnit {
   public:
     EventLoopServerUnit(const int idx,
-                 EventLoopServer *const event_loop_server,
-                 const int worker_thread_count,
-                 const int worker_uthread_count_per_thread,
-                 const int worker_uthread_stack_size,
-                 phxrpc::Dispatch_t dispatch, void *const args,
-                 phxrpc::BaseMessageHandlerFactory *const factory);
-    virtual ~EventLoopServerUnit() override;
+                        EventLoopServer *const event_loop_server,
+                        const int worker_thread_count,
+                        const int worker_uthread_count_per_thread,
+                        const int worker_uthread_stack_size,
+                        phxrpc::Dispatch_t dispatch, void *const args,
+                        phxrpc::BaseMessageHandlerFactory *const factory);
+    virtual ~EventLoopServerUnit();
 
     void RunFunc();
     bool AddAcceptedFd(const int accepted_fd);
-    void SendResponse(void *const args, phxrpc::BaseResponse *const resp);
+    void SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
+    void DestroySession(const uint64_t session_id);
 
   private:
     EventLoopServer *server_{nullptr};
     phxrpc::UThreadEpollScheduler scheduler_;
+    phxrpc::DataFlow data_flow_;
     phxrpc::WorkerPool worker_pool_;
     EventLoopServerIO server_io_;
+
     std::thread thread_;
 };
 
@@ -135,16 +139,17 @@ class EventLoopServerAcceptor final {
 };
 
 
-class EventLoopServer : public phxrpc::BaseServer {
+class EventLoopServer {
   public:
     EventLoopServer(const EventLoopServerConfig &config,
                     const phxrpc::Dispatch_t &dispatch, void *args,
                     phxrpc::BaseMessageHandlerFactory *const factory);
-    virtual ~EventLoopServer() override;
+    virtual ~EventLoopServer();
 
-    virtual void RunForever() override;
+    void RunForever();
 
     void SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
+    void DestroySession(const uint64_t session_id);
 
   private:
     friend class EventLoopServerAcceptor;
@@ -155,6 +160,7 @@ class EventLoopServer : public phxrpc::BaseServer {
     phxrpc::HshaServerStat server_stat_;
     phxrpc::HshaServerQos server_qos_;
     EventLoopServerAcceptor server_acceptor_;
+
     std::vector<EventLoopServerUnit *> server_unit_list_;
 };
 

@@ -19,7 +19,7 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include "mqtt_utils.h"
+#include "mqtt_protocol.h"
 
 
 namespace phxqueue_phxrpc {
@@ -30,7 +30,7 @@ namespace mqttbroker {
 using namespace std;
 
 
-int EncodeUint16(string &dest, const uint16_t src) {
+int MqttProtocol::EncodeUint16(string &dest, const uint16_t src) {
     dest.clear();
     dest.resize(2);
     dest[0] = static_cast<uint8_t>(src >> 8);
@@ -39,7 +39,7 @@ int EncodeUint16(string &dest, const uint16_t src) {
     return 0;
 }
 
-int EncodeUint16(char *const dest, const size_t dest_size, const uint16_t src) {
+int MqttProtocol::EncodeUint16(char *const dest, const size_t dest_size, const uint16_t src) {
     if (2 != dest_size)
         return -1;
 
@@ -49,7 +49,7 @@ int EncodeUint16(char *const dest, const size_t dest_size, const uint16_t src) {
     return 0;
 }
 
-int EncodeUnicode(string &dest, const string &src) {
+int MqttProtocol::EncodeUnicode(string &dest, const string &src) {
     dest.clear();
     dest.resize(2 + src.size());
     uint16_t src_size{static_cast<uint16_t>(src.size())};
@@ -62,7 +62,7 @@ int EncodeUnicode(string &dest, const string &src) {
     return 0;
 }
 
-int EncodeUnicode(char *const dest, const size_t dest_size, const string &src) {
+int MqttProtocol::EncodeUnicode(char *const dest, const size_t dest_size, const string &src) {
     if (2 + src.size() != dest_size)
         return -1;
 
@@ -76,26 +76,26 @@ int EncodeUnicode(char *const dest, const size_t dest_size, const string &src) {
     return 0;
 }
 
-int SendChar(ostringstream &out_stream, const char &content) {
+int MqttProtocol::SendChar(ostringstream &out_stream, const char &content) {
     out_stream.put(content);
 
     return 0;
 }
 
-int RecvChar(istringstream &in_stream, char &content) {
+int MqttProtocol::RecvChar(istringstream &in_stream, char &content) {
     in_stream.get(content);
 
     return 0;
 }
 
-int SendUint16(ostringstream &out_stream, const uint16_t content) {
+int MqttProtocol::SendUint16(ostringstream &out_stream, const uint16_t content) {
     out_stream.put(static_cast<char>(content >> 8));
     out_stream.put(static_cast<char>(content));
 
     return 0;
 }
 
-int RecvUint16(istringstream &in_stream, uint16_t &content) {
+int MqttProtocol::RecvUint16(istringstream &in_stream, uint16_t &content) {
     char temp{'\0'};
     in_stream.get(temp);
     content = (static_cast<uint8_t>(temp) << 8);
@@ -106,21 +106,21 @@ int RecvUint16(istringstream &in_stream, uint16_t &content) {
     return 0;
 }
 
-int SendChars(ostringstream &out_stream, const char *const content,
+int MqttProtocol::SendChars(ostringstream &out_stream, const char *const content,
               const int content_length) {
     out_stream.write(content, content_length);
 
     return 0;
 }
 
-int RecvChars(istringstream &in_stream, char *const content,
+int MqttProtocol::RecvChars(istringstream &in_stream, char *const content,
               const int content_length) {
     in_stream.read(content, content_length);
 
     return 0;
 }
 
-int SendUnicode(ostringstream &out_stream, const string &content) {
+int MqttProtocol::SendUnicode(ostringstream &out_stream, const string &content) {
     uint16_t content_size{static_cast<uint16_t>(content.size())};
     int ret{SendUint16(out_stream, content_size)};
     if (0 != ret) {
@@ -134,7 +134,7 @@ int SendUnicode(ostringstream &out_stream, const string &content) {
     return ret;
 }
 
-int RecvUnicode(istringstream &in_stream, string &content) {
+int MqttProtocol::RecvUnicode(istringstream &in_stream, string &content) {
     uint16_t content_size{0};
     int ret{RecvUint16(in_stream, content_size)};
     if (0 != ret) {
@@ -150,26 +150,26 @@ int RecvUnicode(istringstream &in_stream, string &content) {
 }
 
 
-int SendChar(phxrpc::BaseTcpStream &out_stream, const char &content) {
+int MqttProtocol::SendChar(phxrpc::BaseTcpStream &out_stream, const char &content) {
     out_stream.put(content);
 
     return 0;
 }
 
-int RecvChar(phxrpc::BaseTcpStream &in_stream, char &content) {
+int MqttProtocol::RecvChar(phxrpc::BaseTcpStream &in_stream, char &content) {
     in_stream.get(content);
 
     return 0;
 }
 
-int SendUint16(phxrpc::BaseTcpStream &out_stream, const uint16_t content) {
+int MqttProtocol::SendUint16(phxrpc::BaseTcpStream &out_stream, const uint16_t content) {
     out_stream.put(static_cast<char>(content >> 8));
     out_stream.put(static_cast<char>(content));
 
     return 0;
 }
 
-int RecvUint16(phxrpc::BaseTcpStream &in_stream, uint16_t &content) {
+int MqttProtocol::RecvUint16(phxrpc::BaseTcpStream &in_stream, uint16_t &content) {
     char temp{'\0'};
     in_stream.get(temp);
     content = (static_cast<uint8_t>(temp) << 8);
@@ -180,21 +180,21 @@ int RecvUint16(phxrpc::BaseTcpStream &in_stream, uint16_t &content) {
     return 0;
 }
 
-int SendChars(phxrpc::BaseTcpStream &out_stream, const char *const content,
+int MqttProtocol::SendChars(phxrpc::BaseTcpStream &out_stream, const char *const content,
               const int content_length) {
     out_stream.write(content, content_length);
 
     return 0;
 }
 
-int RecvChars(phxrpc::BaseTcpStream &in_stream, char *const content,
+int MqttProtocol::RecvChars(phxrpc::BaseTcpStream &in_stream, char *const content,
               const int content_length) {
     in_stream.read(content, content_length);
 
     return 0;
 }
 
-int SendUnicode(phxrpc::BaseTcpStream &out_stream, const string &content) {
+int MqttProtocol::SendUnicode(phxrpc::BaseTcpStream &out_stream, const string &content) {
     uint16_t content_size{static_cast<uint16_t>(content.size())};
     int ret{SendUint16(out_stream, content_size)};
     if (0 != ret) {
@@ -208,7 +208,7 @@ int SendUnicode(phxrpc::BaseTcpStream &out_stream, const string &content) {
     return ret;
 }
 
-int RecvUnicode(phxrpc::BaseTcpStream &in_stream, string &content) {
+int MqttProtocol::RecvUnicode(phxrpc::BaseTcpStream &in_stream, string &content) {
     uint16_t content_size{0};
     int ret{RecvUint16(in_stream, content_size)};
     if (0 != ret) {

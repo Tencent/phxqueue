@@ -14,6 +14,7 @@
 namespace phxrpc {
 
 
+class BaseMessageHandlerFactory;
 class BaseTcpStream;
 class ClientMonitor;
 
@@ -23,10 +24,11 @@ class ClientMonitor;
 
 class SearchStub {
   public:
-    SearchStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor);
+    SearchStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+               phxrpc::BaseMessageHandlerFactory &msg_handler_factory);
     virtual ~SearchStub();
 
-    void SetKeepAlive(const bool keep_alive);
+    void set_keep_alive(const bool keep_alive);
 
     // http protocol
     int PHXEcho(const google::protobuf::StringValue &req,
@@ -59,6 +61,7 @@ class SearchStub {
   private:
     phxrpc::BaseTcpStream &socket_;
     phxrpc::ClientMonitor &client_monitor_;
+    phxrpc::BaseMessageHandlerFactory &msg_handler_factory_;
     bool keep_alive_;
 };
 

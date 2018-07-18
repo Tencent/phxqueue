@@ -29,3 +29,24 @@ EventLoopServerConfig::EventLoopServerConfig() {
 EventLoopServerConfig::~EventLoopServerConfig() {
 }
 
+int EventLoopServerConfig::keep_alive_timeout_ms() const {
+    return keep_alive_timeout_ms_;
+}
+
+void EventLoopServerConfig::set_keep_alive_timeout_ms(int keep_alive_timeout_ms) {
+    keep_alive_timeout_ms_ = keep_alive_timeout_ms;
+}
+
+bool EventLoopServerConfig::DoRead(phxrpc::Config &config) {
+    if (!HshaServerConfig::DoRead(config))
+        return false;
+
+    char server_timeout_section_name[128]{'\0'};
+    strncpy(server_timeout_section_name, section_name_prefix(), sizeof(server_timeout_section_name) - 1);
+    strncat(server_timeout_section_name, "ServerTimeout",
+            sizeof(server_timeout_section_name) - sizeof(section_name_prefix()) - 1);
+    config.ReadItem(server_timeout_section_name, "KeepAliveTimeoutMS", &keep_alive_timeout_ms_, 180000);
+
+    return true;
+}
+

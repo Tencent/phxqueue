@@ -26,18 +26,18 @@ MqttBrokerDispatcher::~MqttBrokerDispatcher() {
 
 const phxrpc::BaseDispatcher<MqttBrokerDispatcher>::URIFuncMap &MqttBrokerDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<MqttBrokerDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.mqttbroker/PHXEcho", &MqttBrokerDispatcher::PHXEcho},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttConnect", &MqttBrokerDispatcher::PhxMqttConnect},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPublish", &MqttBrokerDispatcher::PhxMqttPublish},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPuback", &MqttBrokerDispatcher::PhxMqttPuback},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPubrec", &MqttBrokerDispatcher::PhxMqttPubrec},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPubrel", &MqttBrokerDispatcher::PhxMqttPubrel},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPubcomp", &MqttBrokerDispatcher::PhxMqttPubcomp},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttSubscribe", &MqttBrokerDispatcher::PhxMqttSubscribe},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttUnsubscribe", &MqttBrokerDispatcher::PhxMqttUnsubscribe},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttPing", &MqttBrokerDispatcher::PhxMqttPing},
-        {"/phxqueue_phxrpc.mqttbroker/PhxMqttDisconnect", &MqttBrokerDispatcher::PhxMqttDisconnect},
-        {"/phxqueue_phxrpc.mqttbroker/PhxHttpPublish", &MqttBrokerDispatcher::PhxHttpPublish}};
+        {"/phxqueue_phxrpc/mqttbroker/PHXEcho", &MqttBrokerDispatcher::PHXEcho},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttConnect", &MqttBrokerDispatcher::PhxMqttConnect},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPublish", &MqttBrokerDispatcher::PhxMqttPublish},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPuback", &MqttBrokerDispatcher::PhxMqttPuback},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubrec", &MqttBrokerDispatcher::PhxMqttPubrec},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubrel", &MqttBrokerDispatcher::PhxMqttPubrel},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubcomp", &MqttBrokerDispatcher::PhxMqttPubcomp},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttSubscribe", &MqttBrokerDispatcher::PhxMqttSubscribe},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttUnsubscribe", &MqttBrokerDispatcher::PhxMqttUnsubscribe},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPing", &MqttBrokerDispatcher::PhxMqttPing},
+        {"/phxqueue_phxrpc/mqttbroker/PhxMqttDisconnect", &MqttBrokerDispatcher::PhxMqttDisconnect},
+        {"/phxqueue_phxrpc/mqttbroker/PhxHttpPublish", &MqttBrokerDispatcher::PhxHttpPublish}};
     return uri_func_map;
 }
 

@@ -11,17 +11,17 @@
 #include "phxrpc/rpc.h"
 #include "phxrpc/network.h"
 
-#include "../mqtt/mqtt_caller.h"
 
-
-SearchStub::SearchStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)
-        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {
+SearchStub::SearchStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                       phxrpc::BaseMessageHandlerFactory &msg_handler_factory)
+        : socket_(socket), client_monitor_(client_monitor),
+          msg_handler_factory_(msg_handler_factory) {
 }
 
 SearchStub::~SearchStub() {
 }
 
-void SearchStub::SetKeepAlive(const bool keep_alive) {
+void SearchStub::set_keep_alive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
@@ -29,17 +29,17 @@ void SearchStub::SetKeepAlive(const bool keep_alive) {
 
 int SearchStub::PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PHXEcho", -1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PHXEcho", -1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int SearchStub::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &req,
                                phxqueue_phxrpc::mqttbroker::HttpPubackPb *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxHttpPublish", 2000031);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxHttpPublish", 2000031);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
@@ -47,81 +47,81 @@ int SearchStub::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb 
 
 int SearchStub::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttConnectPb &req,
                                phxqueue_phxrpc::mqttbroker::MqttConnackPb *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttConnect", 2000011);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttConnectCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttConnect", 2000011);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &req,
                                google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPublish", 2000012);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPublishCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPublish", 2000012);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &req,
                               google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPuback", 2000013);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPubackCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPuback", 2000013);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPubrecPb &req,
                               google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrec", 2000014);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPubrecCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPubrec", 2000014);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPubrelPb &req,
                               google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubrel", 2000015);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPubrelCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPubrel", 2000015);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttPubcompPb &req,
                                google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPubcomp", 2000016);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPubcompCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPubcomp", 2000016);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &req,
                                  phxqueue_phxrpc::mqttbroker::MqttSubackPb *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttSubscribe", 2000017);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttSubscribeCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttSubscribe", 2000017);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &req,
                                    phxqueue_phxrpc::mqttbroker::MqttUnsubackPb *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttUnsubscribe", 2000018);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttUnsubscribeCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttUnsubscribe", 2000018);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &req,
                             phxqueue_phxrpc::mqttbroker::MqttPingrespPb *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttPing", 2000019);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttPingCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttPing", 2000019);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 
 int SearchStub::PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &req,
                                   google::protobuf::Empty *resp) {
-    phxqueue_phxrpc::mqttbroker::MqttCaller caller(socket_, client_monitor_);
-    caller.set_uri("/phxqueue_phxrpc.mqttbroker/PhxMqttDisconnect", 2000020);
-    caller.SetKeepAlive(keep_alive_);
-    return caller.PhxMqttDisconnectCall(req, resp);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/PhxMqttDisconnect", 2000020);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call(req, resp);
 }
 

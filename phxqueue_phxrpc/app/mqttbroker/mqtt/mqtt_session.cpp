@@ -40,6 +40,9 @@ bool MqttSession::IsExpired() {
     return expire_time_ms_ <= phxrpc::Timer::GetSteadyClockMS();
 }
 
+uint64_t MqttSession::expire_time_ms() const {
+    return expire_time_ms_;
+}
 
 MqttSessionMgr::MqttSessionMgr() {
 }

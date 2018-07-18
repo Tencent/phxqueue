@@ -98,6 +98,7 @@ build_dir:
 	mkdir -p log/scheduler.0
 	mkdir -p log/scheduler.1
 	mkdir -p log/scheduler.2
+	mkdir -p log/mqttbroker.0
 
 
 clean:

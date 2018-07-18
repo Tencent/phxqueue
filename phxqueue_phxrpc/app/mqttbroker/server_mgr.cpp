@@ -102,3 +102,7 @@ int ServerMgr::Ack(const string &ack_key, void *const ack_value) {
     return ret;
 }
 
+void ServerMgr::DestroySession(const uint64_t session_id) {
+    event_loop_server_->DestroySession(session_id);
+}
+

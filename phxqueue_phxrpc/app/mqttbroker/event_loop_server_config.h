@@ -28,5 +28,13 @@ class EventLoopServerConfig : public phxrpc::HshaServerConfig {
   public:
     EventLoopServerConfig();
     virtual ~EventLoopServerConfig();
+
+    virtual bool DoRead(phxrpc::Config &config) override;
+
+    int keep_alive_timeout_ms() const;
+    void set_keep_alive_timeout_ms(int keep_alive_timeout_ms);
+
+  private:
+    int keep_alive_timeout_ms_{180000};
 };
 

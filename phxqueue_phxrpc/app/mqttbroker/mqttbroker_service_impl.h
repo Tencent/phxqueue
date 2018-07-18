@@ -31,7 +31,7 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
   public:
     MqttBrokerServiceImpl(ServiceArgs_t &app_args,
             phxrpc::UThreadEpollScheduler *worker_uthread_scheduler,
-            phxrpc::DataFlowArgs *data_flow_args);
+            const uint64_t session_id);
     virtual ~MqttBrokerServiceImpl() override;
 
     virtual int PHXEcho(const google::protobuf::StringValue &req,
@@ -111,6 +111,6 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
 
     ServiceArgs_t &args_;
     phxrpc::UThreadEpollScheduler *worker_uthread_scheduler_{nullptr};
-    phxrpc::DataFlowArgs *data_flow_args_{nullptr};
+    uint64_t session_id_{0uLL};
 };
 

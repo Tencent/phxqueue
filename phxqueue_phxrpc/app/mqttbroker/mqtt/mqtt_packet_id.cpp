@@ -39,7 +39,7 @@ bool MqttPacketIdMgr::AllocPacketId(const std::string &pub_client_id, const uint
     lock_guard<mutex> lock(mutex_);
     auto &&sub_packet_ids(sub_client_id2sub_packet_ids_map_[sub_client_id]);
 
-    int i{0};
+    size_t i{0u};
     while (true) {
         if (sub_packet_ids.size() > i) {
             ++i;
