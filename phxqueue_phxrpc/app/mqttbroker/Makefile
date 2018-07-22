@@ -15,7 +15,6 @@ SVR_OBJS = mqttbroker.pb.o \
 		event_loop_server_config.o \
 		event_loop_server.o \
 		server_mgr.o \
-		mqttbroker_service_impl.o \
 		phxrpc_mqttbroker_service.o \
 		phxrpc_mqttbroker_dispatcher.o \
 		mqttbroker_server_config.o \
@@ -23,7 +22,11 @@ SVR_OBJS = mqttbroker.pb.o \
 
 all: mqttbroker_main
 
-mqttbroker_main: $(SVR_OBJS) $(LIB_MQTT_OBJS)
+mqttbroker_main: mqttbroker_service_impl.o $(SVR_OBJS) $(LIB_MQTT_OBJS)
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ -lphxqueue_phxrpc_producer -lstore_client -L ../lock/ -llock_client -lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
+	-lphxqueue_producer -lphxqueue_store -lphxqueue_config -lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
+
+sample_mqttbroker_main: sample/mqttbroker_service_impl.o $(SVR_OBJS) $(LIB_MQTT_OBJS)
 	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ -lphxqueue_phxrpc_producer -lstore_client -L ../lock/ -llock_client -lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
 	-lphxqueue_producer -lphxqueue_store -lphxqueue_config -lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
 
