@@ -20,6 +20,7 @@ SVR_OBJS = store.pb.o \
 
 CLI_OBJS = store.pb.o \
 		store_client.o \
+		store_client_uthread.o \
 		phxrpc_store_stub.o
 
 TARGETS = libstore_client.a store_main store_tool_main
@@ -61,6 +62,8 @@ phxrpc_store_stub.cpp: phxrpc_store_stub.h
 phxrpc_store_stub.o: phxrpc_store_stub.h
 store_client.cpp: phxrpc_store_stub.h
 store_client.o: phxrpc_store_stub.h
+store_client_uthread.cpp: phxrpc_store_stub.h
+store_client_uthread.o: phxrpc_store_stub.h
 
 ########## service ##########
 
