@@ -26,6 +26,11 @@ See the AUTHORS file for names of contributors.
 #include "event_loop_server_config.h"
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 class Session final {
   public:
     static int GetServerUnitIdx(const uint64_t session_id);
@@ -70,8 +75,7 @@ class EventLoopServerIO final {
     EventLoopServerIO(const int idx, phxrpc::UThreadEpollScheduler *const scheduler,
                const EventLoopServerConfig *config, phxrpc::DataFlow *data_flow,
                phxrpc::HshaServerStat *server_stat, phxrpc::HshaServerQos *server_qos,
-               phxrpc::WorkerPool *worker_pool,
-               phxrpc::BaseMessageHandlerFactory *const factory);
+               phxrpc::WorkerPool *worker_pool);
     ~EventLoopServerIO();
 
     void RunForever();
@@ -90,7 +94,6 @@ class EventLoopServerIO final {
     phxrpc::HshaServerStat *server_stat_{nullptr};
     phxrpc::HshaServerQos *server_qos_{nullptr};
     phxrpc::WorkerPool *worker_pool_{nullptr};
-    phxrpc::BaseMessageHandlerFactory *factory_{nullptr};
     SessionMgr session_mgr_;
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
@@ -106,13 +109,12 @@ class EventLoopServerUnit {
                         const int worker_thread_count,
                         const int worker_uthread_count_per_thread,
                         const int worker_uthread_stack_size,
-                        phxrpc::Dispatch_t dispatch, void *const args,
-                        phxrpc::BaseMessageHandlerFactory *const factory);
+                        phxrpc::Dispatch_t dispatch, void *const args);
     virtual ~EventLoopServerUnit();
 
     void RunFunc();
     bool AddAcceptedFd(const int accepted_fd);
-    void SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
+    int SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
     void DestroySession(const uint64_t session_id);
 
   private:
@@ -142,13 +144,12 @@ class EventLoopServerAcceptor final {
 class EventLoopServer {
   public:
     EventLoopServer(const EventLoopServerConfig &config,
-                    const phxrpc::Dispatch_t &dispatch, void *args,
-                    phxrpc::BaseMessageHandlerFactory *const factory);
+                    const phxrpc::Dispatch_t &dispatch, void *args);
     virtual ~EventLoopServer();
 
     void RunForever();
 
-    void SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
+    int SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp);
     void DestroySession(const uint64_t session_id);
 
   private:
@@ -163,4 +164,9 @@ class EventLoopServer {
 
     std::vector<EventLoopServerUnit *> server_unit_list_;
 };
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

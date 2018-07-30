@@ -16,13 +16,14 @@
 #include "mqtt/mqtt_packet_id.h"
 #include "mqttbroker_mgr.h"
 #include "mqttbroker_server_config.h"
+#include "server_mgr.h"
 
 
 using namespace phxqueue_phxrpc::mqttbroker;
 using namespace std;
 
 
-constexpr char *KEY_BROKER_TOPIC2CLIENT_PREFIX{"__broker__:topic2client:"};
+static const char *KEY_BROKER_TOPIC2CLIENT_PREFIX{"__broker__:topic2client:"};
 
 
 MqttBrokerServiceImpl::MqttBrokerServiceImpl(ServiceArgs_t &app_args,
@@ -75,8 +76,9 @@ int MqttBrokerServiceImpl::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::Htt
         void *data{nullptr};
         auto *mqtt_publish(new phxqueue_phxrpc::mqttbroker::MqttPublish);
         mqtt_publish->FromPb(mqtt_publish_pb);
-        args_.server_mgr->SendAndWaitAck(sub_mqtt_session->session_id, mqtt_publish,
-                                         worker_uthread_scheduler_, ack_key, data);
+        int ret{args_.server_mgr->SendAndWaitAck(sub_mqtt_session->session_id, mqtt_publish,
+                                                 worker_uthread_scheduler_, ack_key, data)};
+        // TODO: check ret
 
         phxqueue_phxrpc::mqttbroker::MqttPuback *puback{
                 (phxqueue_phxrpc::mqttbroker::MqttPuback *)data};
@@ -106,7 +108,8 @@ int MqttBrokerServiceImpl::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::Htt
     } else {
         auto *mqtt_publish(new phxqueue_phxrpc::mqttbroker::MqttPublish);
         mqtt_publish->FromPb(mqtt_publish_pb);
-        args_.server_mgr->Send(sub_mqtt_session->session_id, mqtt_publish);
+        int ret{args_.server_mgr->Send(sub_mqtt_session->session_id, mqtt_publish)};
+        // TODO: check ret
         QLInfo("sub_session_id %" PRIx64 " server_mgr.Send sub_client_id \"%s\" qos %u",
                sub_mqtt_session->session_id, req.sub_client_id().c_str(),
                req.mqtt_publish().qos());
@@ -127,7 +130,7 @@ int MqttBrokerServiceImpl::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::Mqt
             args_.mqtt_session_mgr->DestroyBySessionId(session_id_);
             args_.server_mgr->DestroySession(session_id_);
 
-            QLErr("%s err session_id %" PRIx64 " client_id \"%s\"", __func__,
+            QLErr("err session_id %" PRIx64 " client_id \"%s\"",
                   session_id_, req.client_identifier().c_str());
 
             return -1;
@@ -136,9 +139,8 @@ int MqttBrokerServiceImpl::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::Mqt
             args_.mqtt_session_mgr->DestroyBySessionId(old_mqtt_session->session_id);
             args_.server_mgr->DestroySession(old_mqtt_session->session_id);
 
-            QLInfo("%s disconnect session_id old %" PRIx64 " new %" PRIx64
-                   " client_id \"%s\"", __func__, old_mqtt_session->session_id,
-                   session_id_, req.client_identifier().c_str());
+            QLInfo("disconnect session_id old %" PRIx64 " new %" PRIx64 " client_id \"%s\"",
+                   old_mqtt_session->session_id, session_id_, req.client_identifier().c_str());
         }
     }
 
@@ -193,7 +195,7 @@ int MqttBrokerServiceImpl::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::Mqt
 int MqttBrokerServiceImpl::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &req,
                                           google::protobuf::Empty *resp) {
     // 1. check local session
-    MqttSession *mqtt_session{nullptr};
+    phxqueue_phxrpc::mqttbroker::MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d qos %u packet_id %d",
@@ -235,7 +237,8 @@ int MqttBrokerServiceImpl::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::Mqt
         puback_pb.set_packet_identifier(req.packet_identifier());
         auto *puback(new phxqueue_phxrpc::mqttbroker::MqttPuback);
         puback->FromPb(puback_pb);
-        args_.server_mgr->Send(session_id_, (phxrpc::BaseResponse *)puback);
+        int ret{args_.server_mgr->Send(session_id_, (phxrpc::BaseResponse *)puback)};
+        // TODO: check ret
     }
 
     // TODO: remove
@@ -255,7 +258,7 @@ int MqttBrokerServiceImpl::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::Mqt
 int MqttBrokerServiceImpl::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &req,
                                          google::protobuf::Empty *resp) {
     // 1. check local session
-    MqttSession *mqtt_session{nullptr};
+    phxqueue_phxrpc::mqttbroker::MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d packet_id %d",
@@ -311,7 +314,7 @@ int MqttBrokerServiceImpl::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::Mqt
 int MqttBrokerServiceImpl::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &req,
                                             phxqueue_phxrpc::mqttbroker::MqttSubackPb *resp) {
     // 1. check local session
-    MqttSession *mqtt_session{nullptr};
+    phxqueue_phxrpc::mqttbroker::MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
@@ -427,7 +430,7 @@ int MqttBrokerServiceImpl::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::M
 int MqttBrokerServiceImpl::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &req,
                                               phxqueue_phxrpc::mqttbroker::MqttUnsubackPb *resp) {
     // 1. check local session
-    MqttSession *mqtt_session{nullptr};
+    phxqueue_phxrpc::mqttbroker::MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
@@ -523,7 +526,7 @@ int MqttBrokerServiceImpl::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker:
 
 int MqttBrokerServiceImpl::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &req,
                                        phxqueue_phxrpc::mqttbroker::MqttPingrespPb *resp) {
-    MqttSession *mqtt_session{nullptr};
+    phxqueue_phxrpc::mqttbroker::MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
@@ -548,7 +551,8 @@ int MqttBrokerServiceImpl::PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::
     return 0;
 }
 
-phxqueue::comm::RetCode MqttBrokerServiceImpl::CheckSession(MqttSession *&mqtt_session) {
+phxqueue::comm::RetCode
+MqttBrokerServiceImpl::CheckSession(phxqueue_phxrpc::mqttbroker::MqttSession *&mqtt_session) {
     const auto tmp_mqtt_session(args_.mqtt_session_mgr->GetBySessionId(session_id_));
     if (!tmp_mqtt_session || tmp_mqtt_session->IsExpired()) {
         QLErr("session_id %" PRIx64 " session %p mqtt_session %p", session_id_, tmp_mqtt_session);

@@ -24,6 +24,11 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/rpc.h"
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 class EventLoopServer;
 
 class ServerMgr {
@@ -36,7 +41,7 @@ class ServerMgr {
     EventLoopServer *event_loop_server() const;
     void set_event_loop_server(EventLoopServer *const event_loop_server);
 
-    void Send(const uint64_t session_id, phxrpc::BaseResponse *const resp);
+    int Send(const uint64_t session_id, phxrpc::BaseResponse *const resp);
     int SendAndWaitAck(const uint64_t session_id, phxrpc::BaseResponse *const resp,
                        phxrpc::UThreadEpollScheduler *const uthread_scheduler,
                        const std::string &ack_key, void *&ack_value);
@@ -49,4 +54,9 @@ class ServerMgr {
     const phxrpc::HshaServerConfig *config_{nullptr};
     std::map<std::string, std::unique_ptr<phxrpc::UThreadNotifier>> notifier_map_;
 };
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

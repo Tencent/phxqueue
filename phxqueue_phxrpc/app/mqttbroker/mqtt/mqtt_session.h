@@ -27,6 +27,11 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 struct RetainMessage final {
     std::string topic_name;
     std::string content;
@@ -66,4 +71,9 @@ class MqttSessionMgr final {
 
     std::mutex mutex_;
 };
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

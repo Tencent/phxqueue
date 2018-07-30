@@ -28,6 +28,11 @@ See the AUTHORS file for names of contributors.
 #include <string>
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 class MqttPacketIdMgr final {
   public:
     MqttPacketIdMgr();
@@ -47,4 +52,9 @@ class MqttPacketIdMgr final {
 
     std::mutex mutex_;
 };
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

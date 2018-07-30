@@ -41,6 +41,7 @@ See the AUTHORS file for names of contributors.
 #include "mqttbroker_server_config.h"
 #include "mqttbroker_service_impl.h"
 #include "phxrpc_mqttbroker_dispatcher.h"
+#include "server_mgr.h"
 
 
 using namespace std;
@@ -49,8 +50,10 @@ using namespace std;
 static phxqueue::comm::LogFunc g_log_func = nullptr;
 
 
-static int MakeArgs(ServiceArgs_t &args, MqttBrokerServerConfig &config, ServerMgr &server_mgr,
-                    MqttSessionMgr &mqtt_session_mgr, MqttPacketIdMgr &mqtt_packet_id_mgr) {
+static int MakeArgs(ServiceArgs_t &args, const MqttBrokerServerConfig &config,
+                    phxqueue_phxrpc::mqttbroker::ServerMgr &server_mgr,
+                    phxqueue_phxrpc::mqttbroker::MqttSessionMgr &mqtt_session_mgr,
+                    phxqueue_phxrpc::mqttbroker::MqttPacketIdMgr &mqtt_packet_id_mgr) {
     args.config = &config;
     args.server_mgr = &server_mgr;
     args.mqtt_session_mgr = &mqtt_session_mgr;
@@ -61,7 +64,8 @@ static int MakeArgs(ServiceArgs_t &args, MqttBrokerServerConfig &config, ServerM
     string phxqueue_global_config_path(config.GetPhxQueueGlobalConfigPath());
     phxqueue_phxrpc::plugin::ConfigFactory::SetConfigFactoryCreateFunc(
             [phxqueue_global_config_path]()->unique_ptr<phxqueue::plugin::ConfigFactory> {
-                return unique_ptr<phxqueue::plugin::ConfigFactory>(new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path));
+                return unique_ptr<phxqueue::plugin::ConfigFactory>(
+                        new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path));
             }
     );
 
@@ -124,12 +128,19 @@ int main(int argc, char **argv) {
 
     if (log_level > 0) config.GetHshaServerConfig().SetLogLevel(log_level);
 
-    //phxqueue::plugin::LoggerSys::GetLogger(program_invocation_short_name, config.GetHshaServerConfig().GetLogLevel(), daemonize, g_log_func);  // syslog
-    phxqueue::plugin::LoggerGoogle::GetLogger(program_invocation_short_name, config.GetHshaServerConfig().GetLogDir(), config.GetHshaServerConfig().GetLogLevel(), g_log_func);  // glog
+    //phxqueue::plugin::LoggerSys::GetLogger(program_invocation_short_name,
+    //                                       config.GetHshaServerConfig().GetLogLevel(),
+    //                                       daemonize, g_log_func);  // syslog
+    phxqueue::plugin::LoggerGoogle::GetLogger(program_invocation_short_name,
+                                              config.GetHshaServerConfig().GetLogDir(),
+                                              config.GetHshaServerConfig().GetLogLevel(), g_log_func);  // glog
 
-    MqttSessionMgr mqtt_session_mgr;
-    MqttPacketIdMgr mqtt_packet_id_mgr;
-    ServerMgr server_mgr(&(config.GetHshaServerConfig()));
+    phxqueue_phxrpc::mqttbroker::MqttSessionMgr mqtt_session_mgr;
+    phxqueue_phxrpc::mqttbroker::MqttPacketIdMgr mqtt_packet_id_mgr;
+    phxqueue_phxrpc::mqttbroker::ServerMgr server_mgr(&(config.GetHshaServerConfig()));
+
+    phxqueue_phxrpc::mqttbroker::PublishMgr publish_mgr(&config, server_mgr, mqtt_session_mgr, mqtt_packet_id_mgr);
+
     ServiceArgs_t service_args;
     int ret{MakeArgs(service_args, config, server_mgr, mqtt_session_mgr, mqtt_packet_id_mgr)};
     if (0 != ret) {
@@ -138,19 +149,16 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    phxrpc::HttpMessageHandlerFactory http_msg_handler_factory;
-    phxrpc::HshaServer hsha_server(config.GetHshaServerConfig(), Dispatch, &service_args,
-                                   &http_msg_handler_factory);
-    phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_handler_factory;
-    EventLoopServer event_loop_server(config.GetEventLoopServerConfig(), Dispatch, &service_args,
-                                      &mqtt_msg_handler_factory);
+    phxrpc::HshaServer hsha_server(config.GetHshaServerConfig(), Dispatch, &service_args);
+    phxqueue_phxrpc::mqttbroker::EventLoopServer event_loop_server(
+            config.GetEventLoopServerConfig(), Dispatch, &service_args);
     server_mgr.set_hsha_server(&hsha_server);
     server_mgr.set_event_loop_server(&event_loop_server);
 
     thread hsha_thread([](phxrpc::HshaServer *const server) {
                 server->RunForever();
             }, &hsha_server);
-    thread event_loop_thread([](EventLoopServer *const server) {
+    thread event_loop_thread([](phxqueue_phxrpc::mqttbroker::EventLoopServer *const server) {
                 server->RunForever();
             }, &event_loop_server);
     event_loop_thread.join();

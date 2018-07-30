@@ -24,6 +24,11 @@ See the AUTHORS file for names of contributors.
 #include "phxqueue/comm.h"
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 using namespace std;
 
 
@@ -114,4 +119,9 @@ bool MqttPacketIdMgr::TestPacketId(const string &pub_client_id, const uint16_t p
 
     return sub_client_id2packet_ids_map_it->second.test(pub_keys_map_it->second);
 }
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

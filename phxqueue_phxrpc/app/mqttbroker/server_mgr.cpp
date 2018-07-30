@@ -24,6 +24,11 @@ See the AUTHORS file for names of contributors.
 #include "event_loop_server.h"
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 using namespace std;
 
 
@@ -48,8 +53,8 @@ void ServerMgr::set_event_loop_server(EventLoopServer *const event_loop_server) 
     event_loop_server_ = event_loop_server;
 }
 
-void ServerMgr::Send(const uint64_t session_id, phxrpc::BaseResponse *const resp) {
-    event_loop_server_->SendResponse(session_id, resp);
+int ServerMgr::Send(const uint64_t session_id, phxrpc::BaseResponse *const resp) {
+    return event_loop_server_->SendResponse(session_id, resp);
 }
 
 int ServerMgr::SendAndWaitAck(const uint64_t session_id, phxrpc::BaseResponse *const resp,
@@ -65,7 +70,13 @@ int ServerMgr::SendAndWaitAck(const uint64_t session_id, phxrpc::BaseResponse *c
         return ret;
     }
 
-    event_loop_server_->SendResponse(session_id, resp);
+    ret = event_loop_server_->SendResponse(session_id, resp);
+    if (0 != ret) {
+        phxrpc::log(LOG_ERR, "%s SendResponse err %d", __func__, ret);
+        notifier_map_.erase(ack_key);
+
+        return ret;
+    }
 
     // yield and wait
     void *data{nullptr};
@@ -105,4 +116,9 @@ int ServerMgr::Ack(const string &ack_key, void *const ack_value) {
 void ServerMgr::DestroySession(const uint64_t session_id) {
     event_loop_server_->DestroySession(session_id);
 }
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

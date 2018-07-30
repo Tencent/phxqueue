@@ -12,30 +12,35 @@
 
 #include "mqttbroker.pb.h"
 #include "phxrpc_mqttbroker_service.h"
-#include "server_mgr.h"
 
 
 class MqttBrokerServerConfig;
-class MqttPacketIdMgr;
-class MqttSession;
-class MqttSessionMgr;
+
 
 namespace phxqueue_phxrpc {
 
 namespace mqttbroker {
 
+
 class MqttBrokerMgr;
+class MqttPacketIdMgr;
+class MqttSession;
+class MqttSessionMgr;
+class ServerMgr;
+
 
 }  // namespace mqttbroker
 
 }  // namespace phxqueue_phxrpc
 
+
 typedef struct tagServiceArgs {
-    MqttBrokerServerConfig *config;
-    ServerMgr *server_mgr;
-    MqttSessionMgr *mqtt_session_mgr;
-    MqttPacketIdMgr *mqtt_packet_id_mgr;
+    const MqttBrokerServerConfig *config;
+    phxqueue_phxrpc::mqttbroker::ServerMgr *server_mgr;
+    phxqueue_phxrpc::mqttbroker::MqttSessionMgr *mqtt_session_mgr;
+    phxqueue_phxrpc::mqttbroker::MqttPacketIdMgr *mqtt_packet_id_mgr;
 } ServiceArgs_t;
+
 
 class MqttBrokerServiceImpl : public MqttBrokerService {
   public:
@@ -70,7 +75,7 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
                                   google::protobuf::Empty *resp) override;
 
   private:
-    phxqueue::comm::RetCode CheckSession(MqttSession *&mqtt_session);
+    phxqueue::comm::RetCode CheckSession(phxqueue_phxrpc::mqttbroker::MqttSession *&mqtt_session);
     phxqueue::comm::RetCode FinishSession();
 
     ServiceArgs_t &args_;

@@ -23,7 +23,12 @@ See the AUTHORS file for names of contributors.
 
 #include <cassert>
 
-#include "mqtt/mqtt_msg_handler.h"
+#include "mqtt/mqtt_msg_handler_factory.h"
+
+
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
 
 
 using namespace std;
@@ -106,11 +111,10 @@ atomic_uint32_t SessionMgr::s_seq{0};
 EventLoopServerIO::EventLoopServerIO(const int idx, phxrpc::UThreadEpollScheduler *const scheduler,
                        const EventLoopServerConfig *config, phxrpc::DataFlow *data_flow,
                        phxrpc::HshaServerStat *server_stat, phxrpc::HshaServerQos *server_qos,
-                       phxrpc::WorkerPool *worker_pool,
-                       phxrpc::BaseMessageHandlerFactory *const factory)
+                       phxrpc::WorkerPool *worker_pool)
         : idx_(idx), scheduler_(scheduler), config_(config), data_flow_(data_flow),
           server_stat_(server_stat), server_qos_(server_qos), worker_pool_(worker_pool),
-          factory_(factory), session_mgr_(idx, scheduler, config, server_stat) {
+          session_mgr_(idx, scheduler, config, server_stat) {
 }
 
 EventLoopServerIO::~EventLoopServerIO() {
@@ -198,7 +202,8 @@ void EventLoopServerIO::UThreadIFunc(const uint64_t session_id) {
         return;
     }
 
-    auto msg_handler(factory_->Create());
+    phxrpc::BaseMessageHandlerFactory::SetDefault(new MqttMessageHandlerFactory());
+    auto msg_handler(phxrpc::BaseMessageHandlerFactory::GetDefault()->Create());
     if (!msg_handler) {
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " msg_handler_factory.Create err, "
                     "client closed or no msg handler accept", __func__, session_id);
@@ -333,8 +338,7 @@ EventLoopServerUnit::EventLoopServerUnit(const int idx,
         const int worker_thread_count,
         const int worker_uthread_count_per_thread,
         const int worker_uthread_stack_size,
-        phxrpc::Dispatch_t dispatch, void *const args,
-        phxrpc::BaseMessageHandlerFactory *const factory)
+        phxrpc::Dispatch_t dispatch, void *const args)
         : server_(event_loop_server),
 #ifndef __APPLE__
           scheduler_(8 * 1024, 1000000, false),
@@ -347,7 +351,7 @@ EventLoopServerUnit::EventLoopServerUnit(const int idx,
                        &server_->server_stat_, dispatch, args),
           server_io_(idx, &scheduler_, server_->config_, &data_flow_,
                      &server_->server_stat_, &server_->server_qos_,
-                     &worker_pool_, factory),
+                     &worker_pool_),
           thread_(&EventLoopServerUnit::RunFunc, this) {
 }
 
@@ -363,9 +367,14 @@ bool EventLoopServerUnit::AddAcceptedFd(const int accepted_fd) {
     return server_io_.AddAcceptedFd(accepted_fd);
 }
 
-void EventLoopServerUnit::SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp) {
+int EventLoopServerUnit::SendResponse(const uint64_t session_id, phxrpc::BaseResponse *const resp) {
+    if (!data_flow_.CanPushResponse(server_->config_->GetMaxQueueLength())) {
+        return -1;
+    }
     data_flow_.PushResponse(new uint64_t(session_id), resp);
-    //server_io_.server_stat_.outqueue_push_responses_++;
+    server_->server_stat_.outqueue_push_responses_++;
+
+    return 0;
 }
 
 void EventLoopServerUnit::DestroySession(const uint64_t session_id) {
@@ -431,8 +440,7 @@ void EventLoopServerAcceptor::LoopAccept(const char *bind_ip, const int port) {
 
 
 EventLoopServer::EventLoopServer(const EventLoopServerConfig &config,
-                                 const phxrpc::Dispatch_t &dispatch, void *args,
-                                 phxrpc::BaseMessageHandlerFactory *const factory)
+                                 const phxrpc::Dispatch_t &dispatch, void *args)
         : config_(&config),
           server_monitor_(phxrpc::MonitorFactory::GetFactory()->
                           CreateServerMonitor(config.GetPackageName())),
@@ -450,12 +458,13 @@ EventLoopServer::EventLoopServer(const EventLoopServerConfig &config,
     size_t worker_thread_count_per_io{worker_thread_count / io_count};
     for (size_t i{0}; i < io_count; ++i) {
         if (i == io_count - 1) {
-            worker_thread_count_per_io = worker_thread_count - (worker_thread_count_per_io * (io_count - 1));
+            worker_thread_count_per_io = worker_thread_count -
+                    (worker_thread_count_per_io * (io_count - 1));
         }
         auto server_unit =
             new EventLoopServerUnit(i, this, (int)worker_thread_count_per_io,
                     config.GetWorkerUThreadCount(), worker_uthread_stack_size,
-                    dispatch, args, factory);
+                    dispatch, args);
         assert(server_unit != nullptr);
         server_unit_list_.push_back(server_unit);
     }
@@ -475,15 +484,20 @@ void EventLoopServer::RunForever() {
     server_acceptor_.LoopAccept(config_->GetBindIP(), config_->GetPort());
 }
 
-void EventLoopServer::SendResponse(const uint64_t session_id, phxrpc::BaseResponse *resp) {
+int EventLoopServer::SendResponse(const uint64_t session_id, phxrpc::BaseResponse *resp) {
     // push to server unit outqueue
     int server_unit_idx{Session::GetServerUnitIdx(session_id)};
     // forward req and do not delete here
-    server_unit_list_[server_unit_idx]->SendResponse(session_id, resp);
+    return server_unit_list_[server_unit_idx]->SendResponse(session_id, resp);
 }
 
 void EventLoopServer::DestroySession(const uint64_t session_id) {
     int server_unit_idx{Session::GetServerUnitIdx(session_id)};
     server_unit_list_[server_unit_idx]->DestroySession(session_id);
 }
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 

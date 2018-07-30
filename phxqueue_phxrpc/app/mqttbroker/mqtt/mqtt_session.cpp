@@ -24,6 +24,11 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/network.h"
 
 
+namespace phxqueue_phxrpc {
+
+namespace mqttbroker {
+
+
 using namespace std;
 
 
@@ -91,4 +96,9 @@ void MqttSessionMgr::DestroyBySessionId(const uint64_t session_id) {
         }
     }
 }
+
+
+}  // namespace mqttbroker
+
+}  // namespace phxqueue_phxrpc
 
