@@ -84,6 +84,8 @@ message GetRequest {
     optional uint64 prev_cursor_id = 11;
     optional uint64 next_cursor_id = 12;
 
+    optional bool random = 21;
+
     optional Addr master_addr = 100;
 }
 
