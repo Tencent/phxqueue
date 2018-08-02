@@ -137,13 +137,13 @@ comm::RetCode SimpleConsumer::AcquireLock(const comm::proto::AcquireLockRequest 
 }
 
 void SimpleConsumer::BeforeLock(const comm::proto::ConsumerContext &cc) {
-    QLInfo("BeforeLock cc sub_id %d store_id %d queue_id %d",
-           cc.sub_id(), cc.store_id(), cc.queue_id());
+    QLInfo("BeforeLock cc consumer_group_id %d store_id %d queue_id %d",
+           cc.consumer_group_id(), cc.store_id(), cc.queue_id());
 }
 
 void SimpleConsumer::AfterLock(const comm::proto::ConsumerContext &cc) {
-    QLInfo("AfterLock cc sub_id %d store_id %d queue_id %d",
-           cc.sub_id(), cc.store_id(), cc.queue_id());
+    QLInfo("AfterLock cc consumer_group_id %d store_id %d queue_id %d",
+           cc.consumer_group_id(), cc.store_id(), cc.queue_id());
 }
 
 

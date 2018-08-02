@@ -14,7 +14,7 @@ PhxQueue是微信开源的一款基于Paxos协议实现的高可用、高吞吐�
 
 * 出入队严格有序
 
-* 多订阅
+* 多消费组
 
 * 出队限速
 
@@ -189,7 +189,7 @@ tail -f log/consumer.2/consumer_main.INFO
 你会发现有类似这样的Consumer消费出队请求的日志：
 
 ```
-INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_cursor_id 9106 next_cursor_id 9109
+INFO: Dequeue ret 0 topic 1000 consumer_group_id 1 store_id 1 queue_id 44 size 1 prev_cursor_id 9106 next_cursor_id 9109
 ```
 
 ### 清理测试日志和数据

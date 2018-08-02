@@ -10,5 +10,5 @@ message ConsumerConfig {
 message Consumer {
     optional comm.proto.Addr addr = 2;
     optional int32 scale = 3;
-    repeated int32 sub_ids = 20;
+    repeated int32 consumer_group_ids = 20;
 }

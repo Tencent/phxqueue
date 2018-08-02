@@ -6,11 +6,11 @@ import "phxqueue/comm/proto/comm.proto";
 message SyncCtrlInfo {
     message QueueDetail {
         optional int32 queue_id = 1;
-        message SubDetail {
-            optional int32 sub_id = 1;
+        message ConsumerGroupDetail {
+            optional int32 consumer_group_id = 1;
             optional uint64 prev_cursor_id = 2;
         }
-        repeated SubDetail sub_details = 2;
+        repeated ConsumerGroupDetail consumer_group_details = 2;
     }
     repeated QueueDetail queue_details = 1;
 }

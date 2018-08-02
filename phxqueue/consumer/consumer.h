@@ -34,7 +34,7 @@ struct Queue_t {
     uint32_t magic;
 
     // 共享内存中缓存队列信息, 重启后不丢失
-    uint32_t sub_id;
+    uint32_t consumer_group_id;
     uint32_t pub_id;
     uint32_t store_id;
     uint32_t queue_id;
@@ -47,7 +47,7 @@ struct QueueBuf_t {
 #pragma pack()
 
 using AddrScales = std::vector<comm::proto::AddrScale>;
-using SubID2AddrScales = std::map<int, AddrScales>;
+using ConsumerGroupID2AddrScales = std::map<int, AddrScales>;
 
 class Consumer : public comm::MultiProc {
   public:
@@ -154,7 +154,7 @@ class Consumer : public comm::MultiProc {
                               const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
                               const std::vector<comm::HandleResult> &handle_results);
 
-    // In a consume process, there are multiple sub processes concurrently, each corresponding to a worker routine:
+    // In a consume process, there are multiple consumer_group processes concurrently, each corresponding to a worker routine:
     // 1. numbers of hanlde process, specified by ConsumerOption::nhandler, each handle items with same uin.
     // 2. numbers of batch handle process, specified by ConsumerOption::nbatch_handler, each handle all items from last pull.
     

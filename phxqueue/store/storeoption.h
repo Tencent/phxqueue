@@ -35,7 +35,7 @@ class StoreOption {
     int paxos_port{0};
 
     int ngroup{100};
-    int nsub{64};
+    int nconsumer_group{64};
     int nqueue{2000};
 
     int npaxos_iothread{3};

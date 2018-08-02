@@ -68,7 +68,7 @@ enum class RetCode {
     RET_ERR_RANGE_RANK = -10108,
     RET_ERR_RANGE_CNT = -10109,
     RET_ERR_RANGE_PUB = -10110,
-    RET_ERR_RANGE_SUB = -10111,
+    RET_ERR_RANGE_CONSUMER_GROUP = -10111,
     RET_ERR_RANGE_ADDR = -10112,
     RET_ERR_RANGE_SCHEDULER = -10113,  // scheduler_id 不合法
     RET_ERR_RANGE_LOCK = -10114,  // lock_id 不合法

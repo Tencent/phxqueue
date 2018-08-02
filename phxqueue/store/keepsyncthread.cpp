@@ -134,7 +134,7 @@ void KeepSyncThread::MakeCheckPoint() {
     const int topic_id = impl_->store->GetTopicID();
     const int ngroup = opt->ngroup;
     const int nqueue = opt->nqueue;
-    const int nsub = opt->nsub;
+    const int nconsumer_group = opt->nconsumer_group;
 
     shared_ptr<const config::TopicConfig> topic_config;
     if (comm::RetCode::RET_OK !=
@@ -193,16 +193,16 @@ void KeepSyncThread::MakeCheckPoint() {
         for (int queue_id{paxos_group_id}; queue_id < nqueue && !finish; queue_id += ngroup) {
             need_update_meta_queue = true;
             min_prev_cursor_id = -1;
-            for (int sub_id{1}; sub_id <= nsub; ++sub_id) {
+            for (int consumer_group_id{1}; consumer_group_id <= nconsumer_group; ++consumer_group_id) {
                 bool valid = false;
                 for (auto &&pub_id : pub_ids) {
-                    if (topic_config->IsValidQueue(queue_id, pub_id, sub_id)) {
+                    if (topic_config->IsValidQueue(queue_id, pub_id, consumer_group_id)) {
                         valid = true;
                         break;
                     }
                 }
                 if (valid) {
-                    if (comm::RetCode::RET_OK == (ret = sync->GetCursorID(sub_id, queue_id, prev_cursor_id))) {
+                    if (comm::RetCode::RET_OK == (ret = sync->GetCursorID(consumer_group_id, queue_id, prev_cursor_id))) {
                         if (min_prev_cursor_id == -1 || prev_cursor_id < min_prev_cursor_id) {
                             min_prev_cursor_id = prev_cursor_id;
                         }
@@ -297,7 +297,7 @@ void KeepSyncThread::SyncCursorID() {
 
     const int ngroup{opt->ngroup};
     const int nqueue{opt->nqueue};
-    const int nsub{opt->nsub};
+    const int nconsumer_group{opt->nconsumer_group};
 
     shared_ptr<const config::TopicConfig> topic_config;
     if (comm::RetCode::RET_OK !=
@@ -324,18 +324,18 @@ void KeepSyncThread::SyncCursorID() {
         for (int queue_id{paxos_group_id}; queue_id < nqueue; queue_id += ngroup) {
             proto::SyncCtrlInfo::QueueDetail queue_detail;
             queue_detail.set_queue_id(queue_id);
-            for (int sub_id{1}; sub_id <= nsub; ++sub_id) {
-                if (0 > as_integer(ret = sync->GetCursorID(sub_id, queue_id, prev_cursor_id))) {
-                    QLErr("sync->GetCursorID ret %d sub_id %d queue %d",
-                          as_integer(ret), sub_id, queue_id);
+            for (int consumer_group_id{1}; consumer_group_id <= nconsumer_group; ++consumer_group_id) {
+                if (0 > as_integer(ret = sync->GetCursorID(consumer_group_id, queue_id, prev_cursor_id))) {
+                    QLErr("sync->GetCursorID ret %d consumer_group_id %d queue %d",
+                          as_integer(ret), consumer_group_id, queue_id);
                 } else if (!as_integer(ret)) {
-                    proto::SyncCtrlInfo::QueueDetail::SubDetail *sub_detail =
-                            queue_detail.add_sub_details();
-                    sub_detail->set_sub_id(sub_id);
-                    sub_detail->set_prev_cursor_id(prev_cursor_id);
+                    proto::SyncCtrlInfo::QueueDetail::ConsumerGroupDetail *consumer_group_detail =
+                            queue_detail.add_consumer_group_details();
+                    consumer_group_detail->set_consumer_group_id(consumer_group_id);
+                    consumer_group_detail->set_prev_cursor_id(prev_cursor_id);
                 }
             }
-            if (queue_detail.sub_details_size()) {
+            if (queue_detail.consumer_group_details_size()) {
                 sync_ctrl_info.add_queue_details()->CopyFrom(queue_detail);
             }
         }
@@ -382,11 +382,11 @@ bool KeepSyncThread::QueueNeedReplay(const consumer::Queue_t &queue, const set<i
     for (int idx{0}; idx < replay_infos.size(); ++idx) {
         auto &&replay_info = replay_infos[idx];
         if (!replay_info) continue;
-        if (replay_info->sub_ids_size()) {
+        if (replay_info->consumer_group_ids_size()) {
             bool found = false;
-            for (int i{0}; i < replay_info->sub_ids_size(); ++i) {
-                auto sub_id = replay_info->sub_ids(i);
-                if (sub_id == queue.sub_id) {
+            for (int i{0}; i < replay_info->consumer_group_ids_size(); ++i) {
+                auto consumer_group_id = replay_info->consumer_group_ids(i);
+                if (consumer_group_id == queue.consumer_group_id) {
                     found = true;
                     break;
                 }
@@ -477,9 +477,9 @@ void KeepSyncThread::Replay() {
             min_instance_id = impl_->store->GetNode()->GetMinChosenInstanceID(paxos_group_id);
             now_instance_id = impl_->store->GetNode()->GetNowInstanceID(paxos_group_id);
 
-            QLInfo("need replay. queue_id %d store_id %d sub_id %d ( min_instance_id %"
+            QLInfo("need replay. queue_id %d store_id %d consumer_group_id %d ( min_instance_id %"
                    PRIu64 " <= now_instance_id %" PRIu64 " )",
-                   queue.queue_id, queue.store_id, queue.sub_id,
+                   queue.queue_id, queue.store_id, queue.consumer_group_id,
                    min_instance_id, now_instance_id);
 
             if (-1 == now_instance_id) continue;  // nothing to replay
@@ -548,27 +548,27 @@ void KeepSyncThread::Replay() {
             uint64_t ori_prev_cursor_id;
             if (comm::RetCode::RET_OK !=
                 (ret = impl_->store->GetSyncCtrl()->
-                 GetCursorID(queue.sub_id, queue.queue_id, ori_prev_cursor_id)) ||
+                 GetCursorID(queue.consumer_group_id, queue.queue_id, ori_prev_cursor_id)) ||
                 -1 == ori_prev_cursor_id) {
                 if (0 > as_integer(ret))
-                    QLErr("GetCursorID prev ret %d sub_id %d queue_id %d",
-                          as_integer(ret), queue.sub_id, queue.queue_id);
+                    QLErr("GetCursorID prev ret %d consumer_group_id %d queue_id %d",
+                          as_integer(ret), queue.consumer_group_id, queue.queue_id);
                 continue;
             }
-            QLInfo("do replay. queue_id %d store_id %d sub_id %d ( cursor_id %" PRIu64
+            QLInfo("do replay. queue_id %d store_id %d consumer_group_id %d ( cursor_id %" PRIu64
                    " -> %" PRIu64 " )", queue.queue_id, queue.store_id,
-                   queue.sub_id, ori_prev_cursor_id, replay_instance_id);
+                   queue.consumer_group_id, ori_prev_cursor_id, replay_instance_id);
             if (comm::RetCode::RET_OK !=
                 (ret = impl_->store->GetSyncCtrl()->
-                 UpdateCursorID(queue.sub_id, queue.queue_id, replay_instance_id))) {
-                QLErr("UpdateCursorID prev ret %d sub_id %d queue_id %d cursor_id %" PRIu64,
-                      as_integer(ret), queue.sub_id, queue.queue_id, replay_instance_id);
+                 UpdateCursorID(queue.consumer_group_id, queue.queue_id, replay_instance_id))) {
+                QLErr("UpdateCursorID prev ret %d consumer_group_id %d queue_id %d cursor_id %" PRIu64,
+                      as_integer(ret), queue.consumer_group_id, queue.queue_id, replay_instance_id);
             }
             if (comm::RetCode::RET_OK !=
                 (ret = impl_->store->GetSyncCtrl()->
-                 UpdateCursorID(queue.sub_id, queue.queue_id, replay_instance_id, false))) {
-                QLErr("UpdateCursorID next ret %d sub_id %d queue_id %d cursor_id %" PRIu64,
-                      as_integer(ret), queue.sub_id, queue.queue_id, replay_instance_id);
+                 UpdateCursorID(queue.consumer_group_id, queue.queue_id, replay_instance_id, false))) {
+                QLErr("UpdateCursorID next ret %d consumer_group_id %d queue_id %d cursor_id %" PRIu64,
+                      as_integer(ret), queue.consumer_group_id, queue.queue_id, replay_instance_id);
             }
         }
     }
@@ -594,8 +594,8 @@ void KeepSyncThread::ReportBacklog() {
         int immaster = impl_->store->GetNode()->IsIMMaster(paxos_group_id);
 
         if (as_integer(comm::RetCode::RET_OK) >
-            as_integer(ret = sync->GetCursorID(queue.sub_id, queue.queue_id, cursor_id))) {
-            QLErr("GetCursorID ret %d sub_id %d queue_id %d", ret, queue.sub_id, queue.queue_id);
+            as_integer(ret = sync->GetCursorID(queue.consumer_group_id, queue.queue_id, cursor_id))) {
+            QLErr("GetCursorID ret %d consumer_group_id %d queue_id %d", ret, queue.consumer_group_id, queue.queue_id);
             continue;
         }
 
@@ -606,12 +606,12 @@ void KeepSyncThread::ReportBacklog() {
             continue;
         }
 
-        QLInfo("BACKLOG: store_id %d queue_id %d sub_id %d backlog %d cursor_id %"
+        QLInfo("BACKLOG: store_id %d queue_id %d consumer_group_id %d backlog %d cursor_id %"
                PRIu64 " immaster %d",
-               queue.store_id, queue.queue_id, queue.sub_id, backlog, cursor_id, immaster);
+               queue.store_id, queue.queue_id, queue.consumer_group_id, backlog, cursor_id, immaster);
         if (immaster)
             comm::StoreBacklogBP::GetThreadInstance()->
-                    OnBackLogReport(topic_id, queue.sub_id, queue.queue_id, backlog);
+                    OnBackLogReport(topic_id, queue.consumer_group_id, queue.queue_id, backlog);
     }
 }
 
@@ -663,10 +663,10 @@ void KeepSyncThread::GetAllLocalQueue(vector<consumer::Queue_t> &queues) {
     }
 
     for (int queue_id{0}; queue_id < opt->nqueue; ++queue_id) {
-        for (int sub_id{1}; sub_id <= opt->nsub; ++sub_id) {
+        for (int consumer_group_id{1}; consumer_group_id <= opt->nconsumer_group; ++consumer_group_id) {
             bool is_valid = false;
             for (auto &&pub_id : pub_ids) {
-                if (topic_config->IsValidQueue(queue_id, pub_id, sub_id)) {
+                if (topic_config->IsValidQueue(queue_id, pub_id, consumer_group_id)) {
                     is_valid = true;
                     break;
                 }
@@ -675,7 +675,7 @@ void KeepSyncThread::GetAllLocalQueue(vector<consumer::Queue_t> &queues) {
 
             {
                 consumer::Queue_t queue;
-                queue.sub_id = sub_id;
+                queue.consumer_group_id = consumer_group_id;
                 queue.store_id = store_id;
                 queue.queue_id = queue_id;
 

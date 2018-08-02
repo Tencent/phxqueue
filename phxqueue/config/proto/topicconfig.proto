@@ -6,7 +6,7 @@ message TopicConfig {
     optional Topic topic = 1;
     repeated QueueInfo queue_infos = 3;
     repeated Pub pubs = 5;
-    repeated Sub subs = 6;
+    repeated ConsumerGroup consumer_groups = 6;
     repeated SkipInfo skip_infos = 7;
     repeated FreqInfo freq_infos = 8;
     repeated ReplayInfo replay_infos = 9;
@@ -50,7 +50,7 @@ message Topic {
 
     optional int32 consumer_lock_lease_time_s = 601 [default = 30]; // lease time of consumer handling a queue. (default value recommanded)
     optional int32 consumer_max_mem_size_mb_per_proc = 602 [default = 300]; // consumer process suicide when memory reach consumer_max_mem_size_mb_per_proc.
-    repeated int32 consumer_ignore_sub_ids = 603; // sub_id list that consumer do not handle.
+    repeated int32 consumer_ignore_consumer_group_ids = 603; // consumer_group_id list that consumer do not handle.
     optional int32 consumer_lock_interval_s = 604 [default = 20]; // interval time of consumer refresh lease. must be less than consumer_lock_lease_time_s. (default value recommanded)
     optional int32 consumer_max_loop_per_proc = 606 [default = 0]; // consumer process suicide when process count reach consumer_max_loop_per_proc.
 
@@ -133,29 +133,29 @@ message QueueInfo {
 message Pub {
     optional int32 pub_id = 1; // (required, unique)
     repeated int32 queue_info_ids = 2; // multi queue_info_id. enqueue to next queue_info after the number of retries of current queue_info's count specify. (required)
-    repeated int32 sub_ids = 3; // multi-subscription routing. The meaning here is that the request belonging to the pub will be subscribed multi copies. (required)
+    repeated int32 consumer_group_ids = 3; // multi-consumption routing. The meaning here is that the request belonging to the pub will be consumed multi copies. (required)
 }
 
-message Sub {
-    optional int32 sub_id = 1; // (required, unique)
+message ConsumerGroup {
+    optional int32 consumer_group_id = 1; // (required, unique)
 
     optional int32 use_dynamic_scale = 11 [default = 1]; // use loadbalance.
     optional int32 skip_lock = 12 [default = 0]; // consumer do not use lock to exclusive queue
 }
 
-// skip item config. the relation of conditions(uin/pub_id/sub_id/queue_info_id/handle_id) is &.
+// skip item config. the relation of conditions(uin/pub_id/consumer_group_id/queue_info_id/handle_id) is &.
 message SkipInfo {
     optional uint32 uin = 1 [default = 0];
     optional int32 pub_id = 2 [default = -1];
-    optional int32 sub_id = 3 [default = -1];
+    optional int32 consumer_group_id = 3 [default = -1];
     optional int32 queue_info_id = 4 [default = -1];
     optional int32 handle_id = 5 [default = -1];
 }
 
-// consumer process freq config. the relation of conditions(pub_id/sub_id/handle_id/queue_info_id) is &.
+// consumer process freq config. the relation of conditions(pub_id/consumer_group_id/handle_id/queue_info_id) is &.
 message FreqInfo {
     optional int32 pub_id = 1;
-    optional int32 sub_id = 2;
+    optional int32 consumer_group_id = 2;
     optional int32 handle_id = 3 [default = -1];
     optional int32 limit_per_min = 4;
     optional int32 queue_info_id = 5;
@@ -163,7 +163,7 @@ message FreqInfo {
 
 // replay dequeue from cursor_id.
 message ReplayInfo {
-    repeated int32 sub_ids = 3;
+    repeated int32 consumer_group_ids = 3;
     repeated int32 pub_ids = 4;
 
     optional uint64 cursor_id = 61 [default = 0xffffffffffffffff];

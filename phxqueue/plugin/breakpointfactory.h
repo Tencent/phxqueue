@@ -34,7 +34,7 @@ class StoreBacklogBP;
 class StoreSMBP;
 
 class ProducerBP;
-class ProducerSubBP;
+class ProducerConsumerGroupBP;
 
 class SchedulerBP;
 class SchedulerMgrBP;
@@ -85,7 +85,7 @@ class BreakPointFactory {
     virtual std::unique_ptr<comm::StoreSMBP> NewStoreSMBP();
 
     virtual std::unique_ptr<comm::ProducerBP> NewProducerBP();
-    virtual std::unique_ptr<comm::ProducerSubBP> NewProducerSubBP();
+    virtual std::unique_ptr<comm::ProducerConsumerGroupBP> NewProducerConsumerGroupBP();
 
     virtual std::unique_ptr<comm::SchedulerBP> NewSchedulerBP();
     virtual std::unique_ptr<comm::SchedulerMgrBP> NewSchedulerMgrBP();

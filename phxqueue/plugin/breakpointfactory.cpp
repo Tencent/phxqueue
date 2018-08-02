@@ -79,8 +79,8 @@ unique_ptr<comm::ProducerBP> BreakPointFactory::NewProducerBP() {
     return unique_ptr<comm::ProducerBP>(new comm::ProducerBP());
 }
 
-unique_ptr<comm::ProducerSubBP> BreakPointFactory::NewProducerSubBP() {
-    return unique_ptr<comm::ProducerSubBP>(new comm::ProducerSubBP());
+unique_ptr<comm::ProducerConsumerGroupBP> BreakPointFactory::NewProducerConsumerGroupBP() {
+    return unique_ptr<comm::ProducerConsumerGroupBP>(new comm::ProducerConsumerGroupBP());
 }
 
 

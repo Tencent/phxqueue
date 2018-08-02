@@ -12,7 +12,7 @@ namespace config {
 namespace utils {
 
 
-comm::RetCode GetSubIDsByConsumerAddr(const int topic_id, const comm::proto::Addr &addr, std::set<int> &sub_ids);
+comm::RetCode GetConsumerGroupIDsByConsumerAddr(const int topic_id, const comm::proto::Addr &addr, std::set<int> &consumer_group_ids);
 
 
 }  // namespace utils

@@ -58,7 +58,7 @@ int GetStoreIDAndQueueIDPairsByPubID(const int topic_id, const int pub_id, set<p
 
         set<int> queue_ids;
         if (comm::RetCode::RET_OK != (ret = topic_config->GetQueuesByQueueInfoID(queue_info_id, queue_ids))) {
-            NLErr("GetSubIDsByPubID ret %d pub_id %d", as_integer(ret), pub_id);
+            NLErr("GetConsumerGroupIDsByPubID ret %d pub_id %d", as_integer(ret), pub_id);
             continue;
         }
 

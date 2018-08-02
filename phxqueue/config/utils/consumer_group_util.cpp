@@ -17,8 +17,8 @@ namespace utils {
 using namespace std;
 
 
-comm::RetCode GetSubIDsByConsumerAddr(const int topic_id, const comm::proto::Addr &addr, std::set<int> &sub_ids) {
-    sub_ids.clear();
+comm::RetCode GetConsumerGroupIDsByConsumerAddr(const int topic_id, const comm::proto::Addr &addr, std::set<int> &consumer_group_ids) {
+    consumer_group_ids.clear();
 
     comm::RetCode ret;
 
@@ -40,28 +40,28 @@ comm::RetCode GetSubIDsByConsumerAddr(const int topic_id, const comm::proto::Add
         return ret;
     }
 
-    set<int> ignore_sub_ids;
-    for (int i{0}; i < topic_config->GetProto().topic().consumer_ignore_sub_ids_size(); ++i) {
-        ignore_sub_ids.insert(topic_config->GetProto().topic().consumer_ignore_sub_ids(i));
+    set<int> ignore_consumer_group_ids;
+    for (int i{0}; i < topic_config->GetProto().topic().consumer_ignore_consumer_group_ids_size(); ++i) {
+        ignore_consumer_group_ids.insert(topic_config->GetProto().topic().consumer_ignore_consumer_group_ids(i));
     }
 
-    if (consumer->sub_ids_size()) {
-        for (int i{0}; i < consumer->sub_ids_size(); ++i) {
-            auto sub_id = consumer->sub_ids(i);
-            if (topic_config->IsValidSubID(sub_id) && ignore_sub_ids.end() == ignore_sub_ids.find(sub_id)) {
-                sub_ids.insert(sub_id);
+    if (consumer->consumer_group_ids_size()) {
+        for (int i{0}; i < consumer->consumer_group_ids_size(); ++i) {
+            auto consumer_group_id = consumer->consumer_group_ids(i);
+            if (topic_config->IsValidConsumerGroupID(consumer_group_id) && ignore_consumer_group_ids.end() == ignore_consumer_group_ids.find(consumer_group_id)) {
+                consumer_group_ids.insert(consumer_group_id);
             }
         }
         return comm::RetCode::RET_OK;
     }
 
-    if (comm::RetCode::RET_OK != (ret = topic_config->GetAllSubID(sub_ids))) {
-        NLErr("GetAllSubID ret %d", comm::as_integer(ret));
+    if (comm::RetCode::RET_OK != (ret = topic_config->GetAllConsumerGroupID(consumer_group_ids))) {
+        NLErr("GetAllConsumerGroupID ret %d", comm::as_integer(ret));
         return ret;
     }
 
-    for (auto &&ignore_sub_id : ignore_sub_ids) {
-        sub_ids.erase(ignore_sub_id);
+    for (auto &&ignore_consumer_group_id : ignore_consumer_group_ids) {
+        consumer_group_ids.erase(ignore_consumer_group_id);
     }
 
     return comm::RetCode::RET_OK;

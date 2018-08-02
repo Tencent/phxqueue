@@ -43,7 +43,7 @@ void TestAdd(store::Store &store) {
     const uint64_t uin = 123;
     const string buffer = "123";
     const int buffer_type = 0;
-    const uint64_t sub_ids = 3;
+    const uint64_t consumer_group_ids = 3;
 
     comm::proto::AddRequest req;
     comm::proto::AddResponse resp;
@@ -58,7 +58,7 @@ void TestAdd(store::Store &store) {
     meta->set_uin(uin);
     item->set_buffer(buffer);
     item->set_buffer_type(buffer_type);
-    item->set_sub_ids(sub_ids);
+    item->set_consumer_group_ids(consumer_group_ids);
     item->set_pub_id(pub_id);
     item->set_atime(time(nullptr));
 
@@ -105,7 +105,7 @@ void StoreRun(const int vpid) {
     opt.port = stores[0]->addrs(vpid).port();
     opt.paxos_port = stores[0]->addrs(vpid).paxos_port();
     opt.ngroup = 1;
-    opt.nsub = 2;
+    opt.nconsumer_group = 2;
     opt.log_func = log_func;
 
     NLVerb("store %d opt done", vpid);

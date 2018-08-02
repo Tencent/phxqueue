@@ -18,7 +18,7 @@ Contact us: phxteam@tencent.com
 
 *	Strictly ordered dequeue
 
-*	Multiple subscribers
+*	Multiple consumer groups
 
 *	Dequeue speed limits
 
@@ -191,7 +191,7 @@ tail -f log/consumer.2/consumer_main.INFO
 This is an example of the output you can expect from the Consumer log:
 
 ```
-INFO: Dequeue ret 0 topic 1000 sub_id 1 store_id 1 queue_id 44 size 1 prev_cursor_id 9106 next_cursor_id 9109
+INFO: Dequeue ret 0 topic 1000 consumer_group_id 1 store_id 1 queue_id 44 size 1 prev_cursor_id 9106 next_cursor_id 9109
 ```
 
 ### Clearing data and logs created during testing

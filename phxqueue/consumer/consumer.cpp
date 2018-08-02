@@ -314,8 +314,8 @@ void Consumer::HandleRoutineFunc(const int idx) {
 
     if (SkipHandle(impl_->cc, *item)) {
         comm::ConsumerConsumeBP::GetThreadInstance()->OnSkipHandle(impl_->cc, *item);
-        QLInfo("Handle skip handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
-               item->meta().handle_id(), item->meta().pub_id(), item->pub_id(), (uint64_t)item->sub_ids(), (uint64_t)item->meta().hash(), (uint64_t)item->meta().uin());
+        QLInfo("Handle skip handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64,
+               item->meta().handle_id(), item->meta().pub_id(), item->pub_id(), (uint64_t)item->consumer_group_ids(), (uint64_t)item->meta().hash(), (uint64_t)item->meta().uin());
         handle_result = comm::HandleResult::RES_OK;
         return;
     }
@@ -499,16 +499,16 @@ void Consumer::ChildRun(const int vpid) {
 
         comm::ConsumerBP::GetThreadInstance()->OnLock(cc.topic_id());
 
-        int sub_id, store_id, queue_id;
-        if (comm::RetCode::RET_OK != (ret = impl_->lock.Lock(vpid, sub_id, store_id, queue_id))) {
+        int consumer_group_id, store_id, queue_id;
+        if (comm::RetCode::RET_OK != (ret = impl_->lock.Lock(vpid, consumer_group_id, store_id, queue_id))) {
             if (comm::as_integer(ret) < 0) QLErr("DoLock ret %d vpid %u", comm::as_integer(ret), vpid);
             sleep(2);
             continue;
         }
-        if (cc.sub_id() != sub_id ||
+        if (cc.consumer_group_id() != consumer_group_id ||
             cc.store_id() != store_id ||
             cc.queue_id() != queue_id) {
-            cc.set_sub_id(sub_id);
+            cc.set_consumer_group_id(consumer_group_id);
             cc.set_store_id(store_id);
             cc.set_queue_id(queue_id);
             cc.set_prev_cursor_id(-1);
@@ -517,7 +517,7 @@ void Consumer::ChildRun(const int vpid) {
 
         comm::ConsumerBP::GetThreadInstance()->OnLockSucc(cc);
 
-        QLInfo("QUEUEINFO: vpid %u sub_id %d store_id %d queue_id %d", vpid, cc.sub_id(), cc.store_id(), cc.queue_id());
+        QLInfo("QUEUEINFO: vpid %u consumer_group_id %d store_id %d queue_id %d", vpid, cc.consumer_group_id(), cc.store_id(), cc.queue_id());
 
         AfterLock(cc);
 
@@ -547,7 +547,7 @@ void Consumer::MakeGetRequest(const comm::proto::ConsumerContext &cc, const conf
         req.set_atime(now / 1000 - queue_info.delay());
         req.set_atime_ms(now % 1000);
     }
-    req.set_sub_id(cc.sub_id());
+    req.set_consumer_group_id(cc.consumer_group_id());
 
     req.set_prev_cursor_id(cc.prev_cursor_id());
     req.set_next_cursor_id(cc.next_cursor_id());
@@ -555,8 +555,8 @@ void Consumer::MakeGetRequest(const comm::proto::ConsumerContext &cc, const conf
 }
 
 void Consumer::UpdateConsumerContextByGetResponse(const comm::proto::GetResponse &resp, comm::proto::ConsumerContext &cc) {
-    QLVerb("cc: sub_id %d store_id %d queue_id %d prev_cursor_id (%" PRIu64 "->%" PRIu64 ") next_cursor_id (%" PRIu64 "->%" PRIu64,
-           cc.sub_id(), cc.store_id(), cc.queue_id(),
+    QLVerb("cc: consumer_group_id %d store_id %d queue_id %d prev_cursor_id (%" PRIu64 "->%" PRIu64 ") next_cursor_id (%" PRIu64 "->%" PRIu64,
+           cc.consumer_group_id(), cc.store_id(), cc.queue_id(),
            (uint64_t)cc.prev_cursor_id(), (uint64_t)resp.prev_cursor_id(),
            (uint64_t)cc.next_cursor_id(), (uint64_t)resp.next_cursor_id());
     cc.set_prev_cursor_id(resp.prev_cursor_id());
@@ -565,7 +565,7 @@ void Consumer::UpdateConsumerContextByGetResponse(const comm::proto::GetResponse
 
 comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
-    QLInfo("cc.sub_id %d cc.store_id %d cc.queue_id %d", cc.sub_id(), cc.store_id(), cc.queue_id());
+    QLInfo("cc.consumer_group_id %d cc.store_id %d cc.queue_id %d", cc.consumer_group_id(), cc.store_id(), cc.queue_id());
 
     comm::RetCode ret;
 
@@ -575,7 +575,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
         return ret;
     }
 
-    if (!topic_config->IsValidQueue(cc.queue_id(), -1, cc.sub_id())) {
+    if (!topic_config->IsValidQueue(cc.queue_id(), -1, cc.consumer_group_id())) {
         QLErr("IsValidQueue return false queue_id %d", cc.queue_id());
         return comm::RetCode::RET_ERR_RANGE_QUEUE;
     }
@@ -642,7 +642,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
         if (need_block) {
             static uint64_t last_block_log_time = 0;
             if (now > last_block_log_time + 100) {
-                QLInfo("vpid %d need_block. topic %d sub_id %d store_id %d queue_id %d", impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id());
+                QLInfo("vpid %d need_block. topic %d consumer_group_id %d store_id %d queue_id %d", impl_->vpid, impl_->topic_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id());
                 last_block_log_time = now;
             }
             if (freq_quota > 0) freq_quota = nrefill;
@@ -669,8 +669,8 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
                 req.set_limit(freq_quota >= 0 ? (int)freq_quota : 0);
             }
 
-            QLInfo("vpid %d need_freqlimit. topic %d sub_id %d store_id %d queue_id %d nrefill %d refill_interval_ms %d freq_quota %.2lf get_limit %u",
-                   impl_->vpid, impl_->topic_id, cc.sub_id(), cc.store_id(), cc.queue_id(),
+            QLInfo("vpid %d need_freqlimit. topic %d consumer_group_id %d store_id %d queue_id %d nrefill %d refill_interval_ms %d freq_quota %.2lf get_limit %u",
+                   impl_->vpid, impl_->topic_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(),
                    nrefill, refill_interval_ms, freq_quota, req.limit());
         } else {
             freq_quota = 0;
@@ -701,8 +701,8 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
             ret = Get(req, resp);
         }
 
-        QLInfo("Dequeue ret %d topic %d sub_id %d store_id %d queue_id %d size %u prev_cursor_id %" PRIu64 " next_cursor_id %" PRIu64,
-               comm::as_integer(ret), cc.topic_id(), cc.sub_id(), cc.store_id(), cc.queue_id(),
+        QLInfo("Dequeue ret %d topic %d consumer_group_id %d store_id %d queue_id %d size %u prev_cursor_id %" PRIu64 " next_cursor_id %" PRIu64,
+               comm::as_integer(ret), cc.topic_id(), cc.consumer_group_id(), cc.store_id(), cc.queue_id(),
                resp.items_size(), (uint64_t)resp.prev_cursor_id(), (uint64_t)resp.next_cursor_id());
 
         freq_quota -= resp.items_size();
@@ -746,7 +746,7 @@ comm::RetCode Consumer::Process(comm::proto::ConsumerContext &cc) {
 
             QLVerb("get item hash %" PRIu64 " count %d", (uint64_t)item->meta().hash(), item->count());
 
-            if (!topic_config->ShouldSkip(*item, cc.sub_id(), queue_info->queue_info_id())) {
+            if (!topic_config->ShouldSkip(*item, cc.consumer_group_id(), queue_info->queue_info_id())) {
                 items.emplace_back(make_shared<comm::proto::QItem>(), item);
             }
         }
@@ -817,7 +817,7 @@ Consumer::GetQueueByAddrScale(const vector<consumer::Queue_t> &queues,
     for (int i{0}; i < queues.size(); ++i) {
         auto &&queue = queues[i];
         size_t h = 0;
-        h = comm::utils::MurmurHash64(&queue.sub_id, sizeof(uint32_t), h);
+        h = comm::utils::MurmurHash64(&queue.consumer_group_id, sizeof(uint32_t), h);
         h = comm::utils::MurmurHash64(&queue.store_id, sizeof(uint32_t), h);
         h = comm::utils::MurmurHash64(&queue.queue_id, sizeof(uint32_t), h);
 
@@ -871,7 +871,7 @@ comm::RetCode Consumer::Consume(const comm::proto::ConsumerContext &cc,
 }
 
 bool Consumer::SkipHandle(const comm::proto::ConsumerContext &cc, const comm::proto::QItem &item) {
-    if (!(item.sub_ids() & (1ULL << (cc.sub_id() - 1)))) return true;
+    if (!(item.consumer_group_ids() & (1ULL << (cc.consumer_group_id() - 1)))) return true;
     return false;
 }
 
@@ -909,11 +909,11 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
 
     auto &&client_id = item.meta().client_id();
     if (client_id.empty()) {
-        QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
-               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.sub_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result);
+        QLVerb("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d",
+               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result);
     } else {
-        QLInfo("Handle handle_id %d ori_pub_id %d pub_id %d sub_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d client_id %s",
-               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.sub_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result,
+        QLInfo("Handle handle_id %d ori_pub_id %d pub_id %d consumer_group_ids %" PRIu64 " hash %" PRIu64 " uin %" PRIu64 " handle_result %d client_id %s",
+               item.meta().handle_id(), item.meta().pub_id(), item.pub_id(), (uint64_t)item.consumer_group_ids(), (uint64_t)item.meta().hash(), (uint64_t)item.meta().uin(), handle_result,
                client_id.c_str());
     }
 
@@ -1021,12 +1021,12 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
 
     vector<unique_ptr<phxqueue::comm::proto::AddRequest> > reqs;
 
-    uint64_t retry_sub_ids = (1ULL << (cc.sub_id() - 1));
+    uint64_t retry_consumer_group_ids = (1ULL << (cc.consumer_group_id() - 1));
     {
         ret = phxqueue::producer::Producer::MakeAddRequests(cc.topic_id(), retry_items, reqs,
-                                                                                        [&cc, retry_sub_ids](phxqueue::comm::proto::QItem &item)->void {
+                                                                                        [&cc, retry_consumer_group_ids](phxqueue::comm::proto::QItem &item)->void {
                                                                                             item.set_count(item.count() + 1);
-                                                                                            item.set_sub_ids(retry_sub_ids);
+                                                                                            item.set_consumer_group_ids(retry_consumer_group_ids);
 
                                                                                             auto now = comm::utils::Time::GetTimestampMS();
                                                                                             item.set_atime(now / 1000);
@@ -1054,11 +1054,11 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
                 ret = Add(*req, resp);
             }
             if (comm::RetCode::RET_OK != ret) {
-                QLErr("Retry ret %d topic_id %d retry_pub_id %d sub_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
-                      ret, cc.topic_id(), retry_pub_id, cc.sub_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
+                QLErr("Retry ret %d topic_id %d retry_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
+                      ret, cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
             } else {
-                QLInfo("INFO: Retry succ topic_id %d retry_pub_id %d sub_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
-                      cc.topic_id(), retry_pub_id, cc.sub_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
+                QLInfo("INFO: Retry succ topic_id %d retry_pub_id %d consumer_group_id %d store_id %d queue_id %d item_size %zu retry_item_size %d", 
+                      cc.topic_id(), retry_pub_id, cc.consumer_group_id(), cc.store_id(), cc.queue_id(), items.size(), req->items_size());
                 break;
             }
 

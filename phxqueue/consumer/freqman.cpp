@@ -231,15 +231,15 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
     unique_ptr<bool[]> updated(new bool[opt->nprocs]);
     memset(updated.get(), 0, sizeof(bool) * opt->nprocs);
 
-    map<tuple<int, int, int>, double> pub_sub_queue_info_id2max_handle_pct;
+    map<tuple<int, int, int>, double> pub_consumer_group_queue_info_id2max_handle_pct;
     for (auto &&freq_info : freq_infos) {
         auto pub_id = freq_info->pub_id();
-        auto sub_id = freq_info->sub_id();
+        auto consumer_group_id = freq_info->consumer_group_id();
         auto handle_id = freq_info->handle_id();
         auto limit_per_min = freq_info->limit_per_min();
         auto queue_info_id = freq_info->queue_info_id();
 
-        QLVerb("pub_id %d sub_id %d handle_id %d limit_per_min %d", pub_id, sub_id, handle_id, limit_per_min);
+        QLVerb("pub_id %d consumer_group_id %d handle_id %d limit_per_min %d", pub_id, consumer_group_id, handle_id, limit_per_min);
 
         if (!limit_per_min) continue;
 
@@ -261,15 +261,15 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
         }
 
         {
-            bool sub_id_found = false;
-            for (int i{0}; i < pub->sub_ids_size(); ++i) {
-                if (pub->sub_ids(i) == sub_id) {
-                    sub_id_found = true;
+            bool consumer_group_id_found = false;
+            for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
+                if (pub->consumer_group_ids(i) == consumer_group_id) {
+                    consumer_group_id_found = true;
                     break;
                 }
             }
-            QLVerb("sub_id_found %d", (int)sub_id_found);
-            if (!sub_id_found) continue;
+            QLVerb("consumer_group_id_found %d", (int)consumer_group_id_found);
+            if (!consumer_group_id_found) continue;
         }
 
         set<int> valid_store_ids;
@@ -306,7 +306,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
         for (int vpid{0}; vpid < opt->nprocs; ++vpid) {
             auto &&queue = queues[vpid];
             if (!(queue.magic &&
-                  queue.sub_id == sub_id &&
+                  queue.consumer_group_id == consumer_group_id &&
                   valid_store_ids.end() != valid_store_ids.find(queue.store_id) &&
                   valid_queue_ids.end() != valid_queue_ids.find(queue.queue_id))) continue;
 
@@ -328,18 +328,18 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
         double handle_rate = (double)nhandle / nhandle_tot;
         double nhandle_limit = limit_per_proc / handle_rate;
 
-        QLInfo("pub_id %d sub_id %d queue_info_id %d "
+        QLInfo("pub_id %d consumer_group_id %d queue_info_id %d "
                "proc_tot %d proc_used %d nget %d nhandle_tot %d handle_id %d nhandle %d handle_rate %.4lf nhandle_limit %.2lf limit_per_proc %.2lf handled_pct_per_proc %.4lf",
-               pub_id, sub_id, queue_info_id, proc_tot, proc_used,
+               pub_id, consumer_group_id, queue_info_id, proc_tot, proc_used,
                nget, nhandle_tot,
                handle_id, nhandle, handle_rate, nhandle_limit,
                limit_per_proc, handled_pct_per_proc);
 
 
-        auto key = make_tuple(pub_id, sub_id, queue_info_id);
-        auto &&it = pub_sub_queue_info_id2max_handle_pct.find(key);
-        if (pub_sub_queue_info_id2max_handle_pct.end() != it && handled_pct_per_proc < it->second) continue;
-        pub_sub_queue_info_id2max_handle_pct[key] = handled_pct_per_proc;
+        auto key = make_tuple(pub_id, consumer_group_id, queue_info_id);
+        auto &&it = pub_consumer_group_queue_info_id2max_handle_pct.find(key);
+        if (pub_consumer_group_queue_info_id2max_handle_pct.end() != it && handled_pct_per_proc < it->second) continue;
+        pub_consumer_group_queue_info_id2max_handle_pct[key] = handled_pct_per_proc;
 
         {
             nrefill = 1;
@@ -381,7 +381,7 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
             for (int vpid{0}; vpid < opt->nprocs; ++vpid) {
                 auto &&queue = queues[vpid];
                 if (!(queue.magic &&
-                      queue.sub_id == sub_id &&
+                      queue.consumer_group_id == consumer_group_id &&
                       valid_store_ids.end() != valid_store_ids.find(queue.store_id) &&
                       valid_queue_ids.end() != valid_queue_ids.find(queue.queue_id))) continue;
 
@@ -399,8 +399,8 @@ comm::RetCode FreqMan::UpdateLimitInfo() {
                 limit_info.refill_interval_ms = refill_interval_ms / prop;
                 if (!limit_info.refill_interval_ms) limit_info.refill_interval_ms = 1;
 
-                QLInfo("sub_id %d store_id %d queue_id %d nhandle_limit %d nrefill %d refill_interval_ms %d",
-                       queue.sub_id, queue.store_id, queue.queue_id,
+                QLInfo("consumer_group_id %d store_id %d queue_id %d nhandle_limit %d nrefill %d refill_interval_ms %d",
+                       queue.consumer_group_id, queue.store_id, queue.queue_id,
                        limit_info.nhandle_limit, limit_info.nrefill, limit_info.refill_interval_ms);
             }
         }

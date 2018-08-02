@@ -32,11 +32,11 @@ class TopicConfig::TopicConfigImpl {
     virtual ~TopicConfigImpl() {}
 
     map<int, shared_ptr<proto::Pub>> pub_id2pub;
-    map<int, shared_ptr<proto::Sub>> sub_id2sub;
+    map<int, shared_ptr<proto::ConsumerGroup>> consumer_group_id2consumer_group;
     map<int, shared_ptr<proto::QueueInfo>> queue_info_id2queue_info;
     map<int, vector<pair<int, int>>> queue_info_id2ranges;
     map<int, int> queue2queue_info_id;
-    map<int, set<int>> pub_id2sub_ids;
+    map<int, set<int>> pub_id2consumer_group_ids;
     map<int, set<int>> pub_id2queue_info_ids;
     map<int, int> handle_id2rank;
     vector<shared_ptr<proto::FreqInfo>> freq_infos;
@@ -93,8 +93,8 @@ comm::RetCode TopicConfig::ReadConfig(proto::TopicConfig &proto) {
     {
         auto pub = proto.add_pubs();
         pub->set_pub_id(1);
-        pub->add_sub_ids(1);
-        pub->add_sub_ids(2);
+        pub->add_consumer_group_ids(1);
+        pub->add_consumer_group_ids(2);
         pub->add_queue_info_ids(1);
         pub->add_queue_info_ids(3);
     }
@@ -103,25 +103,25 @@ comm::RetCode TopicConfig::ReadConfig(proto::TopicConfig &proto) {
     {
         auto pub = proto.add_pubs();
         pub->set_pub_id(2);
-        pub->add_sub_ids(2);
+        pub->add_consumer_group_ids(2);
         pub->add_queue_info_ids(2);
         pub->add_queue_info_ids(4);
     }
 
-    // sub 1
+    // consumer_group 1
     {
-        auto sub = proto.add_subs();
-        sub->set_sub_id(1);
-        sub->set_use_dynamic_scale(0);
-        sub->set_skip_lock(1);
+        auto consumer_group = proto.add_consumer_groups();
+        consumer_group->set_consumer_group_id(1);
+        consumer_group->set_use_dynamic_scale(0);
+        consumer_group->set_skip_lock(1);
     }
 
-    // sub 2
+    // consumer_group 2
     {
-        auto sub = proto.add_subs();
-        sub->set_sub_id(2);
-        sub->set_use_dynamic_scale(0);
-        sub->set_skip_lock(1);
+        auto consumer_group = proto.add_consumer_groups();
+        consumer_group->set_consumer_group_id(2);
+        consumer_group->set_use_dynamic_scale(0);
+        consumer_group->set_skip_lock(1);
     }
 
     return comm::RetCode::RET_OK;
@@ -132,11 +132,11 @@ comm::RetCode TopicConfig::Rebuild() {
     bool need_check = NeedCheck();
 
     impl_->pub_id2pub.clear();
-    impl_->sub_id2sub.clear();
+    impl_->consumer_group_id2consumer_group.clear();
     impl_->queue_info_id2queue_info.clear();
     impl_->queue_info_id2ranges.clear();
     impl_->queue2queue_info_id.clear();
-    impl_->pub_id2sub_ids.clear();
+    impl_->pub_id2consumer_group_ids.clear();
     impl_->pub_id2queue_info_ids.clear();
     impl_->handle_id2rank.clear();
     impl_->freq_infos.clear();
@@ -150,10 +150,10 @@ comm::RetCode TopicConfig::Rebuild() {
         if (need_check) PHX_ASSERT(impl_->pub_id2pub.end() == impl_->pub_id2pub.find(pub.pub_id()), ==, true);
         impl_->pub_id2pub.emplace(pub.pub_id(), make_shared<proto::Pub>(pub));
 
-        auto &&sub_ids = impl_->pub_id2sub_ids[pub.pub_id()];
-        for (int j{0}; j < pub.sub_ids_size(); ++j) {
-            if (need_check) PHX_ASSERT(sub_ids.end() == sub_ids.find(pub.sub_ids(j)), ==, true);
-            sub_ids.insert(pub.sub_ids(j));
+        auto &&consumer_group_ids = impl_->pub_id2consumer_group_ids[pub.pub_id()];
+        for (int j{0}; j < pub.consumer_group_ids_size(); ++j) {
+            if (need_check) PHX_ASSERT(consumer_group_ids.end() == consumer_group_ids.find(pub.consumer_group_ids(j)), ==, true);
+            consumer_group_ids.insert(pub.consumer_group_ids(j));
         }
 
         auto &&queue_info_ids = impl_->pub_id2queue_info_ids[pub.pub_id()];
@@ -163,11 +163,11 @@ comm::RetCode TopicConfig::Rebuild() {
         }
     }
 
-    for (int i{0}; proto.subs_size() > i; ++i) {
-        const auto &sub(proto.subs(i));
-        if (!sub.sub_id()) continue;
-        if (need_check) PHX_ASSERT(impl_->sub_id2sub.end() == impl_->sub_id2sub.find(sub.sub_id()), ==, true);
-        impl_->sub_id2sub.emplace(sub.sub_id(), make_shared<proto::Sub>(sub));
+    for (int i{0}; proto.consumer_groups_size() > i; ++i) {
+        const auto &consumer_group(proto.consumer_groups(i));
+        if (!consumer_group.consumer_group_id()) continue;
+        if (need_check) PHX_ASSERT(impl_->consumer_group_id2consumer_group.end() == impl_->consumer_group_id2consumer_group.find(consumer_group.consumer_group_id()), ==, true);
+        impl_->consumer_group_id2consumer_group.emplace(consumer_group.consumer_group_id(), make_shared<proto::ConsumerGroup>(consumer_group));
     }
 
     for (int i{0}; proto.queue_infos_size() > i; ++i) {
@@ -256,51 +256,51 @@ comm::RetCode TopicConfig::GetPubByPubID(const int pub_id, shared_ptr<const prot
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode TopicConfig::GetSubIDsByPubID(const int pub_id, set<int> &sub_ids) const {
-    sub_ids.clear();
+comm::RetCode TopicConfig::GetConsumerGroupIDsByPubID(const int pub_id, set<int> &consumer_group_ids) const {
+    consumer_group_ids.clear();
 
     comm::RetCode ret;
     shared_ptr<const proto::Pub> pub;
     if (comm::RetCode::RET_OK != (ret = GetPubByPubID(pub_id, pub))) return ret;
     if (!pub) return comm::RetCode::RET_ERR_RANGE_PUB;
-    for (int i{0}; i < pub->sub_ids_size(); ++i) {
-        sub_ids.insert(pub->sub_ids(i));
+    for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
+        consumer_group_ids.insert(pub->consumer_group_ids(i));
     }
     return comm::RetCode::RET_OK;
 }
 
-/******************* sub ********************/
-comm::RetCode TopicConfig::GetAllSub(vector<shared_ptr<const proto::Sub>> &subs) const {
-    subs.clear();
+/******************* consumer_group ********************/
+comm::RetCode TopicConfig::GetAllConsumerGroup(vector<shared_ptr<const proto::ConsumerGroup>> &consumer_groups) const {
+    consumer_groups.clear();
 
-    for (auto &&it : impl_->sub_id2sub) {
-        subs.push_back(it.second);
+    for (auto &&it : impl_->consumer_group_id2consumer_group) {
+        consumer_groups.push_back(it.second);
     }
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode TopicConfig::GetAllSubID(set<int> &sub_ids) const {
-    sub_ids.clear();
+comm::RetCode TopicConfig::GetAllConsumerGroupID(set<int> &consumer_group_ids) const {
+    consumer_group_ids.clear();
 
-    for (auto &&it : impl_->sub_id2sub) {
-        sub_ids.insert(it.first);
+    for (auto &&it : impl_->consumer_group_id2consumer_group) {
+        consumer_group_ids.insert(it.first);
     }
     return comm::RetCode::RET_OK;
 }
 
-bool TopicConfig::IsValidSubID(const int sub_id) const {
-    auto &&it = impl_->sub_id2sub.find(sub_id);
-    return impl_->sub_id2sub.end() != it;
+bool TopicConfig::IsValidConsumerGroupID(const int consumer_group_id) const {
+    auto &&it = impl_->consumer_group_id2consumer_group.find(consumer_group_id);
+    return impl_->consumer_group_id2consumer_group.end() != it;
 }
 
-comm::RetCode TopicConfig::GetSubBySubID(const int sub_id, shared_ptr<const proto::Sub> &sub) const {
-    sub = nullptr;
+comm::RetCode TopicConfig::GetConsumerGroupByConsumerGroupID(const int consumer_group_id, shared_ptr<const proto::ConsumerGroup> &consumer_group) const {
+    consumer_group = nullptr;
 
-    auto &&it = impl_->sub_id2sub.find(sub_id);
-    if (impl_->sub_id2sub.end() == it) {
-        return comm::RetCode::RET_ERR_RANGE_SUB;
+    auto &&it = impl_->consumer_group_id2consumer_group.find(consumer_group_id);
+    if (impl_->consumer_group_id2consumer_group.end() == it) {
+        return comm::RetCode::RET_ERR_RANGE_CONSUMER_GROUP;
     }
-    sub = it->second;
+    consumer_group = it->second;
 
     return comm::RetCode::RET_OK;
 }
@@ -334,14 +334,14 @@ comm::RetCode TopicConfig::GetQueueInfoIDRankByPubID(const int queue_info_id, co
 }
 
 
-bool TopicConfig::IsValidQueue(const int queue_id, const int pub_id, const int sub_id) const {
+bool TopicConfig::IsValidQueue(const int queue_id, const int pub_id, const int consumer_group_id) const {
     auto &&f = [&](const int arg_pub_id)->bool {
-        if (-1 != sub_id) {
-            auto &&it = impl_->pub_id2sub_ids.find(arg_pub_id);
-            if (impl_->pub_id2sub_ids.end() == it) return false;
-            auto &&sub_ids = it->second;
-            auto &&it1 = sub_ids.find(sub_id);
-            if (sub_ids.end() == it1) return false;
+        if (-1 != consumer_group_id) {
+            auto &&it = impl_->pub_id2consumer_group_ids.find(arg_pub_id);
+            if (impl_->pub_id2consumer_group_ids.end() == it) return false;
+            auto &&consumer_group_ids = it->second;
+            auto &&it1 = consumer_group_ids.find(consumer_group_id);
+            if (consumer_group_ids.end() == it1) return false;
         }
 
         {
@@ -463,14 +463,14 @@ comm::RetCode TopicConfig::GetQueueInfoByQueueInfoID(const int queue_info_id, sh
     return comm::RetCode::RET_ERR_RANGE_QUEUE_INFO;
 }
 
-bool TopicConfig::ShouldSkip(const comm::proto::QItem &item, const int sub_id, const int queue_info_id) const {
+bool TopicConfig::ShouldSkip(const comm::proto::QItem &item, const int consumer_group_id, const int queue_info_id) const {
     auto &&proto = GetProto();
     for (int i{0}; i < proto.skip_infos_size(); ++i) {
         auto &&skip_info = proto.skip_infos(i);
         if ((skip_info.uin() == 0 || skip_info.uin() == item.meta().uin()) &&
             (skip_info.pub_id() == -1 || skip_info.pub_id() == item.pub_id()) &&
             (skip_info.handle_id() == -1 || skip_info.handle_id() == item.meta().handle_id()) &&
-            (skip_info.sub_id() == -1 || skip_info.sub_id() == sub_id) &&
+            (skip_info.consumer_group_id() == -1 || skip_info.consumer_group_id() == consumer_group_id) &&
             (skip_info.queue_info_id() == -1 || skip_info.queue_info_id() == queue_info_id)) {
             return true;
         }

@@ -15,7 +15,7 @@ message Meta { // 不变量
     optional int32 topic_id = 2;
     optional int32 handle_id = 3;
     optional uint64 uin    = 5;
-    optional uint64 sub_ids = 8;
+    optional uint64 consumer_group_ids = 8;
     optional int32 pub_id = 9;
     optional uint64 hash = 11;
     optional uint64 atime  = 51;
@@ -28,7 +28,7 @@ message Meta { // 不变量
 message QItem {
     optional bytes  buffer = 6;
     optional int32 buffer_type  = 7;
-    optional uint64 sub_ids = 8;
+    optional uint64 consumer_group_ids = 8;
     optional int32 pub_id = 9;
     optional uint64 atime  = 51;
     optional uint32 atime_ms  = 52;
@@ -43,7 +43,7 @@ message QItem {
 
 message ConsumerContext {
     optional int32 topic_id = 1;
-    optional int32 sub_id = 2 [default = -1];
+    optional int32 consumer_group_id = 2 [default = -1];
     optional int32 store_id = 4 [default = -1];
     optional int32 queue_id = 5 [default = -1];
     optional uint64 prev_cursor_id = 6 [default = 0xffffffffffffffff];
@@ -78,7 +78,7 @@ message GetRequest {
     optional int32 queue_id = 3;
     optional int32 limit = 5;
     optional uint64 atime  = 6;
-    optional int32 sub_id = 7; // 如果sub_id在target_sub_ids中，那就拉取
+    optional int32 consumer_group_id = 7; // 如果consumer_group_id在target_consumer_group_ids中，那就拉取
     optional uint32 atime_ms  = 8;
 
     optional uint64 prev_cursor_id = 11;
