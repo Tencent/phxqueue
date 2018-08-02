@@ -151,6 +151,7 @@ comm::RetCode BatchTask::Process(bool is_timeout) {
     uint64_t time_wait_ms = now_timestamp_ms - start_timestamp_ms_;
 
     comm::proto::AddRequest batch_req;
+    comm::proto::AddResponse batch_resp;
 
     for (auto &task : tasks_) {
         auto req = task->GetReq();
@@ -164,7 +165,7 @@ comm::RetCode BatchTask::Process(bool is_timeout) {
         }
     }
 
-    auto retcode = producer_->RawAdd(batch_req);
+    auto retcode = producer_->RawAdd(batch_req, batch_resp);
 
     comm::ProducerBP::GetThreadInstance()->OnBatchStat(batch_req, retcode, time_wait_ms, is_timeout);
     //printf("batch %d time_wait_ms %" PRIu64 " is_timeout %d\n", batch_req.items_size(), time_wait_ms, is_timeout);

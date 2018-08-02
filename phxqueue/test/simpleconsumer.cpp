@@ -49,7 +49,7 @@ comm::RetCode SimpleConsumer::Get(const comm::proto::GetRequest &req,
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode SimpleConsumer::Add(const comm::proto::AddRequest &req,
+comm::RetCode SimpleConsumer::Add(comm::proto::AddRequest &req,
                                   comm::proto::AddResponse &resp) {
     return comm::RetCode::RET_OK;
 }

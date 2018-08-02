@@ -23,6 +23,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxqueue_phxrpc/app/lock/lock_client.h"
 #include "phxqueue_phxrpc/app/scheduler/scheduler_client.h"
 #include "phxqueue_phxrpc/app/store/store_client.h"
+#include "phxqueue_phxrpc/producer.h"
 
 
 namespace phxqueue_phxrpc {
@@ -61,13 +62,13 @@ Consumer::Get(const phxqueue::comm::proto::GetRequest &req,
 }
 
 phxqueue::comm::RetCode
-Consumer::Add(const phxqueue::comm::proto::AddRequest &req,
+Consumer::Add(phxqueue::comm::proto::AddRequest &req,
               phxqueue::comm::proto::AddResponse &resp) {
-
-    static __thread StoreClient store_client;
-    auto ret = store_client.ProtoAdd(req, resp);
+    phxqueue::producer::ProducerOption opt;
+    phxqueue_phxrpc::producer::Producer producer(opt);
+    auto ret = producer.SelectAndAdd(req, resp, nullptr, nullptr);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("ProtoAdd ret %d", phxqueue::comm::as_integer(ret));
+        QLErr("Producer::SelectAndAdd ret %d", phxqueue::comm::as_integer(ret));
     }
     return ret;
 }

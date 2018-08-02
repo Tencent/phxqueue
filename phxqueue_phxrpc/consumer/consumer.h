@@ -29,22 +29,22 @@ class Consumer : public phxqueue::consumer::Consumer {
 
     virtual phxqueue::comm::RetCode
     UncompressBuffer(const std::string &buffer, const int buffer_type,
-                     std::string &uncompressed_buffer);
+                     std::string &uncompressed_buffer) override;
     virtual void CompressBuffer(const std::string &buffer,
-                                std::string &compress_buffer, const int buffer_type);
+                                std::string &compress_buffer, const int buffer_type) override;
     virtual phxqueue::comm::RetCode
-    Get(const phxqueue::comm::proto::GetRequest &req, phxqueue::comm::proto::GetResponse &resp);
+    Get(const phxqueue::comm::proto::GetRequest &req, phxqueue::comm::proto::GetResponse &resp) override;
     virtual phxqueue::comm::RetCode
-    Add(const phxqueue::comm::proto::AddRequest &req, phxqueue::comm::proto::AddResponse &resp);
+    Add(phxqueue::comm::proto::AddRequest &req, phxqueue::comm::proto::AddResponse &resp) override;
     virtual phxqueue::comm::RetCode
     GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,
-                 phxqueue::comm::proto::GetAddrScaleResponse &resp);
+                 phxqueue::comm::proto::GetAddrScaleResponse &resp) override;
     virtual phxqueue::comm::RetCode
     GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                phxqueue::comm::proto::GetLockInfoResponse &resp);
+                phxqueue::comm::proto::GetLockInfoResponse &resp) override;
     virtual phxqueue::comm::RetCode
     AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                phxqueue::comm::proto::AcquireLockResponse &resp);
+                phxqueue::comm::proto::AcquireLockResponse &resp) override;
 
   private:
     virtual void RestoreUserCookies(const phxqueue::comm::proto::Cookies &user_cookies) {}
