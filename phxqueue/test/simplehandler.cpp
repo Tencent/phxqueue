@@ -28,8 +28,8 @@ using namespace std;
 
 comm::HandleResult SimpleHandler::Handle(const comm::proto::ConsumerContext &cc,
                                          comm::proto::QItem &item, string &uncompressed_buffer) {
-    QLVerb("cc: sub_id %d store_id %d queue_id %d. item uin %" PRIu64,
-           cc.sub_id(), cc.store_id(), cc.queue_id(), (uint64_t)item.meta().uin());
+    QLVerb("cc: consumer_group_id %d store_id %d queue_id %d. item uin %" PRIu64,
+           cc.consumer_group_id(), cc.store_id(), cc.queue_id(), (uint64_t)item.meta().uin());
     return comm::HandleResult::RES_OK;
 }
 

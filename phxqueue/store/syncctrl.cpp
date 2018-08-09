@@ -82,7 +82,7 @@ SyncCtrl::~SyncCtrl() {
 comm::RetCode SyncCtrl::Init() {
     auto opt(impl_->store->GetStoreOption());
 
-    impl_->buf_size = opt->nsub * opt->nqueue * sizeof (SyncCtrlItem_t);
+    impl_->buf_size = opt->nconsumer_group * opt->nqueue * sizeof (SyncCtrlItem_t);
 
     auto sync_path(opt->data_dir_path + "/sync");
     int fd = open(sync_path.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -108,24 +108,24 @@ comm::RetCode SyncCtrl::Init() {
 
     impl_->buf = (SyncCtrlItem_t*)pa;
 
-    impl_->locks.reset(new mutex[opt->nsub * opt->nqueue]);
+    impl_->locks.reset(new mutex[opt->nconsumer_group * opt->nqueue]);
 
     return comm::RetCode::RET_OK;;
 }
 
-static inline void GetIdx(const int nsub, const int sub_id, const int queue_id, size_t &idx) {
-    idx = queue_id * nsub + sub_id - 1;
+static inline void GetIdx(const int nconsumer_group, const int consumer_group_id, const int queue_id, size_t &idx) {
+    idx = queue_id * nconsumer_group + consumer_group_id - 1;
 }
 
-comm::RetCode SyncCtrl::AdjustNextCursorID(const int sub_id, const int queue_id,
+comm::RetCode SyncCtrl::AdjustNextCursorID(const int consumer_group_id, const int queue_id,
                                            uint64_t &prev_cursor_id, uint64_t &next_cursor_id) {
     auto opt = impl_->store->GetStoreOption();
 
-    if (!sub_id || sub_id > opt->nsub || queue_id >= opt->nqueue)
+    if (!consumer_group_id || consumer_group_id > opt->nconsumer_group || queue_id >= opt->nqueue)
         return comm::RetCode::RET_ERR_ARG;
 
     size_t idx;
-    GetIdx(opt->nsub, sub_id, queue_id, idx);
+    GetIdx(opt->nconsumer_group, consumer_group_id, queue_id, idx);
 
     std::lock_guard<mutex> lock_guard(impl_->locks[idx]);
 
@@ -145,15 +145,15 @@ comm::RetCode SyncCtrl::AdjustNextCursorID(const int sub_id, const int queue_id,
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode SyncCtrl::UpdateCursorID(const int sub_id, const int queue_id,
+comm::RetCode SyncCtrl::UpdateCursorID(const int consumer_group_id, const int queue_id,
                                        const uint64_t cursor_id, const bool is_prev) {
     auto opt = impl_->store->GetStoreOption();
 
-    if (!sub_id || sub_id > opt->nsub || queue_id >= opt->nqueue)
+    if (!consumer_group_id || consumer_group_id > opt->nconsumer_group || queue_id >= opt->nqueue)
         return comm::RetCode::RET_ERR_ARG;
 
     size_t idx;
-    GetIdx(opt->nsub, sub_id, queue_id, idx);
+    GetIdx(opt->nconsumer_group, consumer_group_id, queue_id, idx);
 
     lock_guard<mutex> lock_guard(impl_->locks[idx]);
 
@@ -170,17 +170,17 @@ comm::RetCode SyncCtrl::UpdateCursorID(const int sub_id, const int queue_id,
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode SyncCtrl::GetCursorID(const int sub_id, const int queue_id,
+comm::RetCode SyncCtrl::GetCursorID(const int consumer_group_id, const int queue_id,
                                     uint64_t &cursor_id, const bool is_prev) const {
     cursor_id = -1;
 
     auto opt = impl_->store->GetStoreOption();
 
-    if (!sub_id || sub_id > opt->nsub || queue_id >= opt->nqueue)
+    if (!consumer_group_id || consumer_group_id > opt->nconsumer_group || queue_id >= opt->nqueue)
         return comm::RetCode::RET_ERR_ARG;
 
     size_t idx;
-    GetIdx(opt->nsub, sub_id, queue_id, idx);
+    GetIdx(opt->nconsumer_group, consumer_group_id, queue_id, idx);
 
     lock_guard<mutex> lock_guard(impl_->locks[idx]);
 
@@ -249,21 +249,21 @@ void SyncCtrl::ClearSyncCtrl() {
 
     uint64_t cursor_id;
     for (int queue_id{0}; queue_id < opt->nqueue; ++queue_id) {
-        for (int sub_id{1}; sub_id <= opt->nsub; ++sub_id) {
+        for (int consumer_group_id{1}; consumer_group_id <= opt->nconsumer_group; ++consumer_group_id) {
             bool valid = false;
             for (auto &&pub_id : pub_ids) {
-                if (topic_config->IsValidQueue(queue_id, pub_id, sub_id)) {
+                if (topic_config->IsValidQueue(queue_id, pub_id, consumer_group_id)) {
                     valid = true;
                     break;
                 }
             }
             if (!valid){
-                if (comm::RetCode::RET_OK == (ret = GetCursorID(sub_id, queue_id, cursor_id))) {
-                    QLInfo("start to clear. sub_id %d queue_id %d cursor_id %" PRIu64,
-                           sub_id, queue_id, cursor_id);
-                    if (comm::RetCode::RET_OK != (ret = ClearCursorID(sub_id, queue_id))) {
-                        QLErr("ClearCursorID ret %d sub_id %d queue_id %u",
-                              ret, sub_id, queue_id);
+                if (comm::RetCode::RET_OK == (ret = GetCursorID(consumer_group_id, queue_id, cursor_id))) {
+                    QLInfo("start to clear. consumer_group_id %d queue_id %d cursor_id %" PRIu64,
+                           consumer_group_id, queue_id, cursor_id);
+                    if (comm::RetCode::RET_OK != (ret = ClearCursorID(consumer_group_id, queue_id))) {
+                        QLErr("ClearCursorID ret %d consumer_group_id %d queue_id %u",
+                              ret, consumer_group_id, queue_id);
                     }
                 }
             }
@@ -272,14 +272,14 @@ void SyncCtrl::ClearSyncCtrl() {
 }
 
 
-comm::RetCode SyncCtrl::ClearCursorID(const int sub_id, const int queue_id) {
+comm::RetCode SyncCtrl::ClearCursorID(const int consumer_group_id, const int queue_id) {
     auto opt = impl_->store->GetStoreOption();
 
-    if (!sub_id || sub_id > opt->nsub || queue_id >= opt->nqueue)
+    if (!consumer_group_id || consumer_group_id > opt->nconsumer_group || queue_id >= opt->nqueue)
         return comm::RetCode::RET_ERR_ARG;
 
     size_t idx;
-    GetIdx(opt->nsub, sub_id, queue_id, idx);
+    GetIdx(opt->nconsumer_group, consumer_group_id, queue_id, idx);
 
     lock_guard<mutex> lock_guard(impl_->locks[idx]);
 
@@ -289,14 +289,14 @@ comm::RetCode SyncCtrl::ClearCursorID(const int sub_id, const int queue_id) {
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode SyncCtrl::Flush(const int sub_id, const int queue_id) {
+comm::RetCode SyncCtrl::Flush(const int consumer_group_id, const int queue_id) {
     auto opt(impl_->store->GetStoreOption());
 
-    if (!sub_id || sub_id > opt->nsub || queue_id >= opt->nqueue)
+    if (!consumer_group_id || consumer_group_id > opt->nconsumer_group || queue_id >= opt->nqueue)
         return comm::RetCode::RET_ERR_ARG;
 
     size_t idx;
-    GetIdx(opt->nsub, sub_id, queue_id, idx);
+    GetIdx(opt->nconsumer_group, consumer_group_id, queue_id, idx);
 
     std::lock_guard<mutex> lock_guard(impl_->locks[idx]);
 
@@ -334,34 +334,34 @@ comm::RetCode SyncCtrl::SyncCursorID(const proto::SyncCtrlInfo &sync_ctrl_info) 
         int queue_id = queue_detail.queue_id();
 
         uint64_t max_prev_cursor_id = -1;
-        for (size_t j{0}; j < queue_detail.sub_details_size(); ++j) {
-            const proto::SyncCtrlInfo::QueueDetail::SubDetail &
-            sub_detail(queue_detail.sub_details(j));
-            int sub_id = sub_detail.sub_id();
-            uint64_t prev_cursor_id = sub_detail.prev_cursor_id();
+        for (size_t j{0}; j < queue_detail.consumer_group_details_size(); ++j) {
+            const proto::SyncCtrlInfo::QueueDetail::ConsumerGroupDetail &
+            consumer_group_detail(queue_detail.consumer_group_details(j));
+            int consumer_group_id = consumer_group_detail.consumer_group_id();
+            uint64_t prev_cursor_id = consumer_group_detail.prev_cursor_id();
             if (-1 == max_prev_cursor_id || prev_cursor_id > max_prev_cursor_id)
                 max_prev_cursor_id = prev_cursor_id;
 
-            if (0 > as_integer(ret = GetCursorID(sub_id, queue_id, cur_prev_cursor_id))) {
-                QLErr("GetCursorID ret %d sub_id %d queue %d",
-                      as_integer(ret), sub_id, queue_id);
+            if (0 > as_integer(ret = GetCursorID(consumer_group_id, queue_id, cur_prev_cursor_id))) {
+                QLErr("GetCursorID ret %d consumer_group_id %d queue %d",
+                      as_integer(ret), consumer_group_id, queue_id);
             } else if (!as_integer(ret) && cur_prev_cursor_id >= prev_cursor_id) {
                 continue;
             }
 
-            QLVerb("sync prev_cursor_id. sub_id %d queue_id %d", sub_id, queue_id);
+            QLVerb("sync prev_cursor_id. consumer_group_id %d queue_id %d", consumer_group_id, queue_id);
 
             if (comm::RetCode::RET_OK !=
-                (ret = UpdateCursorID(sub_id, queue_id, prev_cursor_id))) {
-                QLErr("UpdateCursorID ret %d sub_id %d queue_id %d",
-                      as_integer(ret), sub_id, queue_id);
+                (ret = UpdateCursorID(consumer_group_id, queue_id, prev_cursor_id))) {
+                QLErr("UpdateCursorID ret %d consumer_group_id %d queue_id %d",
+                      as_integer(ret), consumer_group_id, queue_id);
                 return ret;
             }
 
             if (comm::RetCode::RET_OK !=
-                (ret = UpdateCursorID(sub_id, queue_id, prev_cursor_id, false))) {
-                QLErr("UpdateCursorID ret %d sub_id %d queue_id %d",
-                      as_integer(ret), sub_id, queue_id);
+                (ret = UpdateCursorID(consumer_group_id, queue_id, prev_cursor_id, false))) {
+                QLErr("UpdateCursorID ret %d consumer_group_id %d queue_id %d",
+                      as_integer(ret), consumer_group_id, queue_id);
                 return ret;
             }
         }

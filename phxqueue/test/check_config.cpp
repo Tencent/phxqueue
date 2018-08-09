@@ -97,32 +97,32 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
         }
 
         {
-            std::set<int> sub_ids;
-            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetSubIDsByPubID(pub_id, sub_ids)));
-            PHX_ASSERT(pub->sub_ids_size(), ==, sub_ids.size());
-            for (int i{0}; i < pub->sub_ids_size(); ++i) {
-                auto sub_id = pub->sub_ids(i);
-                PHX_ASSERT(sub_ids.end() != sub_ids.find(sub_id), ==, true);
+            std::set<int> consumer_group_ids;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetConsumerGroupIDsByPubID(pub_id, consumer_group_ids)));
+            PHX_ASSERT(pub->consumer_group_ids_size(), ==, consumer_group_ids.size());
+            for (int i{0}; i < pub->consumer_group_ids_size(); ++i) {
+                auto consumer_group_id = pub->consumer_group_ids(i);
+                PHX_ASSERT(consumer_group_ids.end() != consumer_group_ids.find(consumer_group_id), ==, true);
             }
         }
     }
 
-    // sub
-    std::vector<std::shared_ptr<const config::proto::Sub>> subs;
-    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllSub(subs)));
+    // consumer_group
+    std::vector<std::shared_ptr<const config::proto::ConsumerGroup>> consumer_groups;
+    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllConsumerGroup(consumer_groups)));
 
-    std::set<int> sub_ids;
-    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllSubID(sub_ids)));
-    PHX_ASSERT(subs.size(), ==, sub_ids.size());
-    for (auto &&sub : subs) {
-        auto sub_id = sub->sub_id();
-        PHX_ASSERT(sub_ids.end() != sub_ids.find(sub_id), ==, true);
-        PHX_ASSERT(topic_config->IsValidSubID(sub_id), ==, true);
+    std::set<int> consumer_group_ids;
+    PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetAllConsumerGroupID(consumer_group_ids)));
+    PHX_ASSERT(consumer_groups.size(), ==, consumer_group_ids.size());
+    for (auto &&consumer_group : consumer_groups) {
+        auto consumer_group_id = consumer_group->consumer_group_id();
+        PHX_ASSERT(consumer_group_ids.end() != consumer_group_ids.find(consumer_group_id), ==, true);
+        PHX_ASSERT(topic_config->IsValidConsumerGroupID(consumer_group_id), ==, true);
 
         {
-            std::shared_ptr<const config::proto::Sub> tmp_sub;
-            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetSubBySubID(sub_id, tmp_sub)));
-            PHX_ASSERT(tmp_sub->sub_id(), ==, sub_id);
+            std::shared_ptr<const config::proto::ConsumerGroup> tmp_consumer_group;
+            PHX_ASSERT(phxqueue::comm::as_integer(comm::RetCode::RET_OK), ==, phxqueue::comm::as_integer(topic_config->GetConsumerGroupByConsumerGroupID(consumer_group_id, tmp_consumer_group)));
+            PHX_ASSERT(tmp_consumer_group->consumer_group_id(), ==, consumer_group_id);
         }
     }
 
@@ -173,9 +173,9 @@ void CheckConfig::CheckTopicConfig(const int topic_id, const config::TopicConfig
                 PHX_ASSERT(queue, >=, 0);
                 PHX_ASSERT(topic_config->IsValidQueue(queue), ==, true);
                 PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id), ==, true);
-                for (int l{0}; l < pub->sub_ids_size(); ++l) {
-                    auto sub_id = pub->sub_ids(l);
-                    PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id, sub_id), ==, true);
+                for (int l{0}; l < pub->consumer_group_ids_size(); ++l) {
+                    auto consumer_group_id = pub->consumer_group_ids(l);
+                    PHX_ASSERT(topic_config->IsValidQueue(queue, pub_id, consumer_group_id), ==, true);
                 }
 
                 {

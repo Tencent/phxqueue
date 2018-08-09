@@ -51,7 +51,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
     // 1->1, 2
     // 2->2
     const vector<int> expected_pub_ids = {1, 2};
-    const vector<int> expected_sub_ids = {1, 2};
+    const vector<int> expected_consumer_group_ids = {1, 2};
 
     /*************************** pub ****************************/
     // GetAllPub
@@ -84,44 +84,44 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
         assert(expected_pub_ids[0] == pub->pub_id());
     }
 
-    // GetSubIDsByPubID
+    // GetConsumerGroupIDsByPubID
     {
-        set<int> sub_ids;
+        set<int> consumer_group_ids;
         assert(comm::RetCode::RET_OK ==
-               topic_config->GetSubIDsByPubID(expected_pub_ids[0], sub_ids)); // 1->1,2
-        assert(expected_sub_ids.size() == sub_ids.size());
+               topic_config->GetConsumerGroupIDsByPubID(expected_pub_ids[0], consumer_group_ids)); // 1->1,2
+        assert(expected_consumer_group_ids.size() == consumer_group_ids.size());
     }
 
-    /*************************** sub ****************************/
+    /*************************** consumer_group ****************************/
 
-    // GetAllSub
+    // GetAllConsumerGroup
     {
-        vector<shared_ptr<const config::proto::Sub> > subs;
-        assert(comm::RetCode::RET_OK == topic_config->GetAllSub(subs));
-        assert(expected_sub_ids.size() == subs.size());
+        vector<shared_ptr<const config::proto::ConsumerGroup> > consumer_groups;
+        assert(comm::RetCode::RET_OK == topic_config->GetAllConsumerGroup(consumer_groups));
+        assert(expected_consumer_group_ids.size() == consumer_groups.size());
     }
 
-    // GetAllSubID
+    // GetAllConsumerGroupID
     {
-        set<int> sub_ids;
-        assert(comm::RetCode::RET_OK == topic_config->GetAllSubID(sub_ids));
-        assert(expected_sub_ids.size() == sub_ids.size());
+        set<int> consumer_group_ids;
+        assert(comm::RetCode::RET_OK == topic_config->GetAllConsumerGroupID(consumer_group_ids));
+        assert(expected_consumer_group_ids.size() == consumer_group_ids.size());
     }
 
 
-    // IsValidSubID
+    // IsValidConsumerGroupID
     {
-        for (auto &&sub_id : expected_sub_ids) {
-            assert(topic_config->IsValidSubID(sub_id));
+        for (auto &&consumer_group_id : expected_consumer_group_ids) {
+            assert(topic_config->IsValidConsumerGroupID(consumer_group_id));
         }
     }
 
-    // GetSubBySubID
+    // GetConsumerGroupByConsumerGroupID
     {
-        shared_ptr<const config::proto::Sub> sub;
-        assert(comm::RetCode::RET_OK == topic_config->GetSubBySubID(expected_sub_ids[0], sub));
-        assert(sub);
-        assert(expected_sub_ids[0] == sub->sub_id());
+        shared_ptr<const config::proto::ConsumerGroup> consumer_group;
+        assert(comm::RetCode::RET_OK == topic_config->GetConsumerGroupByConsumerGroupID(expected_consumer_group_ids[0], consumer_group));
+        assert(consumer_group);
+        assert(expected_consumer_group_ids[0] == consumer_group->consumer_group_id());
     }
 
     /*************************** queue_info ****************************/

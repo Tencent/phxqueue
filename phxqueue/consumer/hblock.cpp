@@ -178,27 +178,27 @@ comm::RetCode HeartBeatLock::Init(Consumer *consumer, const int shmkey, const st
     return comm::RetCode::RET_OK;
 }
 
-void HeartBeatLock::ClearInvalidSubIDs(const set<int> &valid_sub_ids) {
+void HeartBeatLock::ClearInvalidConsumerGroupIDs(const set<int> &valid_consumer_group_ids) {
     comm::utils::RWLock l(impl_->rwlock, comm::utils::RWLock::LockMode::WRITE);
 
     for (int vpid{0}; vpid < impl_->nproc; ++vpid) {
         Queue_t *queue{&impl_->buf->queues[vpid]};
         if (LOCK_ITEM_MAGIC == queue->magic) {
-            if (valid_sub_ids.end() == valid_sub_ids.find(queue->sub_id)) {
-                QLInfo("QUEUEINFO: vpid %d clear sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+            if (valid_consumer_group_ids.end() == valid_consumer_group_ids.find(queue->consumer_group_id)) {
+                QLInfo("QUEUEINFO: vpid %d clear consumer_group %u store %u queue %u", vpid, queue->consumer_group_id, queue->store_id, queue->queue_id);
                 memset(queue, 0, sizeof(Queue_t));
             }
         }
     }
 }
 
-void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id2pending_queues) {
+void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &consumer_group_id2pending_queues) {
     //if (impl_->ossid) OssAttrInc(impl_->ossid, 20, 1);
 
     comm::utils::RWLock l(impl_->rwlock, comm::utils::RWLock::LockMode::WRITE);
 
-    for (auto &&kv : sub_id2pending_queues) {
-        auto &&sub_id = kv.first;
+    for (auto &&kv : consumer_group_id2pending_queues) {
+        auto &&consumer_group_id = kv.first;
         auto &&pending_queues = kv.second;
 
         vector<bool> done;
@@ -210,16 +210,16 @@ void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id
         for (int vpid{0}; vpid < impl_->nproc; ++vpid) {
             Queue_t *queue{&impl_->buf->queues[vpid]};
 
-            if (LOCK_ITEM_MAGIC == queue->magic && sub_id == queue->sub_id) {
+            if (LOCK_ITEM_MAGIC == queue->magic && consumer_group_id == queue->consumer_group_id) {
                 for (idx = 0; idx < pending_queues.size(); ++idx) {
                     auto &&pending_queue = pending_queues[idx];
-                    if (queue->sub_id == pending_queue.sub_id &&
+                    if (queue->consumer_group_id == pending_queue.consumer_group_id &&
                         queue->store_id == pending_queue.store_id &&
                         queue->queue_id == pending_queue.queue_id) {
 
                         if (!done[idx]) {
                             done[idx] = true;
-                            QLInfo("QUEUEINFO: vpid %d keep sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+                            QLInfo("QUEUEINFO: vpid %d keep consumer_group %u store %u queue %u", vpid, queue->consumer_group_id, queue->store_id, queue->queue_id);
                         } else {
                             memset(queue, 0, sizeof(Queue_t));
                         }
@@ -248,12 +248,12 @@ void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id
                     auto &&pending_queue = pending_queues[idx];
 
                     queue->magic = LOCK_ITEM_MAGIC;
-                    queue->sub_id = pending_queue.sub_id;
+                    queue->consumer_group_id = pending_queue.consumer_group_id;
                     queue->store_id = pending_queue.store_id;
                     queue->queue_id = pending_queue.queue_id;
 
                     done[idx] = true;
-                    QLInfo("QUEUEINFO: vpid %d new sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+                    QLInfo("QUEUEINFO: vpid %d new consumer_group %u store %u queue %u", vpid, queue->consumer_group_id, queue->store_id, queue->queue_id);
                 }
             }
         }
@@ -262,7 +262,7 @@ void HeartBeatLock::DistubePendingQueues(const map<int, vector<Queue_t>> &sub_id
     for (int vpid{0}; vpid < impl_->nproc; ++vpid) {
 	    Queue_t *queue{&impl_->buf->queues[vpid]};
 	    if (LOCK_ITEM_MAGIC == queue->magic) {
-		    QLInfo("QUEUEINFO: vpid %d match sub %u store %u queue %u", vpid, queue->sub_id, queue->store_id, queue->queue_id);
+		    QLInfo("QUEUEINFO: vpid %d match consumer_group %u store %u queue %u", vpid, queue->consumer_group_id, queue->store_id, queue->queue_id);
 	    }
     }
 
@@ -318,10 +318,10 @@ static size_t CalHash(const vector<comm::proto::AddrScale> &addr_scales) {
     return h;
 }
 
-comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) {
+comm::RetCode HeartBeatLock::GetAddrScale(ConsumerGroupID2AddrScales &consumer_group_id2addr_scales) {
     QLVerb("start");
 
-    sub_id2addr_scales.clear();
+    consumer_group_id2addr_scales.clear();
 
     auto &&opt = impl_->consumer->GetConsumerOption();
 
@@ -337,14 +337,14 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
         return ret;
     }
 
-    std::set<int> sub_ids;
+    std::set<int> consumer_group_ids;
     {
         comm::proto::Addr addr;
         addr.set_ip(opt->ip);
         addr.set_port(opt->port);
 
-        if (comm::RetCode::RET_OK != (ret = config::utils::GetSubIDsByConsumerAddr(topic_id, addr, sub_ids))) {
-            QLErr("GetSubIDs ret %d", comm::as_integer(ret));
+        if (comm::RetCode::RET_OK != (ret = config::utils::GetConsumerGroupIDsByConsumerAddr(topic_id, addr, consumer_group_ids))) {
+            QLErr("GetConsumerGroupIDs ret %d", comm::as_integer(ret));
             return ret;
         }
     }
@@ -355,21 +355,21 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
         return ret;
     }
 
-    std::set<int> dynamic_sub_ids;
-    for (auto &&sub_id : sub_ids) {
-        shared_ptr<const config::proto::Sub> sub;
-        if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(sub_id, sub))) {
-            QLErr("GetSubBySubID ret %d", comm::as_integer(ret));
+    std::set<int> dynamic_consumer_group_ids;
+    for (auto &&consumer_group_id : consumer_group_ids) {
+        shared_ptr<const config::proto::ConsumerGroup> consumer_group;
+        if (comm::RetCode::RET_OK != (ret = topic_config->GetConsumerGroupByConsumerGroupID(consumer_group_id, consumer_group))) {
+            QLErr("GetConsumerGroupByConsumerGroupID ret %d", comm::as_integer(ret));
             continue;
         }
-        if (sub->use_dynamic_scale()) {
-            dynamic_sub_ids.insert(sub_id);
+        if (consumer_group->use_dynamic_scale()) {
+            dynamic_consumer_group_ids.insert(consumer_group_id);
         }
     }
-    QLVerb("dynamic sub_ids size %d", dynamic_sub_ids.size());
+    QLVerb("dynamic consumer_group_ids size %d", dynamic_consumer_group_ids.size());
 
 
-    if (dynamic_sub_ids.size()) {
+    if (dynamic_consumer_group_ids.size()) {
         comm::proto::GetAddrScaleRequest req;
         comm::proto::GetAddrScaleResponse resp;
         req.set_topic_id(topic_id);
@@ -386,7 +386,7 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
         if (comm::RetCode::RET_OK != ret) {
             QLErr("ERR: GetAddrScale ret %d", comm::as_integer(ret));
             if (impl_->conf_last_mod_time) return ret;
-            else dynamic_sub_ids.clear();
+            else dynamic_consumer_group_ids.clear();
         } else {
             for (size_t i{0}; i < resp.addr_scales_size(); ++i) {
                 dynamic_addr_scales.push_back(resp.addr_scales(i));
@@ -395,7 +395,7 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
         }
     }
 
-    if (dynamic_sub_ids.size() < sub_ids.size()) {
+    if (dynamic_consumer_group_ids.size() < consumer_group_ids.size()) {
         vector<shared_ptr<const config::proto::Consumer> > consumers;
         if (comm::RetCode::RET_OK != (ret = consumer_config->GetAllConsumer(consumers))) {
             QLErr("ERR: GetAllConsumer ret %d", comm::as_integer(ret));
@@ -414,28 +414,28 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
 
     // get all addr_scales done
 
-    auto &&f = [&](const int sub_id, const comm::proto::AddrScale &addr_scale)->void {
-        std::set<int> sub_ids;
-        if (comm::RetCode::RET_OK != (ret = config::utils::GetSubIDsByConsumerAddr(topic_id, addr_scale.addr(), sub_ids))) {
-            QLErr("GetSubIDs ret %d", comm::as_integer(ret));
+    auto &&f = [&](const int consumer_group_id, const comm::proto::AddrScale &addr_scale)->void {
+        std::set<int> consumer_group_ids;
+        if (comm::RetCode::RET_OK != (ret = config::utils::GetConsumerGroupIDsByConsumerAddr(topic_id, addr_scale.addr(), consumer_group_ids))) {
+            QLErr("GetConsumerGroupIDs ret %d", comm::as_integer(ret));
             return;
         }
-        if (sub_ids.end() != sub_ids.find(sub_id)) {
-            sub_id2addr_scales[sub_id].push_back(addr_scale);
-            QLVerb("sub_id2addr_scales sub_id %d addr(%s:%d:%d) scale %d", sub_id,
+        if (consumer_group_ids.end() != consumer_group_ids.find(consumer_group_id)) {
+            consumer_group_id2addr_scales[consumer_group_id].push_back(addr_scale);
+            QLVerb("consumer_group_id2addr_scales consumer_group_id %d addr(%s:%d:%d) scale %d", consumer_group_id,
                    addr_scale.addr().ip().c_str(), addr_scale.addr().port(), addr_scale.addr().paxos_port(),
                    addr_scale.scale());
         }
     };
 
-    for (auto &&sub_id : sub_ids) {
-        if (dynamic_sub_ids.end() == dynamic_sub_ids.find(sub_id)) {
+    for (auto &&consumer_group_id : consumer_group_ids) {
+        if (dynamic_consumer_group_ids.end() == dynamic_consumer_group_ids.find(consumer_group_id)) {
             for (auto &&addr_scale : config_addr_scales) {
-                f(sub_id, addr_scale);
+                f(consumer_group_id, addr_scale);
             }
         } else {
             for (auto &&addr_scale : dynamic_addr_scales) {
-                f(sub_id, addr_scale);
+                f(consumer_group_id, addr_scale);
             }
         }
     }
@@ -443,7 +443,7 @@ comm::RetCode HeartBeatLock::GetAddrScale(SubID2AddrScales &sub_id2addr_scales) 
     return comm::RetCode::RET_OK;
 }
 
-comm::RetCode HeartBeatLock::GetAllQueues(const int sub_id, vector<Queue_t> &all_queues) {
+comm::RetCode HeartBeatLock::GetAllQueues(const int consumer_group_id, vector<Queue_t> &all_queues) {
     all_queues.clear();
 
     comm::RetCode ret = comm::RetCode::RET_OK;
@@ -486,10 +486,10 @@ comm::RetCode HeartBeatLock::GetAllQueues(const int sub_id, vector<Queue_t> &all
             // check pub
             {
                 size_t i;
-                for (i = 0; i < pub->sub_ids_size(); ++i) {
-                    if (sub_id == pub->sub_ids(i)) break;
+                for (i = 0; i < pub->consumer_group_ids_size(); ++i) {
+                    if (consumer_group_id == pub->consumer_group_ids(i)) break;
                 }
-                if (i == pub->sub_ids_size()) continue;
+                if (i == pub->consumer_group_ids_size()) continue;
             }
 
             for (int i{0}; i < pub->queue_info_ids_size(); ++i) {
@@ -509,11 +509,11 @@ comm::RetCode HeartBeatLock::GetAllQueues(const int sub_id, vector<Queue_t> &all
                     Queue_t queue;
                     queue.magic = 0;
                     queue.pub_id = pub_id;
-                    queue.sub_id = sub_id;
+                    queue.consumer_group_id = consumer_group_id;
                     queue.store_id = store_id;
                     queue.queue_id = queue_id;
 
-                    QLVerb("add into all_queues. sub_id %d store_id %d queue_id %d", sub_id, store_id, queue_id);
+                    QLVerb("add into all_queues. consumer_group_id %d store_id %d queue_id %d", consumer_group_id, store_id, queue_id);
 
                     all_queues.emplace_back(queue);
                 }
@@ -567,56 +567,56 @@ comm::RetCode HeartBeatLock::Sync() {
 
     QLInfo("nproc %d proc_used %d", impl_->nproc, impl_->proc_used);
 
-    SubID2AddrScales sub_id2addr_scales;
-    if (comm::RetCode::RET_OK != (ret = GetAddrScale(sub_id2addr_scales))) {
+    ConsumerGroupID2AddrScales consumer_group_id2addr_scales;
+    if (comm::RetCode::RET_OK != (ret = GetAddrScale(consumer_group_id2addr_scales))) {
         QLErr("ERR: GetAddrScale ret %d", comm::as_integer(ret));
         return ret;
     }
 
-    std::set<int> valid_sub_ids;
-    for (auto &&kv : sub_id2addr_scales) {
-        valid_sub_ids.insert(kv.first);
+    std::set<int> valid_consumer_group_ids;
+    for (auto &&kv : consumer_group_id2addr_scales) {
+        valid_consumer_group_ids.insert(kv.first);
     }
-    ClearInvalidSubIDs(valid_sub_ids);
+    ClearInvalidConsumerGroupIDs(valid_consumer_group_ids);
 
     uint64_t conf_last_mod_time = config::GlobalConfig::GetThreadInstance()->GetLastModTime(topic_id);
 
-    map<int, vector<Queue_t> > sub_id2pending_queues;
-    for (auto &&it : sub_id2addr_scales) {
-        auto &&sub_id = it.first;
+    map<int, vector<Queue_t> > consumer_group_id2pending_queues;
+    for (auto &&it : consumer_group_id2addr_scales) {
+        auto &&consumer_group_id = it.first;
         auto &&addr_scale = it.second;
 
-        QLVerb("sub_id %d addr_scale.size %zu", sub_id, addr_scale.size());
+        QLVerb("consumer_group_id %d addr_scale.size %zu", consumer_group_id, addr_scale.size());
 
         uint64_t scale_hash = CalHash(addr_scale);
 
-        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnScaleHash(topic_id, sub_id, scale_hash);
+        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnScaleHash(topic_id, consumer_group_id, scale_hash);
 
         if (LOCK_BUF_MAGIC == impl_->buf->magic &&
             conf_last_mod_time == impl_->conf_last_mod_time &&
-            scale_hash == impl_->scale_hashs[sub_id]) {
-            QLInfo("no need to adjust scale. sub_id %d scale_hash %" PRIu64, sub_id, scale_hash);
+            scale_hash == impl_->scale_hashs[consumer_group_id]) {
+            QLInfo("no need to adjust scale. consumer_group_id %d scale_hash %" PRIu64, consumer_group_id, scale_hash);
             continue;
         }
 
-        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnAdjustScale(topic_id, sub_id);
+        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnAdjustScale(topic_id, consumer_group_id);
 
         std::vector<Queue_t> all_queues;
-        if (comm::RetCode::RET_OK != (ret = GetAllQueues(sub_id, all_queues))) {
+        if (comm::RetCode::RET_OK != (ret = GetAllQueues(consumer_group_id, all_queues))) {
             QLErr("ERR: GetAllQueues ret %d", comm::as_integer(ret));
             return ret;
         }
 
-        auto &&pending_queues = sub_id2pending_queues[sub_id];
+        auto &&pending_queues = consumer_group_id2pending_queues[consumer_group_id];
         if (comm::RetCode::RET_OK != (ret = GetPendingQueues(all_queues, addr_scale, pending_queues))) {
             QLErr("ERR: GetPendingQueues ret %d", comm::as_integer(ret));
             continue;
         }
 
-        impl_->scale_hashs[sub_id] = scale_hash;
+        impl_->scale_hashs[consumer_group_id] = scale_hash;
     }
 
-    DistubePendingQueues(sub_id2pending_queues);
+    DistubePendingQueues(consumer_group_id2pending_queues);
 
     impl_->conf_last_mod_time = conf_last_mod_time;
 
@@ -644,14 +644,14 @@ comm::RetCode HeartBeatLock::DoLock(const int vpid, Queue_t *const queue) {
         return ret;
     }
 
-    shared_ptr<const config::proto::Sub> sub;
-    if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(queue->sub_id, sub))) {
-        QLErr("ERR: GetSubBySubID ret %d sub_id %u", comm::as_integer(ret), queue->sub_id);
+    shared_ptr<const config::proto::ConsumerGroup> consumer_group;
+    if (comm::RetCode::RET_OK != (ret = topic_config->GetConsumerGroupByConsumerGroupID(queue->consumer_group_id, consumer_group))) {
+        QLErr("ERR: GetConsumerGroupByConsumerGroupID ret %d consumer_group_id %u", comm::as_integer(ret), queue->consumer_group_id);
         return ret;
     }
 
-    if (sub->skip_lock()) {
-        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnSkipLock(topic_id, sub->sub_id());
+    if (consumer_group->skip_lock()) {
+        comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnSkipLock(topic_id, consumer_group->consumer_group_id());
         return comm::RetCode::RET_OK;
     }
 
@@ -677,7 +677,7 @@ comm::RetCode HeartBeatLock::DoLock(const int vpid, Queue_t *const queue) {
     string lock_key;
     {
         ostringstream oss;
-        oss << topic_id << "-" << queue->sub_id << "-" << queue->store_id << "-" << queue->queue_id;
+        oss << topic_id << "-" << queue->consumer_group_id << "-" << queue->store_id << "-" << queue->queue_id;
         lock_key = oss.str();
     }
 
@@ -769,12 +769,12 @@ comm::RetCode HeartBeatLock::DoLock(const int vpid, Queue_t *const queue) {
     return comm::RetCode::RET_NO_NEED_LOCK;
 }
 
-comm::RetCode HeartBeatLock::Lock(const int vpid, int &sub_id, int &store_id, int &queue_id) {
+comm::RetCode HeartBeatLock::Lock(const int vpid, int &consumer_group_id, int &store_id, int &queue_id) {
     auto &&opt = impl_->consumer->GetConsumerOption();
 
     auto topic_id = impl_->consumer->GetTopicID();
 
-    comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLock(topic_id, sub_id, store_id, queue_id);
+    comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLock(topic_id, consumer_group_id, store_id, queue_id);
 
     if (vpid >= impl_->nproc) {
         QLErr("ERR: vpid err. vpid %u impl_->nproc %u", vpid, impl_->nproc);
@@ -787,22 +787,22 @@ comm::RetCode HeartBeatLock::Lock(const int vpid, int &sub_id, int &store_id, in
         comm::utils::RWLock l(impl_->rwlock, comm::utils::RWLock::LockMode::READ);
         memcpy(&queue, &impl_->buf->queues[vpid], sizeof(Queue_t));
     }
-    QLVerb("vpid %u queue sub_id %u store_id %u queue_id %u", vpid, queue.sub_id, queue.store_id, queue.queue_id);
+    QLVerb("vpid %u queue consumer_group_id %u store_id %u queue_id %u", vpid, queue.consumer_group_id, queue.store_id, queue.queue_id);
 
 
     comm::RetCode ret;
     if (comm::RetCode::RET_OK != (ret = DoLock(vpid, &queue))) {
         if (comm::as_integer(ret) < 0) {
             QLErr("ERR: DoLock ret %d vpid %u", comm::as_integer(ret), vpid);
-            comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLockFail(topic_id, sub_id, store_id, queue_id);
+            comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLockFail(topic_id, consumer_group_id, store_id, queue_id);
         }
         return ret;
     }
-    sub_id = queue.sub_id;
+    consumer_group_id = queue.consumer_group_id;
     store_id = queue.store_id;
     queue_id = queue.queue_id;
 
-    comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLockSucc(topic_id, sub_id, store_id, queue_id);
+    comm::ConsumerHeartBeatLockBP::GetThreadInstance()->OnLockSucc(topic_id, consumer_group_id, store_id, queue_id);
     return comm::RetCode::RET_OK;
 }
 

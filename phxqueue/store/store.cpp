@@ -568,10 +568,10 @@ comm::RetCode Store::Get(const comm::proto::GetRequest &req, comm::proto::GetRes
 
     QLVerb("Get Succ. "
            "req: topic_id %d store_id %d queue_id %d limit %d atime %" PRIu64
-           " sub_id %d prev_cursor_id %" PRIu64 " next_cursor_id %" PRIu64 ". "
+           " consumer_group_id %d prev_cursor_id %" PRIu64 " next_cursor_id %" PRIu64 ". "
            "resp: items.size() %d prev_cursor_id %" PRIu64 " next_cursor_id %" PRIu64,
            req.topic_id(), req.store_id(), req.queue_id(), req.limit(),
-           req.atime(), req.sub_id(), req.prev_cursor_id(), req.next_cursor_id(),
+           req.atime(), req.consumer_group_id(), req.prev_cursor_id(), req.next_cursor_id(),
            resp.items_size(), resp.prev_cursor_id(), resp.next_cursor_id());
 
     return comm::RetCode::RET_OK;
@@ -586,7 +586,7 @@ bool Store::SkipGet(const comm::proto::QItem &item, const comm::proto::GetReques
         return true;
     }
 
-    if (0 == ((1ULL << (req.sub_id() - 1)) & item.sub_ids())) {
+    if (0 == ((1ULL << (req.consumer_group_id() - 1)) & item.consumer_group_ids())) {
         return true;
     }
 

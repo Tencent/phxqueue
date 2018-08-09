@@ -29,8 +29,8 @@ using namespace std;
 
 comm::HandleResult EchoHandler::Handle(const comm::proto::ConsumerContext &cc,
                                        comm::proto::QItem &item, string &uncompressed_buffer) {
-    printf("consume echo \"%s\" succeeded! sub_id %d store_id %d queue_id %d item_uin %" PRIu64 "\n",
-           item.buffer().c_str(), cc.sub_id(), cc.store_id(), cc.queue_id(), (uint64_t)item.meta().uin());
+    printf("consume echo \"%s\" succeeded! consumer_group_id %d store_id %d queue_id %d item_uin %" PRIu64 "\n",
+           item.buffer().c_str(), cc.consumer_group_id(), cc.store_id(), cc.queue_id(), (uint64_t)item.meta().uin());
     fflush(stdout);
     return comm::HandleResult::RES_OK;
 }

@@ -46,24 +46,24 @@ comm::RetCode ConsumerConfig::ReadConfig(proto::ConsumerConfig &proto) {
 
     consumer = proto.add_consumers();
     consumer->set_scale(100);
-    consumer->add_sub_ids(1);
-    consumer->add_sub_ids(2);
+    consumer->add_consumer_group_ids(1);
+    consumer->add_consumer_group_ids(2);
     addr = consumer->mutable_addr();
     addr->set_ip("127.0.0.1");
     addr->set_port(8001);
 
     consumer = proto.add_consumers();
     consumer->set_scale(100);
-    consumer->add_sub_ids(1);
-    consumer->add_sub_ids(2);
+    consumer->add_consumer_group_ids(1);
+    consumer->add_consumer_group_ids(2);
     addr = consumer->mutable_addr();
     addr->set_ip("127.0.0.1");
     addr->set_port(8002);
 
     consumer = proto.add_consumers();
     consumer->set_scale(100);
-    consumer->add_sub_ids(1);
-    consumer->add_sub_ids(2);
+    consumer->add_consumer_group_ids(1);
+    consumer->add_consumer_group_ids(2);
     addr = consumer->mutable_addr();
     addr->set_ip("127.0.0.1");
     addr->set_port(8003);

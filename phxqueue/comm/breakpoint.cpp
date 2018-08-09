@@ -151,13 +151,13 @@ ProducerBP *ProducerBP::GetThreadInstance() {
     return bp;
 }
 
-ProducerSubBP *ProducerSubBP::GetThreadInstance() {
-    static thread_local ProducerSubBP *bp{nullptr};
+ProducerConsumerGroupBP *ProducerConsumerGroupBP::GetThreadInstance() {
+    static thread_local ProducerConsumerGroupBP *bp{nullptr};
     if (!bp) {
-        bp = plugin::BreakPointFactory::GetInstance()->NewProducerSubBP().release();
+        bp = plugin::BreakPointFactory::GetInstance()->NewProducerConsumerGroupBP().release();
     }
     if (!bp) {
-        bp = new ProducerSubBP();
+        bp = new ProducerConsumerGroupBP();
     }
     assert(bp);
 

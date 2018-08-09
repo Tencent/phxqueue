@@ -42,16 +42,16 @@ class TopicConfig : public BaseConfig<proto::TopicConfig> {
 
     comm::RetCode GetPubByPubID(const int pub_id, std::shared_ptr<const proto::Pub> &pub) const;
 
-    comm::RetCode GetSubIDsByPubID(const int pub_id, std::set<int> &sub_ids) const;
+    comm::RetCode GetConsumerGroupIDsByPubID(const int pub_id, std::set<int> &consumer_group_ids) const;
 
-    // sub
-    comm::RetCode GetAllSub(std::vector<std::shared_ptr<const proto::Sub>> &subs) const;
+    // consumer_group
+    comm::RetCode GetAllConsumerGroup(std::vector<std::shared_ptr<const proto::ConsumerGroup>> &consumer_groups) const;
 
-    comm::RetCode GetAllSubID(std::set<int> &sub_ids) const;
+    comm::RetCode GetAllConsumerGroupID(std::set<int> &consumer_group_ids) const;
 
-    bool IsValidSubID(const int sub_id) const;
+    bool IsValidConsumerGroupID(const int consumer_group_id) const;
 
-    comm::RetCode GetSubBySubID(const int sub_id, std::shared_ptr<const proto::Sub> &sub) const;
+    comm::RetCode GetConsumerGroupByConsumerGroupID(const int consumer_group_id, std::shared_ptr<const proto::ConsumerGroup> &consumer_group) const;
 
     // queue info
 
@@ -59,7 +59,7 @@ class TopicConfig : public BaseConfig<proto::TopicConfig> {
 
     comm::RetCode GetQueueInfoIDRankByPubID(const int queue_info_id, const int pub_id, uint64_t &rank) const;
 
-    bool IsValidQueue(const int queue, const int pub_id = -1, const int sub_id = -1) const;
+    bool IsValidQueue(const int queue, const int pub_id = -1, const int consumer_group_id = -1) const;
 
     comm::RetCode GetQueuesByQueueInfoID(const int queue_info_id, std::set<int> &queues) const;
 
@@ -75,7 +75,7 @@ class TopicConfig : public BaseConfig<proto::TopicConfig> {
 
     comm::RetCode GetQueueInfoByQueueInfoID(const int queue_info_id, std::shared_ptr<const proto::QueueInfo> &queue_info) const;
 
-    bool ShouldSkip(const comm::proto::QItem &item, const int sub_id, const int queue_info_id) const;
+    bool ShouldSkip(const comm::proto::QItem &item, const int consumer_group_id, const int queue_info_id) const;
 
     comm::RetCode GetQueueInfoIDByCount(const int pub_id, const int cnt, int &queue_info_id) const;
 

@@ -136,13 +136,13 @@ bool BaseMgr::NeedSkipAdd(const uint64_t cursor_id, const comm::proto::AddReques
     }
 
     SyncCtrl *sync = impl_->store->GetSyncCtrl();
-    for (size_t i{0}; i < pub->sub_ids_size(); ++i) {
-        auto &&sub_id(pub->sub_ids(i));
+    for (size_t i{0}; i < pub->consumer_group_ids_size(); ++i) {
+        auto &&consumer_group_id(pub->consumer_group_ids(i));
 
         uint64_t next_cursor_id;
-        ret = sync->GetCursorID(sub_id, req.queue_id(), next_cursor_id, false);
+        ret = sync->GetCursorID(consumer_group_id, req.queue_id(), next_cursor_id, false);
         if (0 < as_integer(ret)) {
-            QLWarn("GetCursorID ret %d sub_id %d queue_id %d", ret, sub_id, req.queue_id());
+            QLWarn("GetCursorID ret %d consumer_group_id %d queue_id %d", ret, consumer_group_id, req.queue_id());
             return false;
         } else if (0 == as_integer(ret) && cursor_id <= next_cursor_id) {
             QLInfo("add req skip. cursor_id %" PRIu64 " next_cursor_id %" PRIu64, cursor_id, next_cursor_id);
@@ -181,26 +181,34 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
     uint64_t cli_prev_cursor_id{req.prev_cursor_id()};
     uint64_t cli_next_cursor_id{req.next_cursor_id()};
+    uint64_t svr_prev_cursor_id{-1};
 
     StoreMetaQueue &meta_queue = impl_->meta_queues[req.queue_id()];
 
     SyncCtrl *sync = impl_->store->GetSyncCtrl();
 
-    if (as_integer(ret = sync->AdjustNextCursorID(req.sub_id(), req.queue_id(), cli_prev_cursor_id, cli_next_cursor_id)) < 0) {
-        comm::StoreBaseMgrBP::GetThreadInstance()->OnAdjustNextCursorIDFail(req);
-        QLErr("AdjustCur failed sub_id %d queue_id %d", req.sub_id(), req.queue_id());
-        return comm::RetCode::RET_ERR_GET_ADJUST_CURSOR_ID_FAIL;
-    } else if (as_integer(ret)) {
-        comm::StoreBaseMgrBP::GetThreadInstance()->OnCursorIDNotFound(req);
-        QLInfo("cursorid not found. ret %d sub_id %d queue_id %d", as_integer(ret), req.sub_id(), req.queue_id());
-        cli_prev_cursor_id = cli_next_cursor_id = -1;
+    if (!req.random()) {
+        // random get do not adjust client's cursorid
+        if (as_integer(ret = sync->AdjustNextCursorID(req.consumer_group_id(), req.queue_id(), cli_prev_cursor_id, cli_next_cursor_id)) < 0) {
+            comm::StoreBaseMgrBP::GetThreadInstance()->OnAdjustNextCursorIDFail(req);
+            QLErr("AdjustCur failed consumer_group_id %d queue_id %d", req.consumer_group_id(), req.queue_id());
+            return comm::RetCode::RET_ERR_GET_ADJUST_CURSOR_ID_FAIL;
+        } else if (as_integer(ret)) {
+            comm::StoreBaseMgrBP::GetThreadInstance()->OnCursorIDNotFound(req);
+            QLInfo("cursorid not found. ret %d consumer_group_id %d queue_id %d", as_integer(ret), req.consumer_group_id(), req.queue_id());
+            cli_prev_cursor_id = cli_next_cursor_id = -1;
+        }
+    }
+
+    if (as_integer(ret = sync->GetCursorID(req.consumer_group_id(), req.queue_id(), svr_prev_cursor_id)) < 0) {
+        QLErr("GetCursorID failed consumer_group_id %d queue_id %d", req.consumer_group_id(), req.queue_id());
     }
 
     if (cli_prev_cursor_id != req.prev_cursor_id() || cli_next_cursor_id != req.next_cursor_id()) {
         comm::StoreBaseMgrBP::GetThreadInstance()->OnCursorIDChange(req);
-        QLInfo("AdjustCur sub_id %d queue_id %d prev_cursor_id %" PRIu64
+        QLInfo("AdjustCur consumer_group_id %d queue_id %d prev_cursor_id %" PRIu64
                " -> %" PRIu64 " next_cursor_id %" PRIu64 " -> %" PRIu64,
-               req.sub_id(), req.queue_id(),
+               req.consumer_group_id(), req.queue_id(),
                static_cast<uint64_t>(req.prev_cursor_id()), cli_prev_cursor_id,
                static_cast<uint64_t>(req.next_cursor_id()), cli_next_cursor_id);
     }
@@ -227,6 +235,16 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
     uint64_t cur_cursor_id, prev_cursor_id{cli_prev_cursor_id}, next_cursor_id{cli_next_cursor_id};
 
+    if (req.random()) {
+        // cli_prev_cursor_id is meaningless in random get. just set to svr_prev_cursor_id.
+        QLInfo("random get. modify prev_cursor_id %" PRIu64 " to svr_prev_cursor_id %" PRIu64, prev_cursor_id, svr_prev_cursor_id);
+        prev_cursor_id = svr_prev_cursor_id;
+        if (next_cursor_id < prev_cursor_id) {
+            QLInfo("random get. next_cursor_id %" PRIu64 " < prev_cursor_id %" PRIu64 ". modify next_cursor_id to prev_cursor_id.", next_cursor_id, prev_cursor_id);
+            next_cursor_id = prev_cursor_id;
+        }
+    }
+
 
     size_t byte_size{0};
     uint64_t now_ts{0}, get_loop_start_ts{0};
@@ -237,9 +255,9 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
         if (0 == get_loop_start_ts) get_loop_start_ts = now_ts;
         else if (get_loop_start_ts + get_loop_max_time_ms < now_ts) {
             comm::StoreBaseMgrBP::GetThreadInstance()->OnGetLoopReachMaxTime(req);
-            QLInfo("get loop reach max time. sub_id %d queue_id %d resp_item_size %d next_cursor_id %" PRIu64
+            QLInfo("get loop reach max time. consumer_group_id %d queue_id %d resp_item_size %d next_cursor_id %" PRIu64
                    " -> %" PRIu64,
-                   req.sub_id(), req.queue_id(), resp.items_size(),
+                   req.consumer_group_id(), req.queue_id(), resp.items_size(),
                    cli_next_cursor_id, next_cursor_id);
             break;
         }
@@ -272,9 +290,9 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
 
         if (prev_cursor_id != -1 && prev_cursor_id >= cur_cursor_id) {
-            QLVerb("skip items, req.sub_id %d, prev_cursor_id %" PRIu64
+            QLVerb("skip items, req.consumer_group_id %d, prev_cursor_id %" PRIu64
                    " >= cur_cursor_id %" PRIu64,
-                   req.sub_id(), prev_cursor_id, cur_cursor_id);
+                   req.consumer_group_id(), prev_cursor_id, cur_cursor_id);
             next_cursor_id = cur_cursor_id;
             continue;
         }
@@ -319,12 +337,12 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
 
 
         for (auto &&item : items) {
-            if (impl_->store->SkipGet(item, req) || topic_config->ShouldSkip(item, req.sub_id(), queue_info->queue_info_id())) {
+            if (impl_->store->SkipGet(item, req) || topic_config->ShouldSkip(item, req.consumer_group_id(), queue_info->queue_info_id())) {
                 comm::StoreBaseMgrBP::GetThreadInstance()->OnGetSkip(req, item);
                 QLVerb("skip item, uin %llu handle_id %d hash %" PRIu64
-                       " sub_ids %llu, request sub_id %d cur_cursor_id %" PRIu64,
+                       " consumer_group_ids %llu, request consumer_group_id %d cur_cursor_id %" PRIu64,
                        item.meta().uin(), item.meta().handle_id(),
-                       item.meta().hash(), item.sub_ids(), req.sub_id(),
+                       item.meta().hash(), item.consumer_group_ids(), req.consumer_group_id(),
                        cur_cursor_id);
                 continue;
             }
@@ -358,23 +376,25 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
     QLVerb("set_cursor_id %" PRIu64, next_cursor_id);
 
 
-    if (prev_cursor_id != -1) {
-        if (comm::RetCode::RET_OK !=
-            (ret = sync->UpdateCursorID(req.sub_id(), req.queue_id(), prev_cursor_id))) {
-            comm::StoreBaseMgrBP::GetThreadInstance()->OnUpdateCursorIDFail(req);
-            QLErr("__UpdateCursorID ret %d queue_id %d prev_cursor_id %" PRIu64,
-                  ret, req.queue_id(), prev_cursor_id);
-            return comm::RetCode::RET_ERR_GET_UPDATE_CURSOR_ID_FAIL;
+    if (!req.random()) {
+        if (prev_cursor_id != -1) {
+            if (comm::RetCode::RET_OK !=
+                (ret = sync->UpdateCursorID(req.consumer_group_id(), req.queue_id(), prev_cursor_id))) {
+                comm::StoreBaseMgrBP::GetThreadInstance()->OnUpdateCursorIDFail(req);
+                QLErr("__UpdateCursorID ret %d queue_id %d prev_cursor_id %" PRIu64,
+                      ret, req.queue_id(), prev_cursor_id);
+                return comm::RetCode::RET_ERR_GET_UPDATE_CURSOR_ID_FAIL;
+            }
         }
-    }
 
-    if (next_cursor_id != -1) {
-        if (comm::RetCode::RET_OK !=
-            (ret = sync->UpdateCursorID(req.sub_id(), req.queue_id(), next_cursor_id, false))) {
-            comm::StoreBaseMgrBP::GetThreadInstance()->OnUpdateCursorIDFail(req);
-            QLErr("__UpdateCursorID ret %d queue_id %d next_cursor_id %" PRIu64,
-                  ret, req.queue_id(), next_cursor_id);
-            return comm::RetCode::RET_ERR_GET_UPDATE_CURSOR_ID_FAIL;
+        if (next_cursor_id != -1) {
+            if (comm::RetCode::RET_OK !=
+                (ret = sync->UpdateCursorID(req.consumer_group_id(), req.queue_id(), next_cursor_id, false))) {
+                comm::StoreBaseMgrBP::GetThreadInstance()->OnUpdateCursorIDFail(req);
+                QLErr("__UpdateCursorID ret %d queue_id %d next_cursor_id %" PRIu64,
+                      ret, req.queue_id(), next_cursor_id);
+                return comm::RetCode::RET_ERR_GET_UPDATE_CURSOR_ID_FAIL;
+            }
         }
     }
 
@@ -382,9 +402,9 @@ comm::RetCode BaseMgr::Get(const comm::proto::GetRequest &req, comm::proto::GetR
         comm::StoreBaseMgrBP::GetThreadInstance()->OnItemInResp(req);
     }
 
-    QLInfo("Get end. sub_id %u queue_id %d prev_cursor_id %" PRIu64
+    QLInfo("Get end. consumer_group_id %u queue_id %d prev_cursor_id %" PRIu64
            " next_cursor_id %" PRIu64 " size %u",
-           req.sub_id(), req.queue_id(), prev_cursor_id, next_cursor_id, resp.items_size());
+           req.consumer_group_id(), req.queue_id(), prev_cursor_id, next_cursor_id, resp.items_size());
 
     comm::StoreBaseMgrBP::GetThreadInstance()->OnGetSucc(req, resp);
 

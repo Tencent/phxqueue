@@ -92,19 +92,19 @@ class ConsumerHeartBeatLockBP {
 
     virtual void OnSync(const int topic_id) {}
     virtual void OnProcUsed(const int topic_id, const int nproc, const int proc_used) {}
-    virtual void OnScaleHash(const int topic_id, const int sub_id, const uint32_t scale_hash) {}
-    virtual void OnAdjustScale(const int topic_id, const int sub_id) {}
+    virtual void OnScaleHash(const int topic_id, const int consumer_group_id, const uint32_t scale_hash) {}
+    virtual void OnAdjustScale(const int topic_id, const int consumer_group_id) {}
     virtual void OnProcUsedExceed(const int topic_id, const int nproc, const int proc_used) {}
     virtual void OnSyncSucc(const int topic_id) {}
     virtual void OnSyncFail(const int topic_id) {}
 
-    virtual void OnLock(const int topic_id, const int sub_id, const int store_id, const int queue_id) {}
+    virtual void OnLock(const int topic_id, const int consumer_group_id, const int store_id, const int queue_id) {}
     virtual void OnProcLack(const int topic_id) {}
     virtual void OnNoLockTarget(const int topic_id) {}
-    virtual void OnSkipLock(const int topic_id, const int sub_id) {}
+    virtual void OnSkipLock(const int topic_id, const int consumer_group_id) {}
     virtual void OnConcurrentIdempotent(const int topic_id, const int queue_info_id) {}
-    virtual void OnLockSucc(const int topic_id, const int sub_id, const int store_id, const int queue_id) {}
-    virtual void OnLockFail(const int topic_id, const int sub_id, const int store_id, const int queue_id) {}
+    virtual void OnLockSucc(const int topic_id, const int consumer_group_id, const int store_id, const int queue_id) {}
+    virtual void OnLockFail(const int topic_id, const int consumer_group_id, const int store_id, const int queue_id) {}
 };
 
 class StoreBP {
@@ -204,7 +204,7 @@ class StoreBacklogBP {
     StoreBacklogBP() {}
     virtual ~StoreBacklogBP() {}
 
-    virtual void OnBackLogReport(const int topic_id, const int sub_id, const int queue_id, const int backlog) {}
+    virtual void OnBackLogReport(const int topic_id, const int consumer_group_id, const int queue_id, const int backlog) {}
 };
 
 class StoreSMBP {
@@ -258,14 +258,14 @@ class ProducerBP {
 
 };
 
-class ProducerSubBP {
+class ProducerConsumerGroupBP {
   public:
-    static ProducerSubBP *GetThreadInstance();
+    static ProducerConsumerGroupBP *GetThreadInstance();
 
-    ProducerSubBP() {}
-    virtual ~ProducerSubBP() {}
+    ProducerConsumerGroupBP() {}
+    virtual ~ProducerConsumerGroupBP() {}
 
-    virtual void OnSubDistribute(const int topic_id, const int pub_id, const int handle_id, const uint64_t uin, const std::set<int> *sub_ids) {}
+    virtual void OnConsumerGroupDistribute(const int topic_id, const int pub_id, const int handle_id, const uint64_t uin, const std::set<int> *consumer_group_ids) {}
 };
 
 
