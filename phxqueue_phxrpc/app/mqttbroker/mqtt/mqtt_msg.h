@@ -27,6 +27,7 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/msg.h"
 
 #include "../mqttbroker.pb.h"
+#include "mqtt_utils.h"
 
 
 namespace phxqueue_phxrpc {
@@ -36,87 +37,41 @@ namespace mqttbroker {
 
 class MqttMessage : virtual public phxrpc::BaseMessage {
   public:
-    enum class ControlPacketType {
-        FAKE_NONE = 0,
-        CONNECT = 1,
-        CONNACK,
-        PUBLISH,
-        PUBACK,
-        PUBREC,
-        PUBREL,
-        PUBCOMP,
-        SUBSCRIBE,
-        SUBACK,
-        UNSUBSCRIBE,
-        UNSUBACK,
-        PINGREQ,
-        PINGRESP,
-        DISCONNECT,
-        FAKE_MAX,
-    };
-
-    struct FixedHeader {
-        ControlPacketType control_packet_type{ControlPacketType::FAKE_NONE};
-        bool dup{0};
-        uint32_t qos{0};
-        bool retain{0};
-    };
-
     static const char SampleFixedHeader[];
 
-    static uint8_t EncodeFixedHeader(const FixedHeader &fixed_header);
-    static FixedHeader DecodeFixedHeader(const uint8_t fixed_header_byte);
-
-    // control packet type and flags
-    static phxrpc::ReturnCode SendFixedHeaderAndRemainingBuffer(
-            phxrpc::BaseTcpStream &out_stream,
-            const FixedHeader &fixed_header,
-            const std::string &remaining_buffer);
-    static phxrpc::ReturnCode RecvFixedHeaderAndRemainingBuffer(
-            phxrpc::BaseTcpStream &in_stream,
-            FixedHeader &fixed_header,
-            std::string &remaining_buffer);
-
     // remaining length
-    static phxrpc::ReturnCode SendRemainingLength(phxrpc::BaseTcpStream &out_stream,
-                                          const int remaining_length);
-    static phxrpc::ReturnCode RecvRemainingLength(phxrpc::BaseTcpStream &in_stream,
-                                          int &remaining_length);
+    static int SendRemainingLength(phxrpc::BaseTcpStream &out_stream,
+                                                  const int remaining_length);
 
-    MqttMessage();
+    MqttMessage(google::protobuf::Message &base_pb);
     virtual ~MqttMessage() override;
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const = 0;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) = 0;
+    virtual int ToPb(google::protobuf::Message *const message) const override;
+    virtual int FromPb(const google::protobuf::Message &message) override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const = 0;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) = 0;
+    virtual int Send(phxrpc::BaseTcpStream &socket) const override;
 
-    virtual phxrpc::ReturnCode Send(phxrpc::BaseTcpStream &socket) const override;
+    virtual uint8_t EncodeFixedHeader() const;
+
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const = 0;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) = 0;
+
+    virtual int SendPayload(std::ostringstream &out_stream) const = 0;
+    virtual int RecvPayload(std::istringstream &in_stream) = 0;
 
     virtual size_t size() const override;
 
-    phxrpc::ReturnCode SendRemaining(std::ostringstream &out_stream) const;
-    phxrpc::ReturnCode RecvRemaining(std::istringstream &in_stream);
+    // control packet type and flags
+    int SendFixedHeaderAndRemainingBuffer(
+            phxrpc::BaseTcpStream &out_stream, const std::string &remaining_buffer) const;
 
-    // packet identifier
-    phxrpc::ReturnCode SendPacketIdentifier(std::ostringstream &out_stream) const;
-    phxrpc::ReturnCode RecvPacketIdentifier(std::istringstream &in_stream);
+    int SendRemaining(std::ostringstream &out_stream) const;
+    int RecvRemaining(std::istringstream &in_stream);
 
-    FixedHeader fixed_header() const { return fixed_header_; }
+    ControlPacketType control_packet_type() const { return control_packet_type_; }
 
-    void set_fixed_header(const FixedHeader fixed_header) {
-        fixed_header_ = fixed_header;
-    }
-
-    FixedHeader &mutable_fixed_header() {
-        return fixed_header_;
-    }
-
-    uint16_t packet_identifier() const { return packet_identifier_; }
-
-    void set_packet_identifier(const uint16_t packet_identifier) {
-        packet_identifier_ = packet_identifier;
+    void set_control_packet_type(const ControlPacketType control_packet_type) {
+        control_packet_type_ = control_packet_type;
     }
 
     int remaining_length() const { return remaining_length_; }
@@ -125,36 +80,29 @@ class MqttMessage : virtual public phxrpc::BaseMessage {
         remaining_length_ = remaining_length;
     }
 
-  protected:
-    std::string data_;
-
   private:
-    FixedHeader fixed_header_;
-    uint16_t packet_identifier_{0x0};
+    ControlPacketType control_packet_type_{ControlPacketType::FAKE_NONE};
     int remaining_length_{0};
+    google::protobuf::Message &base_pb_;
 };
 
 
 class MqttRequest : public virtual MqttMessage, public phxrpc::BaseRequest {
   public:
-    MqttRequest() = default;
+    MqttRequest(google::protobuf::Message &base_pb);
     virtual ~MqttRequest() = default;
-
-  private:
 };
 
 
 class MqttResponse : public virtual MqttMessage, public phxrpc::BaseResponse {
   public:
-    MqttResponse() = default;
+    MqttResponse(google::protobuf::Message &base_pb);
     virtual ~MqttResponse() = default;
 
     virtual void SetPhxRpcResult(const int result) override {}
     virtual void DispatchErr() override {}
 
-    virtual phxrpc::ReturnCode ModifyResp(const bool keep_alive, const std::string &version) override;
-
-  private:
+    virtual int ModifyResp(const bool keep_alive, const std::string &version) override;
 };
 
 
@@ -163,27 +111,22 @@ class MqttFakeResponse final : public MqttResponse {
     MqttFakeResponse();
     virtual ~MqttFakeResponse() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override {
-        return phxrpc::ReturnCode::ERROR_UNIMPLEMENT;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
+        return 0;
+    }
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override {
-        return phxrpc::ReturnCode::ERROR_UNIMPLEMENT;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
+    }
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
-    }
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
-    }
-
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
-    }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
-    }
+  private:
+    google::protobuf::Empty pb_;
 };
 
 
@@ -192,54 +135,21 @@ class MqttConnect final : public MqttRequest {
     MqttConnect();
     virtual ~MqttConnect() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    bool clean_session() const { return clean_session_; }
-    void set_clean_session(const bool clean_session) {
-        clean_session_ = clean_session;
-    }
-
-    uint16_t keep_alive() const { return keep_alive_; }
-    void set_keep_alive(const uint16_t keep_alive) {
-        keep_alive_ = keep_alive;
-    }
-
-    const std::string &client_identifier() const { return client_identifier_; }
-    void set_client_identifier(const std::string &client_identifier) {
-        client_identifier_ = client_identifier;
-    }
-
-    // read only
-    const std::string &proto_name() const { return proto_name_; }
-
-    // read only
-    uint8_t proto_level() const { return proto_level_; }
+    const MqttConnectPb &pb() const;
 
   private:
-    std::string client_identifier_;
-    std::string proto_name_{"MQTT"};
-    uint8_t proto_level_{4};
-    bool clean_session_{false};
-    uint16_t keep_alive_{0};
+    MqttConnectPb pb_;
     bool user_name_flag_{false};
     bool password_flag_{false};
-    std::string user_name_;
-    std::string password_;
-    bool will_flag_{false};
-    uint32_t will_qos_{0};
-    bool will_retain_{false};
-    std::string will_topic_;
-    std::string will_message_;
 };
 
 
@@ -248,138 +158,128 @@ class MqttConnack final : public MqttResponse {
     MqttConnack();
     virtual ~MqttConnack() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
-
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    bool session_present() const { return session_present_; }
-    void set_session_present(const bool session_present) {
-        session_present_ = session_present;
-    }
-
-    char connect_return_code() const { return connect_return_code_; }
-    void set_connect_return_code(const char connect_return_code) {
-        connect_return_code_ = connect_return_code;
-    }
+    const MqttConnackPb &pb() const;
 
   private:
-    bool session_present_{0};
-    char connect_return_code_{0};
+    MqttConnackPb pb_;
 };
 
 
-class MqttPublish final : public virtual MqttRequest, public virtual MqttResponse {
+class MqttPublish final : public MqttRequest, public MqttResponse {
   public:
     MqttPublish();
     virtual ~MqttPublish() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual uint8_t EncodeFixedHeader() const override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    const std::string &topic_name() const { return topic_name_; }
-    void set_topic_name(const std::string &topic_name) {
-        topic_name_ = topic_name;
-    }
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
+
+    virtual size_t size() const override;
+
+    void SetFlags(const uint8_t flags);
+
+    const MqttPublishPb &pb() const;
 
   private:
-    std::string topic_name_;
+    MqttPublishPb pb_;
 };
 
 
-class MqttPuback final : public virtual MqttRequest, public virtual MqttResponse {
+class MqttPuback final : public MqttRequest, public MqttResponse {
   public:
     MqttPuback();
     virtual ~MqttPuback() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
+
+    const MqttPubackPb &pb() const;
+
+  private:
+    MqttPubackPb pb_;
 };
 
 
-class MqttPubrec final : public virtual MqttRequest, public virtual MqttResponse {
+class MqttPubrec final : public MqttRequest, public MqttResponse {
   public:
     MqttPubrec();
     virtual ~MqttPubrec() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
+
+  private:
+    MqttPubrecPb pb_;
 };
 
 
-class MqttPubrel final : public virtual MqttRequest, public virtual MqttResponse {
+class MqttPubrel final : public MqttRequest, public MqttResponse {
   public:
     MqttPubrel();
     virtual ~MqttPubrel() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
+
+  private:
+    MqttPubrelPb pb_;
 };
 
 
-class MqttPubcomp final : public virtual MqttRequest, public virtual MqttResponse {
+class MqttPubcomp final : public MqttRequest, public MqttResponse {
   public:
     MqttPubcomp();
     virtual ~MqttPubcomp() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
+
+  private:
+    MqttPubcompPb pb_;
 };
 
 
@@ -388,27 +288,18 @@ class MqttSubscribe final : public MqttRequest {
     MqttSubscribe();
     virtual ~MqttSubscribe() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const std::vector<std::string> &topic_filters() const {
-        return topic_filters_;
-    }
-    void set_topic_filters(const std::vector<std::string> &topic_filters) {
-        topic_filters_ = topic_filters;
-    }
+    const MqttSubscribePb &pb() const;
 
   private:
-    std::vector<std::string> topic_filters_;
-    std::vector<uint32_t> qoss_;
+    MqttSubscribePb pb_;
 };
 
 
@@ -417,21 +308,15 @@ class MqttSuback final : public MqttResponse {
     MqttSuback();
     virtual ~MqttSuback() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
-
-    const std::string &return_codes() const { return return_codes_; }
-    void set_return_codes(const std::string &return_codes) {
-        return_codes_ = return_codes;
-    }
+    const MqttSubackPb &pb() const;
 
   private:
-    std::string return_codes_;
+    MqttSubackPb pb_;
 };
 
 
@@ -440,26 +325,18 @@ class MqttUnsubscribe final : public MqttRequest {
     MqttUnsubscribe();
     virtual ~MqttUnsubscribe() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override;
+    virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const std::vector<std::string> &topic_filters() const {
-        return topic_filters_;
-    }
-    void set_topic_filters(const std::vector<std::string> &topic_filters) {
-        topic_filters_ = topic_filters;
-    }
+    const MqttUnsubscribePb &pb() const;
 
   private:
-    std::vector<std::string> topic_filters_;
+    MqttUnsubscribePb pb_;
 };
 
 
@@ -468,18 +345,20 @@ class MqttUnsuback final : public MqttResponse {
     MqttUnsuback();
     virtual ~MqttUnsuback() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override;
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
+    }
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
+    }
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
-    }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
-    }
+    const MqttUnsubackPb &pb() const;
+
+  private:
+    MqttUnsubackPb pb_;
 };
 
 
@@ -488,25 +367,27 @@ class MqttPingreq final : public MqttRequest {
     MqttPingreq();
     virtual ~MqttPingreq() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
+
+    const MqttPingreqPb &pb() const;
+
+  private:
+    MqttPingreqPb pb_;
 };
 
 
@@ -515,22 +396,24 @@ class MqttPingresp final : public MqttResponse {
     MqttPingresp();
     virtual ~MqttPingresp() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
+
+    const MqttPingrespPb &pb() const;
+
+  private:
+    MqttPingrespPb pb_;
 };
 
 
@@ -539,25 +422,27 @@ class MqttDisconnect final : public MqttRequest {
     MqttDisconnect();
     virtual ~MqttDisconnect() = default;
 
-    virtual phxrpc::ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual phxrpc::ReturnCode FromPb(const google::protobuf::Message &message) override;
-
     virtual phxrpc::BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
 
-    virtual phxrpc::ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendVariableHeader(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvVariableHeader(std::istringstream &in_stream) override {
+        return 0;
     }
 
-    virtual phxrpc::ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return phxrpc::ReturnCode::OK;
+    virtual int SendPayload(std::ostringstream &out_stream) const override {
+        return 0;
     }
-    virtual phxrpc::ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return phxrpc::ReturnCode::OK;
+    virtual int RecvPayload(std::istringstream &in_stream) override {
+        return 0;
     }
+
+    const MqttDisconnectPb &pb() const;
+
+  private:
+    MqttDisconnectPb pb_;
 };
 
 

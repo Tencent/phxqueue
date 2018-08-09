@@ -34,7 +34,7 @@ message MqttPublishPb {
     bool retain = 3;
     uint32 packet_identifier = 11;
     string topic_name = 12;
-    string content = 13;
+    string data = 13;
 }
 
 message MqttPubackPb {

@@ -222,8 +222,8 @@ void EventLoopServerIO::UThreadIFunc(const uint64_t session_id) {
 
         // will be deleted by worker
         phxrpc::BaseRequest *req{nullptr};
-        phxrpc::ReturnCode ret{msg_handler->ServerRecv(*(session->in_stream), req)};
-        if (phxrpc::ReturnCode::ERROR_STREAM_NOT_GOOD == ret) {
+        int ret{msg_handler->ServerRecv(*(session->in_stream), req)};
+        if (-103 == ret) {
             // client closed
             if (req) {
                 delete req;
@@ -236,7 +236,7 @@ void EventLoopServerIO::UThreadIFunc(const uint64_t session_id) {
 
         phxrpc::log(LOG_DEBUG, "%s session_id %" PRIx64 " ServerRecv ret %d idx %d",
                     __func__, session_id, static_cast<int>(ret), idx_);
-        if (phxrpc::ReturnCode::OK != ret) {
+        if (0 != ret) {
             delete req;
             server_stat_->io_read_fails_++;
             phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " read request err",
@@ -277,7 +277,7 @@ void EventLoopServerIO::UThreadIFunc(const uint64_t session_id) {
         }
 
         ret = msg_handler->GenResponse(data_flow_args->resp);
-        if (phxrpc::ReturnCode::OK != ret) {
+        if (0 != ret) {
             delete req;
             phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " GenResponse err %d",
                         __func__, session_id, static_cast<int>(ret));
@@ -317,8 +317,8 @@ void EventLoopServerIO::UThreadOFunc(const uint64_t session_id) {
             if (!resp->fake()) {
                 server_stat_->io_write_responses_++;
 
-                phxrpc::ReturnCode ret{resp->Send(*(session->out_stream))};
-                if (phxrpc::ReturnCode::OK != ret) {
+                int ret{resp->Send(*(session->out_stream))};
+                if (0 != ret) {
                     server_stat_->io_write_fails_++;
                     phxrpc::log(LOG_ERR, "%s Send err %d session_id %" PRIx64, __func__,
                                 static_cast<int>(ret), session_id);

@@ -66,7 +66,7 @@ int SearchToolImpl::PhxHttpPublish(phxrpc::OptMap &opt_map) {
 
     req.mutable_mqtt_publish()->set_topic_name(opt_map.Get('t'));
     req.mutable_mqtt_publish()->set_packet_identifier(packet_identifier);
-    req.mutable_mqtt_publish()->set_content(opt_map.Get('s'));
+    req.mutable_mqtt_publish()->set_data(opt_map.Get('s'));
 
     SearchClient client;
     int ret{client.PhxHttpPublish(req, &resp)};
@@ -136,7 +136,7 @@ int SearchToolImpl::PhxMqttPublish(phxrpc::OptMap &opt_map) {
 
     req.set_topic_name(opt_map.Get('t'));
     req.set_packet_identifier(packet_identifier);
-    req.set_content(opt_map.Get('s'));
+    req.set_data(opt_map.Get('s'));
 
     ret = client.PhxMqttPublish(req, &resp);
     printf("%s return %d\n", __func__, ret);

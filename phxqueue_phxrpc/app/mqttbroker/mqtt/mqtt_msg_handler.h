@@ -23,6 +23,8 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/msg.h"
 
+#include "mqtt_utils.h"
+
 
 namespace phxrpc {
 
@@ -44,24 +46,43 @@ class MqttMessage;
 
 class MqttMessageHandler : public phxrpc::BaseMessageHandler {
   public:
-    // client send
-    static phxrpc::ReturnCode SendMessage(phxrpc::BaseTcpStream &socket,
-                                          const MqttMessage *const msg);
-    // client receive
-    static phxrpc::ReturnCode RecvMessage(phxrpc::BaseTcpStream &socket,
-                                          MqttMessage *const msg);
-
     MqttMessageHandler() = default;
     virtual ~MqttMessageHandler() override = default;
 
     // accept
     virtual bool Accept(phxrpc::BaseTcpStream &in_stream) override;
 
-    // server receive
-    virtual phxrpc::ReturnCode ServerRecv(phxrpc::BaseTcpStream &socket,
-                                          phxrpc::BaseRequest *&req) override;
+    // gen
+    int GenConnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPublish(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPuback(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenSubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenUnsubscribe(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenPingreq(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
+    int GenDisconnect(const std::string &remaining_buffer, phxrpc::BaseRequest *&req);
 
-    virtual phxrpc::ReturnCode GenResponse(phxrpc::BaseResponse *&resp) override;
+    // server receive
+    virtual int ServerRecv(phxrpc::BaseTcpStream &socket,
+                           phxrpc::BaseRequest *&req) override;
+
+    // client receive
+    int RecvMessage(phxrpc::BaseTcpStream &socket, MqttMessage *const msg);
+
+    virtual int GenResponse(phxrpc::BaseResponse *&resp) override;
+
+  private:
+    static int RecvRemainingLength(phxrpc::BaseTcpStream &in_stream,
+                                   int &remaining_length);
+
+    int RecvFixedHeaderAndRemainingBuffer(
+            phxrpc::BaseTcpStream &in_stream, std::string &remaining_buffer);
+
+    void Reset();
+
+    void DecodeFixedHeader(const uint8_t fixed_header_byte);
+
+    ControlPacketType control_packet_type_{ControlPacketType::FAKE_NONE};
+    uint8_t flags_{0x00};
 };
 
 
