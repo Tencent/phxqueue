@@ -12,17 +12,21 @@ LIB_MQTT_OBJS = mqtt/mqtt_msg.o mqtt/mqtt_msg_handler.o mqtt/mqtt_protocol.o \
 		mqtt/mqtt_msg_handler_factory.o mqtt/mqtt_session.o mqtt/mqtt_packet_id.o
 
 SVR_OBJS = mqttbroker_service_impl.o \
+		publish/publish_mgr.o \
+		publish/publish_memory.o \
+		mqttbroker_logic.o \
 		mqttbroker.pb.o \
 		event_loop_server_config.o \
 		event_loop_server.o \
 		server_mgr.o \
-		mqttbroker_mgr.o \
 		phxrpc_mqttbroker_service.o \
 		phxrpc_mqttbroker_dispatcher.o \
 		mqttbroker_server_config.o \
 		mqttbroker_main.o
 
 SAMPLE_SVR_OBJS = sample/mqttbroker_service_impl.o \
+		publish/publish_mgr.o \
+		publish/publish_memory.o \
 		mqttbroker.pb.o \
 		event_loop_server_config.o \
 		event_loop_server.o \
@@ -35,12 +39,18 @@ SAMPLE_SVR_OBJS = sample/mqttbroker_service_impl.o \
 all: mqttbroker_main
 
 mqttbroker_main: $(SVR_OBJS) $(LIB_MQTT_OBJS)
-	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ -lphxqueue_phxrpc_producer -lstore_client -L ../lock/ -llock_client -lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
-	-lphxqueue_producer -lphxqueue_store -lphxqueue_config -lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ \
+			-lphxqueue_phxrpc_logic_mqtt -lphxqueue_phxrpc_producer -lstore_client -llock_client \
+			-lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
+			-lphxqueue_producer -lphxqueue_config \
+			-lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
 
 sample_mqttbroker_main: $(SAMPLE_SVR_OBJS) $(LIB_MQTT_OBJS)
-	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ -lphxqueue_phxrpc_producer -lstore_client -L ../lock/ -llock_client -lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
-	-lphxqueue_producer -lphxqueue_store -lphxqueue_config -lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ \
+			-lphxqueue_phxrpc_logic_mqtt -lphxqueue_phxrpc_producer -lstore_client -llock_client \
+			-lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
+			-lphxqueue_producer -lphxqueue_config \
+			-lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
 
 %.pb.o: %.pb.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -I$(PROTOBUF_INCLUDE_DIR) -I$(PHXRPC_INCLUDE_DIR) \
@@ -74,5 +84,6 @@ clean:
 	@($(RM) *.o)
 	@($(RM) *.pb.*)
 	@($(RM) mqtt/*.o)
+	@($(RM) publish/*.o)
 	@($(RM) sample/*.o)
 

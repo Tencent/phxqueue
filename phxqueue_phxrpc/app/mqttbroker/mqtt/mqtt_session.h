@@ -21,7 +21,8 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include <list>
+#include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -46,10 +47,11 @@ class MqttSession {
 
     uint64_t expire_time_ms() const;
 
-    uint64_t session_id;
+    uint64_t session_id{0uLL};
     std::string client_id;
-    uint32_t keep_alive{10};
+    uint32_t keep_alive{10u};
     std::vector<RetainMessage> retain_messages;
+    uint64_t acked_packet_id{0uLL};
 
   private:
     uint64_t expire_time_ms_{0uLL};
@@ -58,6 +60,8 @@ class MqttSession {
 
 class MqttSessionMgr final {
   public:
+    static MqttSessionMgr *GetInstance();
+
     MqttSessionMgr();
     ~MqttSessionMgr();
 
@@ -65,9 +69,12 @@ class MqttSessionMgr final {
     MqttSession *GetByClientId(const std::string &client_id);
     MqttSession *GetBySessionId(const uint64_t session_id);
     void DestroyBySessionId(const uint64_t session_id);
+    int UpdateAckPos(const uint64_t session_id, const uint32_t packet_id);
 
   private:
-    std::list<MqttSession> sessions_;
+    static std::unique_ptr<MqttSessionMgr> s_instance;
+
+    std::map<uint64_t, MqttSession> sessions_map_;
 
     std::mutex mutex_;
 };

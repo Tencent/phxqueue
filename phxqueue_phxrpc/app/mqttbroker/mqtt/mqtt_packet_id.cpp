@@ -32,6 +32,14 @@ namespace mqttbroker {
 using namespace std;
 
 
+MqttPacketIdMgr *MqttPacketIdMgr::GetInstance() {
+    if (!s_instance) {
+        s_instance.reset(new MqttPacketIdMgr);
+    }
+
+    return s_instance.get();
+}
+
 MqttPacketIdMgr::MqttPacketIdMgr() {
 }
 
@@ -119,6 +127,8 @@ bool MqttPacketIdMgr::TestPacketId(const string &pub_client_id, const uint16_t p
 
     return sub_client_id2packet_ids_map_it->second.test(pub_keys_map_it->second);
 }
+
+unique_ptr<MqttPacketIdMgr> MqttPacketIdMgr::s_instance;
 
 
 }  // namespace mqttbroker

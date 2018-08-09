@@ -24,9 +24,9 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 #include <string>
 
+#include "phxqueue_phxrpc/app/logic/mqtt.h"
 #include "phxrpc/msg.h"
 
-#include "../mqttbroker.pb.h"
 #include "mqtt_protocol.h"
 
 
@@ -149,10 +149,10 @@ class MqttConnect final : public MqttRequest {
     virtual int SendPayload(std::ostringstream &out_stream) const override;
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const MqttConnectPb &pb() const;
+    const logic::mqtt::MqttConnectPb &pb() const;
 
   private:
-    MqttConnectPb pb_;
+    logic::mqtt::MqttConnectPb pb_;
     bool user_name_flag_{false};
     bool password_flag_{false};
 };
@@ -173,10 +173,10 @@ class MqttConnack final : public MqttResponse {
         return 0;
     }
 
-    const MqttConnackPb &pb() const;
+    const logic::mqtt::MqttConnackPb &pb() const;
 
   private:
-    MqttConnackPb pb_;
+    logic::mqtt::MqttConnackPb pb_;
 };
 
 
@@ -199,10 +199,10 @@ class MqttPublish final : public MqttRequest, public MqttResponse {
 
     void SetFlags(const uint8_t flags);
 
-    const MqttPublishPb &pb() const;
+    const logic::mqtt::MqttPublishPb &pb() const;
 
   private:
-    MqttPublishPb pb_;
+    logic::mqtt::MqttPublishPb pb_;
 };
 
 
@@ -222,10 +222,10 @@ class MqttPuback final : public MqttRequest, public MqttResponse {
         return 0;
     }
 
-    const MqttPubackPb &pb() const;
+    const logic::mqtt::MqttPubackPb &pb() const;
 
   private:
-    MqttPubackPb pb_;
+    logic::mqtt::MqttPubackPb pb_;
 };
 
 
@@ -243,7 +243,7 @@ class MqttPubrec final : public MqttRequest, public MqttResponse {
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
   private:
-    MqttPubrecPb pb_;
+    logic::mqtt::MqttPubrecPb pb_;
 };
 
 
@@ -261,7 +261,7 @@ class MqttPubrel final : public MqttRequest, public MqttResponse {
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
   private:
-    MqttPubrelPb pb_;
+    logic::mqtt::MqttPubrelPb pb_;
 };
 
 
@@ -279,7 +279,7 @@ class MqttPubcomp final : public MqttRequest, public MqttResponse {
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
   private:
-    MqttPubcompPb pb_;
+    logic::mqtt::MqttPubcompPb pb_;
 };
 
 
@@ -295,10 +295,10 @@ class MqttSubscribe final : public MqttRequest {
     virtual int SendPayload(std::ostringstream &out_stream) const override;
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const MqttSubscribePb &pb() const;
+    const logic::mqtt::MqttSubscribePb &pb() const;
 
   private:
-    MqttSubscribePb pb_;
+    logic::mqtt::MqttSubscribePb pb_;
 };
 
 
@@ -312,10 +312,10 @@ class MqttSuback final : public MqttResponse {
     virtual int SendPayload(std::ostringstream &out_stream) const override;
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const MqttSubackPb &pb() const;
+    const logic::mqtt::MqttSubackPb &pb() const;
 
   private:
-    MqttSubackPb pb_;
+    logic::mqtt::MqttSubackPb pb_;
 };
 
 
@@ -331,10 +331,10 @@ class MqttUnsubscribe final : public MqttRequest {
     virtual int SendPayload(std::ostringstream &out_stream) const override;
     virtual int RecvPayload(std::istringstream &in_stream) override;
 
-    const MqttUnsubscribePb &pb() const;
+    const logic::mqtt::MqttUnsubscribePb &pb() const;
 
   private:
-    MqttUnsubscribePb pb_;
+    logic::mqtt::MqttUnsubscribePb pb_;
 };
 
 
@@ -353,10 +353,10 @@ class MqttUnsuback final : public MqttResponse {
         return 0;
     }
 
-    const MqttUnsubackPb &pb() const;
+    const logic::mqtt::MqttUnsubackPb &pb() const;
 
   private:
-    MqttUnsubackPb pb_;
+    logic::mqtt::MqttUnsubackPb pb_;
 };
 
 
@@ -381,10 +381,10 @@ class MqttPingreq final : public MqttRequest {
         return 0;
     }
 
-    const MqttPingreqPb &pb() const;
+    const logic::mqtt::MqttPingreqPb &pb() const;
 
   private:
-    MqttPingreqPb pb_;
+    logic::mqtt::MqttPingreqPb pb_;
 };
 
 
@@ -407,10 +407,10 @@ class MqttPingresp final : public MqttResponse {
         return 0;
     }
 
-    const MqttPingrespPb &pb() const;
+    const logic::mqtt::MqttPingrespPb &pb() const;
 
   private:
-    MqttPingrespPb pb_;
+    logic::mqtt::MqttPingrespPb pb_;
 };
 
 
@@ -435,10 +435,10 @@ class MqttDisconnect final : public MqttRequest {
         return 0;
     }
 
-    const MqttDisconnectPb &pb() const;
+    const logic::mqtt::MqttDisconnectPb &pb() const;
 
   private:
-    MqttDisconnectPb pb_;
+    logic::mqtt::MqttDisconnectPb pb_;
 };
 
 

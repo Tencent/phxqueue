@@ -35,6 +35,8 @@ namespace mqttbroker {
 
 class MqttPacketIdMgr final {
   public:
+    static MqttPacketIdMgr *GetInstance();
+
     MqttPacketIdMgr();
     ~MqttPacketIdMgr();
 
@@ -46,6 +48,8 @@ class MqttPacketIdMgr final {
                       const std::string &sub_client_id);
 
   private:
+    static std::unique_ptr<MqttPacketIdMgr> s_instance;
+
     std::map<std::string, std::bitset<65536>> sub_client_id2sub_packet_ids_map_;
     std::map<std::string, std::map<std::string, uint16_t>> sub_client_id2pub_keys_map_;
     uint16_t current_sub_packet_id_{static_cast<uint16_t>(0)};

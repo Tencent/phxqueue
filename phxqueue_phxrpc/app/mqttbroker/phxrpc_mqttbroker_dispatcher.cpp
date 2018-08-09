@@ -27,21 +27,22 @@ MqttBrokerDispatcher::~MqttBrokerDispatcher() {
 const phxrpc::BaseDispatcher<MqttBrokerDispatcher>::URIFuncMap &MqttBrokerDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<MqttBrokerDispatcher>::URIFuncMap uri_func_map = {
         {"/phxqueue_phxrpc/mqttbroker/PHXEcho", &MqttBrokerDispatcher::PHXEcho},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttConnect", &MqttBrokerDispatcher::PhxMqttConnect},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPublish", &MqttBrokerDispatcher::PhxMqttPublish},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPuback", &MqttBrokerDispatcher::PhxMqttPuback},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubrec", &MqttBrokerDispatcher::PhxMqttPubrec},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubrel", &MqttBrokerDispatcher::PhxMqttPubrel},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPubcomp", &MqttBrokerDispatcher::PhxMqttPubcomp},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttSubscribe", &MqttBrokerDispatcher::PhxMqttSubscribe},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttUnsubscribe", &MqttBrokerDispatcher::PhxMqttUnsubscribe},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttPing", &MqttBrokerDispatcher::PhxMqttPing},
-        {"/phxqueue_phxrpc/mqttbroker/PhxMqttDisconnect", &MqttBrokerDispatcher::PhxMqttDisconnect},
-        {"/phxqueue_phxrpc/mqttbroker/PhxHttpPublish", &MqttBrokerDispatcher::PhxHttpPublish}};
+        {"/phxqueue_phxrpc/mqttbroker/HttpPublish", &MqttBrokerDispatcher::HttpPublish},
+        {"/phxqueue_phxrpc/mqttbroker/MqttConnect", &MqttBrokerDispatcher::MqttConnect},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPublish", &MqttBrokerDispatcher::MqttPublish},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPuback", &MqttBrokerDispatcher::MqttPuback},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPubrec", &MqttBrokerDispatcher::MqttPubrec},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPubrel", &MqttBrokerDispatcher::MqttPubrel},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPubcomp", &MqttBrokerDispatcher::MqttPubcomp},
+        {"/phxqueue_phxrpc/mqttbroker/MqttSubscribe", &MqttBrokerDispatcher::MqttSubscribe},
+        {"/phxqueue_phxrpc/mqttbroker/MqttUnsubscribe", &MqttBrokerDispatcher::MqttUnsubscribe},
+        {"/phxqueue_phxrpc/mqttbroker/MqttPing", &MqttBrokerDispatcher::MqttPing},
+        {"/phxqueue_phxrpc/mqttbroker/MqttDisconnect", &MqttBrokerDispatcher::MqttDisconnect}};
     return uri_func_map;
 }
 
-int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
+int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest &req,
+                                  phxrpc::BaseResponse *const resp) {
     dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
 
     int ret{-1};
@@ -51,7 +52,7 @@ int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::
 
     // unpack request
     {
-        ret = req->ToPb(&req_pb);
+        ret = req.ToPb(&req_pb);
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "ToPb err %d", ret);
 
@@ -68,8 +69,7 @@ int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
@@ -81,17 +81,18 @@ int MqttBrokerDispatcher::PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::
     return ret;
 }
 
-int MqttBrokerDispatcher::PhxMqttConnect(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000011, "PhxMqttConnect", 1);
+int MqttBrokerDispatcher::HttpPublish(const phxrpc::BaseRequest &req,
+                                      phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000031, "HttpPublish", 1);
 
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb req_pb;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb resp_pb;
+    phxqueue_phxrpc::logic::mqtt::HttpPublishPb req_pb;
+    phxqueue_phxrpc::logic::mqtt::HttpPubackPb resp_pb;
 
     // unpack request
     {
-        ret = req->ToPb(&req_pb);
+        ret = req.ToPb(&req_pb);
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "ToPb err %d", ret);
 
@@ -102,36 +103,36 @@ int MqttBrokerDispatcher::PhxMqttConnect(const phxrpc::BaseRequest *const req, p
     // logic process
     {
         if (0 == ret) {
-            ret = service_.PhxMqttConnect(req_pb, &resp_pb);
+            ret = service_.HttpPublish(req_pb, &resp_pb);
         }
     }
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttConnect = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: HttpPublish = %d", ret);
 
     return ret;
 }
 
-int MqttBrokerDispatcher::PhxMqttPublish(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000012, "PhxMqttPublish", 1);
+int MqttBrokerDispatcher::MqttConnect(const phxrpc::BaseRequest &req,
+                                      phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000011, "MqttConnect", 1);
 
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttPublishPb req_pb;
-    google::protobuf::Empty resp_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttConnectPb req_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttConnackPb resp_pb;
 
     // unpack request
     {
-        ret = req->ToPb(&req_pb);
+        ret = req.ToPb(&req_pb);
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "ToPb err %d", ret);
 
@@ -142,266 +143,36 @@ int MqttBrokerDispatcher::PhxMqttPublish(const phxrpc::BaseRequest *const req, p
     // logic process
     {
         if (0 == ret) {
-            ret = service_.PhxMqttPublish(req_pb, &resp_pb);
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPublish = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttPuback(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000013, "PhxMqttPuback", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttPubackPb req_pb;
-    google::protobuf::Empty resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttPuback(req_pb, &resp_pb);
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPuback = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttPubrec(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000014, "PhxMqttPubrec", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttPubrecPb req_pb;
-    google::protobuf::Empty resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttPubrec(req_pb, &resp_pb);
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPubrec = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttPubrel(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000015, "PhxMqttPubrel", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttPubrelPb req_pb;
-    google::protobuf::Empty resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttPubrel(req_pb, &resp_pb);
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPubrel = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttPubcomp(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000016, "PhxMqttPubcomp", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttPubcompPb req_pb;
-    google::protobuf::Empty resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttPubcomp(req_pb, &resp_pb);
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPubcomp = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttSubscribe(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000017, "PhxMqttSubscribe", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttSubscribePb req_pb;
-    phxqueue_phxrpc::mqttbroker::MqttSubackPb resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttSubscribe(req_pb, &resp_pb);
+            ret = service_.MqttConnect(req_pb, &resp_pb);
         }
     }
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttSubscribe = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: MqttConnect = %d", ret);
 
     return ret;
 }
 
-int MqttBrokerDispatcher::PhxMqttUnsubscribe(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000018, "PhxMqttUnsubscribe", 1);
+int MqttBrokerDispatcher::MqttPublish(const phxrpc::BaseRequest &req,
+                                      phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000012, "MqttPublish", 1);
 
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb req_pb;
-    phxqueue_phxrpc::mqttbroker::MqttUnsubackPb resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttUnsubscribe(req_pb, &resp_pb);
-        }
-    }
-
-    // pack response
-    {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttUnsubscribe = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttPing(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000019, "PhxMqttPing", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttPingreqPb req_pb;
-    phxqueue_phxrpc::mqttbroker::MqttPingrespPb resp_pb;
-
-    // unpack request
-    {
-        ret = req->ToPb(&req_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
-
-            return -EINVAL;
-        }
-    }
-
-    // logic process
-    {
-        if (0 == ret) {
-            ret = service_.PhxMqttPing(req_pb, &resp_pb);
-        }
-    }
-
-    // pack response
-    {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
-        }
-    }
-
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttPing = %d", ret);
-
-    return ret;
-}
-
-int MqttBrokerDispatcher::PhxMqttDisconnect(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000020, "PhxMqttDisconnect", 1);
-
-    int ret{-1};
-
-    phxqueue_phxrpc::mqttbroker::MqttDisconnectPb req_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttPublishPb req_pb;
     google::protobuf::Empty resp_pb;
 
     // unpack request
     {
-        ret = req->ToPb(&req_pb);
+        ret = req.ToPb(&req_pb);
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "ToPb err %d", ret);
 
@@ -412,26 +183,27 @@ int MqttBrokerDispatcher::PhxMqttDisconnect(const phxrpc::BaseRequest *const req
     // logic process
     {
         if (0 == ret) {
-            ret = service_.PhxMqttDisconnect(req_pb, &resp_pb);
+            ret = service_.MqttPublish(req_pb, &resp_pb);
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxMqttDisconnect = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPublish = %d", ret);
 
     return ret;
 }
 
-int MqttBrokerDispatcher::PhxHttpPublish(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2000031, "PhxHttpPublish", 1);
+int MqttBrokerDispatcher::MqttPuback(const phxrpc::BaseRequest &req,
+                                     phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000013, "MqttPuback", 1);
 
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::HttpPublishPb req_pb;
-    phxqueue_phxrpc::mqttbroker::HttpPubackPb resp_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttPubackPb req_pb;
+    google::protobuf::Empty resp_pb;
 
     // unpack request
     {
-        ret = req->ToPb(&req_pb);
+        ret = req.ToPb(&req_pb);
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "ToPb err %d", ret);
 
@@ -442,21 +214,255 @@ int MqttBrokerDispatcher::PhxHttpPublish(const phxrpc::BaseRequest *const req, p
     // logic process
     {
         if (0 == ret) {
-            ret = service_.PhxHttpPublish(req_pb, &resp_pb);
+            ret = service_.MqttPuback(req_pb, &resp_pb);
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPuback = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttPubrec(const phxrpc::BaseRequest &req,
+                                     phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000014, "MqttPubrec", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttPubrecPb req_pb;
+    google::protobuf::Empty resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttPubrec(req_pb, &resp_pb);
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPubrec = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttPubrel(const phxrpc::BaseRequest &req,
+                                     phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000015, "MqttPubrel", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttPubrelPb req_pb;
+    google::protobuf::Empty resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttPubrel(req_pb, &resp_pb);
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPubrel = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttPubcomp(const phxrpc::BaseRequest &req,
+                                      phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000016, "MqttPubcomp", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttPubcompPb req_pb;
+    google::protobuf::Empty resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttPubcomp(req_pb, &resp_pb);
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPubcomp = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttSubscribe(const phxrpc::BaseRequest &req,
+                                        phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000017, "MqttSubscribe", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttSubscribePb req_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttSubackPb resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttSubscribe(req_pb, &resp_pb);
         }
     }
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxHttpPublish = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: MqttSubscribe = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttUnsubscribe(const phxrpc::BaseRequest &req,
+                                          phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000018, "MqttUnsubscribe", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb req_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttUnsubscribe(req_pb, &resp_pb);
+        }
+    }
+
+    // pack response
+    {
+        if (0 != resp->FromPb(resp_pb)) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttUnsubscribe = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttPing(const phxrpc::BaseRequest &req,
+                                   phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000019, "MqttPing", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttPingreqPb req_pb;
+    phxqueue_phxrpc::logic::mqtt::MqttPingrespPb resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttPing(req_pb, &resp_pb);
+        }
+    }
+
+    // pack response
+    {
+        if (0 != resp->FromPb(resp_pb)) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttPing = %d", ret);
+
+    return ret;
+}
+
+int MqttBrokerDispatcher::MqttDisconnect(const phxrpc::BaseRequest &req,
+                                         phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(2000020, "MqttDisconnect", 1);
+
+    int ret{-1};
+
+    phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb req_pb;
+    google::protobuf::Empty resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) {
+            ret = service_.MqttDisconnect(req_pb, &resp_pb);
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: MqttDisconnect = %d", ret);
 
     return ret;
 }

@@ -23,8 +23,6 @@ See the AUTHORS file for names of contributors.
 
 #include <cassert>
 
-#include "mqtt/mqtt_msg_handler_factory.h"
-
 
 namespace phxqueue_phxrpc {
 
@@ -111,9 +109,11 @@ atomic_uint32_t SessionMgr::s_seq{0};
 EventLoopServerIO::EventLoopServerIO(const int idx, phxrpc::UThreadEpollScheduler *const scheduler,
                        const EventLoopServerConfig *config, phxrpc::DataFlow *data_flow,
                        phxrpc::HshaServerStat *server_stat, phxrpc::HshaServerQos *server_qos,
-                       phxrpc::WorkerPool *worker_pool)
+                       phxrpc::WorkerPool *worker_pool,
+                       phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func)
         : idx_(idx), scheduler_(scheduler), config_(config), data_flow_(data_flow),
           server_stat_(server_stat), server_qos_(server_qos), worker_pool_(worker_pool),
+          msg_handler_factory_(move(msg_handler_factory_create_func())),
           session_mgr_(idx, scheduler, config, server_stat) {
 }
 
@@ -202,8 +202,7 @@ void EventLoopServerIO::UThreadIFunc(const uint64_t session_id) {
         return;
     }
 
-    phxrpc::BaseMessageHandlerFactory::SetDefault(new MqttMessageHandlerFactory());
-    auto msg_handler(phxrpc::BaseMessageHandlerFactory::GetDefault()->Create());
+    auto msg_handler(msg_handler_factory_->Create());
     if (!msg_handler) {
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " msg_handler_factory.Create err, "
                     "client closed or no msg handler accept", __func__, session_id);
@@ -351,7 +350,7 @@ EventLoopServerUnit::EventLoopServerUnit(const int idx,
                        &server_->server_stat_, dispatch, args),
           server_io_(idx, &scheduler_, server_->config_, &data_flow_,
                      &server_->server_stat_, &server_->server_qos_,
-                     &worker_pool_),
+                     &worker_pool_, server_->msg_handler_factory_create_func_),
           thread_(&EventLoopServerUnit::RunFunc, this) {
 }
 
@@ -440,8 +439,9 @@ void EventLoopServerAcceptor::LoopAccept(const char *bind_ip, const int port) {
 
 
 EventLoopServer::EventLoopServer(const EventLoopServerConfig &config,
-                                 const phxrpc::Dispatch_t &dispatch, void *args)
-        : config_(&config),
+                                 const phxrpc::Dispatch_t &dispatch, void *args,
+                                 phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func)
+        : config_(&config), msg_handler_factory_create_func_(msg_handler_factory_create_func),
           server_monitor_(phxrpc::MonitorFactory::GetFactory()->
                           CreateServerMonitor(config.GetPackageName())),
           server_stat_(&config, server_monitor_),

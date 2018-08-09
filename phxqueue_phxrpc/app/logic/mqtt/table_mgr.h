@@ -14,28 +14,24 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/comm.h"
 
-#include "mqttbroker.pb.h"
-#include "mqtt/mqtt_session.h"
-
-
-class MqttBrokerServerConfig;
+#include "mqtt.pb.h"
 
 
 namespace phxqueue_phxrpc {
 
-namespace mqttbroker {
+namespace logic {
+
+namespace mqtt {
 
 
-class MqttBrokerMgr {
+class TableMgr {
   public:
-    MqttBrokerMgr(const MqttBrokerServerConfig *const config);
-    virtual ~MqttBrokerMgr();
+    TableMgr(const int topic_id);
+    virtual ~TableMgr();
 
     phxqueue::comm::RetCode
     FinishRemoteSession(const std::string &client_id,
-                        const phxqueue_phxrpc::mqttbroker::SessionPb &session_pb);
-    phxqueue::comm::RetCode
-    EnqueueMessage(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &message);
+                        const phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
 
     phxqueue::comm::RetCode GetStringRemote(const std::string &prefix, const std::string &key,
                                             uint64_t &version, std::string &value);
@@ -47,13 +43,20 @@ class MqttBrokerMgr {
                                        const std::string &client_id, const uint64_t lease_time);
 
     phxqueue::comm::RetCode GetSessionAndClientIdBySessionIdRemote(const uint64_t session_id,
-            std::string &client_id, phxqueue_phxrpc::mqttbroker::SessionPb &session_pb);
+            std::string &client_id, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
     phxqueue::comm::RetCode GetSessionByClientIdRemote(const std::string &client_id,
-            uint64_t &version, phxqueue_phxrpc::mqttbroker::SessionPb &session_pb);
+            uint64_t &version, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
     phxqueue::comm::RetCode SetSessionByClientIdRemote(const std::string &client_id,
-            const uint64_t version, phxqueue_phxrpc::mqttbroker::SessionPb const &session_pb);
+            const uint64_t version, phxqueue_phxrpc::logic::mqtt::SessionPb const &session_pb);
     phxqueue::comm::RetCode DeleteSessionByClientIdRemote(const std::string &client_id,
                                                           const uint64_t version);
+
+    phxqueue::comm::RetCode
+    GetTopicSubscribeRemote(const std::string &topic_filter, uint64_t *const version,
+                            TopicPb *const topic_pb);
+    phxqueue::comm::RetCode
+    SetTopicSubscribeRemote(const std::string &topic_filter, const uint64_t version,
+                            const TopicPb &topic_pb);
 
     phxqueue::comm::RetCode
     GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
@@ -71,14 +74,16 @@ class MqttBrokerMgr {
     DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                  phxqueue::comm::proto::DeleteStringResponse &resp);
 
-    phxqueue::comm::RetCode GetTopicIdAndLockId(int &topic_id, int &lock_id);
+    phxqueue::comm::RetCode GetLockId(int &lock_id);
 
   private:
-    const MqttBrokerServerConfig *config_{nullptr};
+    const int topic_id_{-1};
 };
 
 
-}  // namespace mqttbroker
+}  // namespace mqtt
+
+}  // namespace logic
 
 }  // namespace phxqueue_phxrpc
 

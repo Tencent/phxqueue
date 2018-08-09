@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package phxqueue_phxrpc.logic.mqtt;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "phxqueue/comm/proto/comm.proto";
+import "phxrpc/rpc/phxrpc.proto";
+
+
+message MqttConnectPb {
+    string client_identifier = 11;
+    string proto_name = 12;
+    uint32 proto_level = 13;
+    bool clean_session = 14;
+    uint32 keep_alive = 15;
+    string user_name = 16;
+    string password = 17;
+    bool will_flag = 18;
+    uint32 will_qos = 19;
+    bool will_retain = 20;
+    string will_topic = 21;
+    string will_message = 22;
+}
+
+message MqttConnackPb {
+    bool session_present = 11;
+    uint32 connect_return_code = 12;
+}
+
+message MqttPublishPb {
+    bool dup = 1;
+    uint32 qos = 2;
+    bool retain = 3;
+    uint32 packet_identifier = 11;
+    string topic_name = 12;
+    string data = 13;
+}
+
+message MqttPubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPubrecPb {
+}
+
+message MqttPubrelPb {
+}
+
+message MqttPubcompPb {
+}
+
+message MqttSubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+    repeated uint32 qoss = 13;
+}
+
+message MqttSubackPb {
+    uint32 packet_identifier = 11;
+    repeated uint32 return_codes = 12;
+}
+
+message MqttUnsubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+}
+
+message MqttUnsubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPingreqPb {
+}
+
+message MqttPingrespPb {
+}
+
+message MqttDisconnectPb {
+}
+
+message HttpPublishPb {
+    uint64 cursor_id = 1;
+    string pub_client_id = 2;
+    string sub_client_id = 3;
+    MqttPublishPb mqtt_publish = 11;
+}
+
+message HttpPubackPb {
+    MqttPubackPb mqtt_puback = 11;
+}
+
+message SessionAttributePb {
+    bool clean_session = 1;
+    string user_name = 11;
+    string password = 12;
+    bool will_flag = 21;
+    uint32 will_qos = 22;
+    bool will_retain = 23;
+    string will_topic = 24;
+    string will_message = 25;
+}
+
+message SessionPb {
+    uint32 session_ip = 1;
+    uint64 session_id = 2;
+    uint64 cursor_id = 3;
+    SessionAttributePb session_attribute = 101;
+}
+
+message SubscribePb {
+    string client_identifier = 1;
+    uint32 qos = 2;
+}
+
+message TopicPb {
+    repeated SubscribePb subscribes = 1;
+}
+

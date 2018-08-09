@@ -49,6 +49,15 @@ uint64_t MqttSession::expire_time_ms() const {
     return expire_time_ms_;
 }
 
+
+MqttSessionMgr *MqttSessionMgr::GetInstance() {
+    if (!s_instance) {
+        s_instance.reset(new MqttSessionMgr);
+    }
+
+    return s_instance.get();
+}
+
 MqttSessionMgr::MqttSessionMgr() {
 }
 
@@ -61,16 +70,21 @@ MqttSession *MqttSessionMgr::Create(const string &client_id, const uint64_t sess
     session.session_id = session_id;
 
     lock_guard<mutex> lock(mutex_);
-    sessions_.emplace_back(move(session));
 
-    return &(sessions_.back());
+    auto kv(sessions_map_.emplace(session_id, move(session)));
+    if (kv.second) {
+        return &(kv.first->second);
+    }
+
+    return nullptr;
 }
 
 MqttSession *MqttSessionMgr::GetByClientId(const string &client_id) {
     lock_guard<mutex> lock(mutex_);
-    for (auto &&session : sessions_) {
-        if (session.client_id == client_id)
-            return &session;
+
+    for (auto &&kv : sessions_map_) {
+        if (kv.second.client_id == client_id)
+            return &(kv.second);
     }
 
     return nullptr;
@@ -78,24 +92,39 @@ MqttSession *MqttSessionMgr::GetByClientId(const string &client_id) {
 
 MqttSession *MqttSessionMgr::GetBySessionId(const uint64_t session_id) {
     lock_guard<mutex> lock(mutex_);
-    for (auto &&session : sessions_) {
-        if (session.session_id == session_id)
-            return &session;
+
+    auto it(sessions_map_.find(session_id));
+    if (sessions_map_.end() == it) {
+        return nullptr;
     }
 
-    return nullptr;
+    return &(it->second);
 }
 
 void MqttSessionMgr::DestroyBySessionId(const uint64_t session_id) {
     lock_guard<mutex> lock(mutex_);
-    for (auto it(sessions_.begin()); sessions_.end() != it; ++it) {
-        if (it->session_id == session_id) {
-            sessions_.erase(it);
 
-            return;
-        }
+    auto it(sessions_map_.find(session_id));
+    if (sessions_map_.end() != it) {
+        sessions_map_.erase(it);
     }
 }
+
+int MqttSessionMgr::UpdateAckPos(const uint64_t session_id, const uint32_t packet_id) {
+    lock_guard<mutex> guard(mutex_);
+
+    auto it(sessions_map_.find(session_id));
+    if (sessions_map_.end() == it) {
+        return -1;
+    }
+    if (packet_id == it->second.acked_packet_id + 1) {
+        ++(it->second.acked_packet_id);
+    }
+
+    return 0;
+}
+
+unique_ptr<MqttSessionMgr> MqttSessionMgr::s_instance;
 
 
 }  // namespace mqttbroker

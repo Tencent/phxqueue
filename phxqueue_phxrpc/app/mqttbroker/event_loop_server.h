@@ -75,7 +75,8 @@ class EventLoopServerIO final {
     EventLoopServerIO(const int idx, phxrpc::UThreadEpollScheduler *const scheduler,
                const EventLoopServerConfig *config, phxrpc::DataFlow *data_flow,
                phxrpc::HshaServerStat *server_stat, phxrpc::HshaServerQos *server_qos,
-               phxrpc::WorkerPool *worker_pool);
+               phxrpc::WorkerPool *worker_pool,
+               phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func);
     ~EventLoopServerIO();
 
     void RunForever();
@@ -94,6 +95,7 @@ class EventLoopServerIO final {
     phxrpc::HshaServerStat *server_stat_{nullptr};
     phxrpc::HshaServerQos *server_qos_{nullptr};
     phxrpc::WorkerPool *worker_pool_{nullptr};
+    std::unique_ptr<phxrpc::BaseMessageHandlerFactory> msg_handler_factory_;
     SessionMgr session_mgr_;
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
@@ -144,7 +146,8 @@ class EventLoopServerAcceptor final {
 class EventLoopServer {
   public:
     EventLoopServer(const EventLoopServerConfig &config,
-                    const phxrpc::Dispatch_t &dispatch, void *args);
+                    const phxrpc::Dispatch_t &dispatch, void *args,
+                    phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func);
     virtual ~EventLoopServer();
 
     void RunForever();
@@ -157,6 +160,7 @@ class EventLoopServer {
     friend class EventLoopServerUnit;
 
     const EventLoopServerConfig *config_{nullptr};
+    phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func_;
     phxrpc::ServerMonitorPtr server_monitor_;
     phxrpc::HshaServerStat server_stat_;
     phxrpc::HshaServerQos server_qos_;

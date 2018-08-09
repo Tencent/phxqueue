@@ -17,13 +17,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <iostream>
 #include <signal.h>
 
-#include "phxqueue/test/simplehandler.h"
 #include "phxqueue_phxrpc/comm.h"
 #include "phxqueue_phxrpc/consumer.h"
 #include "phxqueue_phxrpc/plugin.h"
-#include "phxqueue_phxrpc/test/echo_handler.h"
 
 #include "phxrpc/rpc.h"
+
+#include "mqtt_handler.h"
 
 
 using namespace std;
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     opt.proc_pid_path = config.GetProto().consumer().proc_pid_path();
     opt.lock_path_base = config.GetProto().consumer().lock_path_base();
     opt.use_store_master_client_on_get = 1;
-    opt.use_store_master_client_on_add = 0;
+    opt.use_store_master_client_on_add = 1;
     opt.shm_key_base = config.GetProto().consumer().shm_key_base();
 
 
@@ -97,13 +97,10 @@ int main(int argc, char **argv) {
                         new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path));
             };
 
-    const int echo_handle_id{2};
-    const int simple_handle_id{3};
+    const int mqtt_handle_id{11};
     phxqueue_phxrpc::consumer::Consumer consumer(opt);
-    consumer.AddHandlerFactory(echo_handle_id,
-            new phxqueue::comm::DefaultHandlerFactory<phxqueue_phxrpc::test::EchoHandler>());
-    consumer.AddHandlerFactory(simple_handle_id,
-            new phxqueue::comm::DefaultHandlerFactory<phxqueue::test::SimpleHandler>());
+    consumer.AddHandlerFactory(mqtt_handle_id,
+            new phxqueue::comm::DefaultHandlerFactory<phxqueue_phxrpc::mqttconsumer::MqttHandler>());
     consumer.Run();
 
     phxrpc::closelog();

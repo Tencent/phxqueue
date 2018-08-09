@@ -6,178 +6,72 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 import "phxqueue/comm/proto/comm.proto";
 import "phxrpc/rpc/phxrpc.proto";
+import "phxqueue_phxrpc/app/logic/mqtt/mqtt.proto";
 
-
-message MqttConnectPb {
-    string client_identifier = 11;
-    string proto_name = 12;
-    uint32 proto_level = 13;
-    bool clean_session = 14;
-    uint32 keep_alive = 15;
-    string user_name = 16;
-    string password = 17;
-    bool will_flag = 18;
-    uint32 will_qos = 19;
-    bool will_retain = 20;
-    string will_topic = 21;
-    string will_message = 22;
-}
-
-message MqttConnackPb {
-    bool session_present = 11;
-    uint32 connect_return_code = 12;
-}
-
-message MqttPublishPb {
-    bool dup = 1;
-    uint32 qos = 2;
-    bool retain = 3;
-    uint32 packet_identifier = 11;
-    string topic_name = 12;
-    string data = 13;
-}
-
-message MqttPubackPb {
-    uint32 packet_identifier = 11;
-}
-
-message MqttPubrecPb {
-}
-
-message MqttPubrelPb {
-}
-
-message MqttPubcompPb {
-}
-
-message MqttSubscribePb {
-    uint32 packet_identifier = 11;
-    repeated string topic_filters = 12;
-    repeated uint32 qoss = 13;
-}
-
-message MqttSubackPb {
-    uint32 packet_identifier = 11;
-    repeated uint32 return_codes = 12;
-}
-
-message MqttUnsubscribePb {
-    uint32 packet_identifier = 11;
-    repeated string topic_filters = 12;
-}
-
-message MqttUnsubackPb {
-    uint32 packet_identifier = 11;
-}
-
-message MqttPingreqPb {
-}
-
-message MqttPingrespPb {
-}
-
-message MqttDisconnectPb {
-}
-
-message HttpPublishPb {
-    string pub_client_id = 1;
-    string sub_client_id = 2;
-    MqttPublishPb mqtt_publish = 11;
-}
-
-message HttpPubackPb {
-    MqttPubackPb mqtt_puback = 11;
-}
-
-message SessionAttributePb {
-    bool clean_session = 1;
-    string user_name = 11;
-    string password = 12;
-    bool will_flag = 21;
-    uint32 will_qos = 22;
-    bool will_retain = 23;
-    string will_topic = 24;
-    string will_message = 25;
-}
-
-message SessionPb {
-    uint32 session_ip = 1;
-    uint64 session_id = 2;
-    SessionAttributePb session_attribute = 101;
-}
-
-message SubscribePb {
-    string client_identifier = 1;
-    uint32 qos = 2;
-}
-
-message TopicPb {
-    repeated SubscribePb subscribes = 1;
-}
 
 service MqttBroker {
 
-    rpc PhxMqttConnect(MqttConnectPb) returns (MqttConnackPb) {
+    rpc MqttConnect(phxqueue_phxrpc.logic.mqtt.MqttConnectPb) returns (phxqueue_phxrpc.logic.mqtt.MqttConnackPb) {
         option(phxrpc.CmdID) = 2000011;
         option(phxrpc.OptString) = "l:";
         option(phxrpc.Usage) = "-l <client_identifier>";
     }
 
-    rpc PhxMqttPublish(MqttPublishPb) returns (google.protobuf.Empty) {
+    rpc MqttPublish(phxqueue_phxrpc.logic.mqtt.MqttPublishPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000012;
         option(phxrpc.OptString) = "l:d:q:r:t:p:s:";
         option(phxrpc.Usage) = "-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
     }
 
-    rpc PhxMqttPuback(MqttPubackPb) returns (google.protobuf.Empty) {
+    rpc MqttPuback(phxqueue_phxrpc.logic.mqtt.MqttPubackPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000013;
         option(phxrpc.OptString) = "l:p:";
         option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier>";
     }
 
-    rpc PhxMqttPubrec(MqttPubrecPb) returns (google.protobuf.Empty) {
+    rpc MqttPubrec(phxqueue_phxrpc.logic.mqtt.MqttPubrecPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000014;
         option(phxrpc.OptString) = "";
         option(phxrpc.Usage) = "";
     }
 
-    rpc PhxMqttPubrel(MqttPubrelPb) returns (google.protobuf.Empty) {
+    rpc MqttPubrel(phxqueue_phxrpc.logic.mqtt.MqttPubrelPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000015;
         option(phxrpc.OptString) = "";
         option(phxrpc.Usage) = "";
     }
 
-    rpc PhxMqttPubcomp(MqttPubcompPb) returns (google.protobuf.Empty) {
+    rpc MqttPubcomp(phxqueue_phxrpc.logic.mqtt.MqttPubcompPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000016;
         option(phxrpc.OptString) = "";
         option(phxrpc.Usage) = "";
     }
 
-    rpc PhxMqttSubscribe(MqttSubscribePb) returns (MqttSubackPb) {
+    rpc MqttSubscribe(phxqueue_phxrpc.logic.mqtt.MqttSubscribePb) returns (phxqueue_phxrpc.logic.mqtt.MqttSubackPb) {
         option(phxrpc.CmdID) = 2000017;
         option(phxrpc.OptString) = "l:p:t:q:";
         option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>";
     }
 
-    rpc PhxMqttUnsubscribe(MqttUnsubscribePb) returns (MqttUnsubackPb) {
+    rpc MqttUnsubscribe(phxqueue_phxrpc.logic.mqtt.MqttUnsubscribePb) returns (phxqueue_phxrpc.logic.mqtt.MqttUnsubackPb) {
         option(phxrpc.CmdID) = 2000018;
         option(phxrpc.OptString) = "l:p:t:";
         option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters>";
     }
 
-    rpc PhxMqttPing(MqttPingreqPb) returns (MqttPingrespPb) {
+    rpc MqttPing(phxqueue_phxrpc.logic.mqtt.MqttPingreqPb) returns (phxqueue_phxrpc.logic.mqtt.MqttPingrespPb) {
         option(phxrpc.CmdID) = 2000019;
         option(phxrpc.OptString) = "l:";
         option(phxrpc.Usage) = "-l <client_identifier>";
     }
 
-    rpc PhxMqttDisconnect(MqttDisconnectPb) returns (google.protobuf.Empty) {
+    rpc MqttDisconnect(phxqueue_phxrpc.logic.mqtt.MqttDisconnectPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000020;
         option(phxrpc.OptString) = "l:";
         option(phxrpc.Usage) = "-l <client_identifier>";
     }
 
-    rpc PhxHttpPublish(HttpPublishPb) returns (HttpPubackPb) {
+    rpc HttpPublish(phxqueue_phxrpc.logic.mqtt.HttpPublishPb) returns (phxqueue_phxrpc.logic.mqtt.HttpPubackPb) {
         option(phxrpc.CmdID) = 2000031;
         option(phxrpc.OptString) = "e:d:q:r:t:p:s:";
         option(phxrpc.Usage) = "-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";

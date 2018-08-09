@@ -6,11 +6,10 @@
 
 #pragma once
 
+#include "phxqueue/comm.h"
+#include "phxqueue_phxrpc/app/logic/mqtt.h"
 #include "phxrpc/network.h"
 
-#include "phxqueue/comm.h"
-
-#include "mqttbroker.pb.h"
 #include "phxrpc_mqttbroker_service.h"
 
 
@@ -19,17 +18,29 @@ class MqttBrokerServerConfig;
 
 namespace phxqueue_phxrpc {
 
+
+namespace logic {
+
+namespace comm {
+
+
+class TableMgr;
+
+
+}  // namespace comm
+
+}  // namespace logic
+
+
 namespace mqttbroker {
 
 
-class MqttBrokerMgr;
-class MqttPacketIdMgr;
 class MqttSession;
-class MqttSessionMgr;
 class ServerMgr;
 
 
 }  // namespace mqttbroker
+
 
 }  // namespace phxqueue_phxrpc
 
@@ -37,8 +48,6 @@ class ServerMgr;
 typedef struct tagServiceArgs {
     const MqttBrokerServerConfig *config;
     phxqueue_phxrpc::mqttbroker::ServerMgr *server_mgr;
-    phxqueue_phxrpc::mqttbroker::MqttSessionMgr *mqtt_session_mgr;
-    phxqueue_phxrpc::mqttbroker::MqttPacketIdMgr *mqtt_packet_id_mgr;
 } ServiceArgs_t;
 
 
@@ -51,28 +60,28 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
 
     virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) override;
-    virtual int PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &req,
-                               phxqueue_phxrpc::mqttbroker::HttpPubackPb *resp) override;
-    virtual int PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttConnectPb &req,
-                               phxqueue_phxrpc::mqttbroker::MqttConnackPb *resp) override;
-    virtual int PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &req,
+    virtual int HttpPublish(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &req,
+                            phxqueue_phxrpc::logic::mqtt::HttpPubackPb *resp) override;
+    virtual int MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &req,
+                            phxqueue_phxrpc::logic::mqtt::MqttConnackPb *resp) override;
+    virtual int MqttPublish(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &req,
+                            google::protobuf::Empty *resp) override;
+    virtual int MqttPuback(const phxqueue_phxrpc::logic::mqtt::MqttPubackPb &req,
+                           google::protobuf::Empty *resp) override;
+    virtual int MqttPubrec(const phxqueue_phxrpc::logic::mqtt::MqttPubrecPb &req,
+                           google::protobuf::Empty *resp) override;
+    virtual int MqttPubrel(const phxqueue_phxrpc::logic::mqtt::MqttPubrelPb &req,
+                           google::protobuf::Empty *resp) override;
+    virtual int MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubcompPb &req,
+                            google::protobuf::Empty *resp) override;
+    virtual int MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &req,
+                              phxqueue_phxrpc::logic::mqtt::MqttSubackPb *resp) override;
+    virtual int MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &req,
+                                phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb *resp) override;
+    virtual int MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &req,
+                         phxqueue_phxrpc::logic::mqtt::MqttPingrespPb *resp) override;
+    virtual int MqttDisconnect(const phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb &req,
                                google::protobuf::Empty *resp) override;
-    virtual int PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &req,
-                              google::protobuf::Empty *resp) override;
-    virtual int PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPubrecPb &req,
-                              google::protobuf::Empty *resp) override;
-    virtual int PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPubrelPb &req,
-                              google::protobuf::Empty *resp) override;
-    virtual int PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttPubcompPb &req,
-                               google::protobuf::Empty *resp) override;
-    virtual int PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &req,
-                                 phxqueue_phxrpc::mqttbroker::MqttSubackPb *resp) override;
-    virtual int PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &req,
-                                   phxqueue_phxrpc::mqttbroker::MqttUnsubackPb *resp) override;
-    virtual int PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &req,
-                            phxqueue_phxrpc::mqttbroker::MqttPingrespPb *resp) override;
-    virtual int PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &req,
-                                  google::protobuf::Empty *resp) override;
 
   private:
     phxqueue::comm::RetCode CheckSession(phxqueue_phxrpc::mqttbroker::MqttSession *&mqtt_session);
@@ -81,6 +90,6 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
     ServiceArgs_t &args_;
     phxrpc::UThreadEpollScheduler *worker_uthread_scheduler_{nullptr};
     uint64_t session_id_{0uLL};
-    std::unique_ptr<phxqueue_phxrpc::mqttbroker::MqttBrokerMgr> mgr_;
+    std::unique_ptr<phxqueue_phxrpc::logic::mqtt::TableMgr> table_mgr_;
 };
 

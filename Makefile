@@ -27,12 +27,13 @@ BIN_TARGETS := phxqueue/test/test_config_main phxqueue/test/test_consumer_main p
 
 SUB_MAKE_LIB_TARGETS := phxqueue_phxrpc/app/store/libstore_client.a \
 						phxqueue_phxrpc/app/lock/liblock_client.a \
-						phxqueue_phxrpc/app/scheduler/libscheduler_client.a
+						phxqueue_phxrpc/app/scheduler/libscheduler_client.a \
+						phxqueue_phxrpc/app/logic/mqtt/libphxqueue_phxrpc_logic_mqtt.a
 
 SUB_MAKE_BIN_TARGETS := phxqueue_phxrpc/app/store/store_main phxqueue_phxrpc/app/store/store_tool_main \
 						phxqueue_phxrpc/app/lock/lock_main phxqueue_phxrpc/app/lock/lock_tool_main \
 						phxqueue_phxrpc/app/scheduler/scheduler_main phxqueue_phxrpc/app/scheduler/scheduler_tool_main \
-						phxqueue_phxrpc/app/mqttbroker/mqttbroker_main
+						phxqueue_phxrpc/app/mqttconsumer/mqttconsumer_main phxqueue_phxrpc/app/mqttbroker/mqttbroker_main
 
 
 define LIB_GEN

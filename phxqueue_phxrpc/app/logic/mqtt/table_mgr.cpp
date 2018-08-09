@@ -10,38 +10,45 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 
 
-#include "mqttbroker_mgr.h"
+#include "table_mgr.h"
 
 #include "phxqueue/lock.h"
-
 #include "phxqueue_phxrpc/app/lock/lock_client.h"
-#include "phxqueue_phxrpc/producer.h"
 
-#include "mqttbroker_server_config.h"
+#include "misc.h"
+
+
+namespace {
+
+
+static const char *KEY_BROKER_CLIENT2SESSION_PREFIX{"__broker__:client2session:"};
+static const char *KEY_BROKER_TOPIC2LOCK{"__broker__:topic2lock:"};
+static const char *KEY_BROKER_TOPIC2CLIENT_PREFIX{"__broker__:topic2client:"};
+
+
+}  // namespace
 
 
 namespace phxqueue_phxrpc {
 
-namespace mqttbroker {
+namespace logic {
+
+namespace mqtt {
 
 
 using namespace std;
 
 
-constexpr char *KEY_BROKER_CLIENT2SESSION_PREFIX{"__broker__:client2session:"};
-constexpr char *KEY_BROKER_TOPIC2LOCK{"__broker__:topic2lock:"};
+TableMgr::TableMgr(const int topic_id) : topic_id_(topic_id) {}
 
-
-MqttBrokerMgr::MqttBrokerMgr(const MqttBrokerServerConfig *const config) : config_(config) {}
-
-MqttBrokerMgr::~MqttBrokerMgr() {}
+TableMgr::~TableMgr() {}
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::FinishRemoteSession(const string &client_id,
-        const phxqueue_phxrpc::mqttbroker::SessionPb &session_pb) {
+TableMgr::FinishRemoteSession(const string &client_id,
+        const phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb) {
     const auto &session_attribute(session_pb.session_attribute());
     if (!session_attribute.will_topic().empty() && !session_attribute.will_message().empty()) {
-        phxqueue_phxrpc::mqttbroker::HttpPublishPb http_publish_pb;
+        phxqueue_phxrpc::logic::mqtt::HttpPublishPb http_publish_pb;
         http_publish_pb.set_pub_client_id(string("__will__:") + client_id);
         auto &&mqtt_publish_pb(http_publish_pb.mutable_mqtt_publish());
         mqtt_publish_pb->set_qos(session_attribute.will_qos());
@@ -83,74 +90,12 @@ MqttBrokerMgr::FinishRemoteSession(const string &client_id,
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode
-MqttBrokerMgr::EnqueueMessage(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &message) {
-    phxqueue::producer::ProducerOption opt;
-    unique_ptr<phxqueue::producer::Producer> producer;
-    producer.reset(new phxqueue_phxrpc::producer::Producer(opt));
-    producer->Init();
-
-    const uint64_t uin{0};
-    const int handle_id{1};
-    vector<string> arr;
-    phxqueue::comm::utils::StrSplitList(message.mqtt_publish().topic_name(), "/", arr);
-    if (2 != arr.size()) {
-        QLErr("pub_client_id \"%s\" topic \"%s\" invalid", message.pub_client_id().c_str(),
-              message.mqtt_publish().topic_name().c_str());
-
-        return phxqueue::comm::RetCode::RET_ERR_RANGE_TOPIC;
-    }
-    char *str_end{nullptr};
-    errno = 0;
-    const long pub_id{strtol(arr.at(1).c_str(), &str_end, 10)};
-    if ((arr.at(1).c_str() == str_end) || (0 != errno && 0 == pub_id)) {
-        QLErr("pub_client_id \"%s\" pub \"%s\" invalid", message.pub_client_id().c_str(),
-              arr.at(1).c_str());
-
-        return phxqueue::comm::RetCode::RET_ERR_RANGE_TOPIC;
-    }
-
-    int phxqueue_topic_id{0};
-    string phxqueue_topic_name(arr.at(0).c_str());
-    phxqueue::comm::RetCode ret{phxqueue::config::GlobalConfig::GetThreadInstance()->
-            GetTopicIDByTopicName(phxqueue_topic_name, phxqueue_topic_id)};
-    if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetTopicIDByTopicName ret %d pub_client_id \"%s\" topic \"%s\"",
-              phxqueue::comm::as_integer(ret), message.pub_client_id().c_str(),
-              phxqueue_topic_name.c_str());
-
-        return ret;
-    }
-    string message_string;
-    if (!message.SerializeToString(&message_string)) {
-        QLErr("SerializeToString err pub_client_id \"%s\"", message.pub_client_id().c_str());
-
-        return phxqueue::comm::RetCode::RET_ERR_PROTOBUF_SERIALIZE;
-    }
-
-    ret = producer->Enqueue(phxqueue_topic_id, uin, handle_id,
-                            message_string, static_cast<int>(pub_id));
-    if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("Enqueue err %d pub_client_id \"%s\" topic %d \"%s\"",
-              phxqueue::comm::as_integer(ret), message.pub_client_id().c_str(),
-              phxqueue_topic_id, phxqueue_topic_name.c_str());
-
-        return ret;
-    }
-
-    QLInfo("pub_client_id \"%s\" topic %d \"%s\"", message.pub_client_id().c_str(),
-           phxqueue_topic_id, phxqueue_topic_name.c_str());
-
-    return phxqueue::comm::RetCode::RET_OK;
-}
-
-phxqueue::comm::RetCode MqttBrokerMgr::GetStringRemote(const string &prefix,
+phxqueue::comm::RetCode TableMgr::GetStringRemote(const string &prefix,
         const string &key, uint64_t &version, string &value) {
-    int topic_id{-1};
     int lock_id{-1};
-    phxqueue::comm::RetCode ret{GetTopicIdAndLockId(topic_id, lock_id)};
+    phxqueue::comm::RetCode ret{GetLockId(lock_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetTopicIdAndLockId err %d", phxqueue::comm::as_integer(ret));
+        QLErr("GetLockId err %d", phxqueue::comm::as_integer(ret));
 
         return ret;
     }
@@ -158,14 +103,14 @@ phxqueue::comm::RetCode MqttBrokerMgr::GetStringRemote(const string &prefix,
     phxqueue::comm::proto::GetStringRequest get_string_req;
     phxqueue::comm::proto::GetStringResponse get_string_resp;
 
-    get_string_req.set_topic_id(topic_id);
+    get_string_req.set_topic_id(topic_id_);
     get_string_req.set_lock_id(lock_id);
     get_string_req.set_key(prefix + key);
 
     phxqueue::lock::LockMasterClient<phxqueue::comm::proto::GetStringRequest,
             phxqueue::comm::proto::GetStringResponse> lock_master_client_get_string;
     ret = lock_master_client_get_string.ClientCall(get_string_req, get_string_resp,
-            bind(&MqttBrokerMgr::GetString, this, placeholders::_1, placeholders::_2));
+            bind(&TableMgr::GetString, this, placeholders::_1, placeholders::_2));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("GetString err %d", phxqueue::comm::as_integer(ret));
 
@@ -180,13 +125,12 @@ phxqueue::comm::RetCode MqttBrokerMgr::GetStringRemote(const string &prefix,
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::SetStringRemote(const string &prefix,
+phxqueue::comm::RetCode TableMgr::SetStringRemote(const string &prefix,
         const string &key, const uint64_t version, const string &value) {
-    int topic_id{-1};
     int lock_id{-1};
-    phxqueue::comm::RetCode ret{GetTopicIdAndLockId(topic_id, lock_id)};
+    phxqueue::comm::RetCode ret{GetLockId(lock_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetTopicIdAndLockId err %d", phxqueue::comm::as_integer(ret));
+        QLErr("GetLockId err %d", phxqueue::comm::as_integer(ret));
 
         return ret;
     }
@@ -194,7 +138,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::SetStringRemote(const string &prefix,
     phxqueue::comm::proto::SetStringRequest set_string_req;
     phxqueue::comm::proto::SetStringResponse set_string_resp;
 
-    set_string_req.set_topic_id(topic_id);
+    set_string_req.set_topic_id(topic_id_);
     set_string_req.set_lock_id(lock_id);
     const auto &string_info(set_string_req.mutable_string_info());
     string_info->set_key(prefix + key);
@@ -205,7 +149,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::SetStringRemote(const string &prefix,
     phxqueue::lock::LockMasterClient<phxqueue::comm::proto::SetStringRequest,
             phxqueue::comm::proto::SetStringResponse> lock_master_client_set_string;
     ret = lock_master_client_set_string.ClientCall(set_string_req, set_string_resp,
-            bind(&MqttBrokerMgr::SetString, this, placeholders::_1, placeholders::_2));
+            bind(&TableMgr::SetString, this, placeholders::_1, placeholders::_2));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("SetString err %d", phxqueue::comm::as_integer(ret));
 
@@ -217,13 +161,12 @@ phxqueue::comm::RetCode MqttBrokerMgr::SetStringRemote(const string &prefix,
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::DeleteStringRemote(const string &prefix,
+phxqueue::comm::RetCode TableMgr::DeleteStringRemote(const string &prefix,
         const string &key, const uint64_t version) {
-    int topic_id{-1};
     int lock_id{-1};
-    phxqueue::comm::RetCode ret{GetTopicIdAndLockId(topic_id, lock_id)};
+    phxqueue::comm::RetCode ret{GetLockId(lock_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetTopicIdAndLockId err %d", phxqueue::comm::as_integer(ret));
+        QLErr("GetLockId err %d", phxqueue::comm::as_integer(ret));
 
         return ret;
     }
@@ -231,7 +174,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::DeleteStringRemote(const string &prefix,
     phxqueue::comm::proto::DeleteStringRequest delete_string_req;
     phxqueue::comm::proto::DeleteStringResponse delete_string_resp;
 
-    delete_string_req.set_topic_id(topic_id);
+    delete_string_req.set_topic_id(topic_id_);
     delete_string_req.set_lock_id(lock_id);
     const auto &string_key_info(delete_string_req.mutable_string_key_info());
     string_key_info->set_key(prefix + key);
@@ -240,7 +183,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::DeleteStringRemote(const string &prefix,
     phxqueue::lock::LockMasterClient<phxqueue::comm::proto::DeleteStringRequest,
             phxqueue::comm::proto::DeleteStringResponse> lock_master_client_set_string;
     ret = lock_master_client_set_string.ClientCall(delete_string_req, delete_string_resp,
-            bind(&MqttBrokerMgr::DeleteString, this, placeholders::_1, placeholders::_2));
+            bind(&TableMgr::DeleteString, this, placeholders::_1, placeholders::_2));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("DeleteString err %d", phxqueue::comm::as_integer(ret));
 
@@ -252,16 +195,15 @@ phxqueue::comm::RetCode MqttBrokerMgr::DeleteStringRemote(const string &prefix,
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::LockRemote(const string &lock_key,
+phxqueue::comm::RetCode TableMgr::LockRemote(const string &lock_key,
         const string &client_id, const uint64_t lease_time) {
     // 1. get topic_id and lock_id
-    int topic_id{-1};
     int lock_id{-1};
     string full_lock_key(KEY_BROKER_TOPIC2LOCK);
     full_lock_key += lock_key;
-    phxqueue::comm::RetCode ret{GetTopicIdAndLockId(topic_id, lock_id)};
+    phxqueue::comm::RetCode ret{GetLockId(lock_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetTopicIdAndLockId err %d", phxqueue::comm::as_integer(ret));
+        QLErr("GetLockId err %d", phxqueue::comm::as_integer(ret));
 
         return ret;
     }
@@ -270,14 +212,14 @@ phxqueue::comm::RetCode MqttBrokerMgr::LockRemote(const string &lock_key,
     phxqueue::comm::proto::GetLockInfoRequest get_lock_info_req;
     phxqueue::comm::proto::GetLockInfoResponse get_lock_info_resp;
 
-    get_lock_info_req.set_topic_id(topic_id);
+    get_lock_info_req.set_topic_id(topic_id_);
     get_lock_info_req.set_lock_id(lock_id);
     get_lock_info_req.set_lock_key(full_lock_key);
 
     phxqueue::lock::LockMasterClient<phxqueue::comm::proto::GetLockInfoRequest,
             phxqueue::comm::proto::GetLockInfoResponse> lock_master_client_get_lock_info;
     ret = lock_master_client_get_lock_info.ClientCall(get_lock_info_req, get_lock_info_resp,
-            bind(&MqttBrokerMgr::GetLockInfo, this, placeholders::_1, placeholders::_2));
+            bind(&TableMgr::GetLockInfo, this, placeholders::_1, placeholders::_2));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("GetLockInfo err %d", phxqueue::comm::as_integer(ret));
 
@@ -288,7 +230,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::LockRemote(const string &lock_key,
     phxqueue::comm::proto::AcquireLockRequest acquire_lock_req;
     phxqueue::comm::proto::AcquireLockResponse acquire_lock_resp;
 
-    acquire_lock_req.set_topic_id(topic_id);
+    acquire_lock_req.set_topic_id(topic_id_);
     acquire_lock_req.set_lock_id(lock_id);
     auto &&lock_info = acquire_lock_req.mutable_lock_info();
     lock_info->set_lock_key(full_lock_key);
@@ -299,7 +241,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::LockRemote(const string &lock_key,
     phxqueue::lock::LockMasterClient<phxqueue::comm::proto::AcquireLockRequest,
             phxqueue::comm::proto::AcquireLockResponse> lock_master_client_acquire_lock;
     ret = lock_master_client_acquire_lock.ClientCall(acquire_lock_req, acquire_lock_resp,
-            bind(&MqttBrokerMgr::AcquireLock, this, placeholders::_1, placeholders::_2));
+            bind(&TableMgr::AcquireLock, this, placeholders::_1, placeholders::_2));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("AcquireLock err %d", phxqueue::comm::as_integer(ret));
 
@@ -311,8 +253,8 @@ phxqueue::comm::RetCode MqttBrokerMgr::LockRemote(const string &lock_key,
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::GetSessionByClientIdRemote(const string &client_id,
-        uint64_t &version, phxqueue_phxrpc::mqttbroker::SessionPb &session_pb) {
+phxqueue::comm::RetCode TableMgr::GetSessionByClientIdRemote(const string &client_id,
+        uint64_t &version, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb) {
     // 1. get client_id -> session from lock
     string session_pb_string;
     phxqueue::comm::RetCode ret{GetStringRemote(string(KEY_BROKER_CLIENT2SESSION_PREFIX),
@@ -334,8 +276,8 @@ phxqueue::comm::RetCode MqttBrokerMgr::GetSessionByClientIdRemote(const string &
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::SetSessionByClientIdRemote(const string &client_id,
-        const uint64_t version, phxqueue_phxrpc::mqttbroker::SessionPb const &session_pb) {
+phxqueue::comm::RetCode TableMgr::SetSessionByClientIdRemote(const string &client_id,
+        const uint64_t version, phxqueue_phxrpc::logic::mqtt::SessionPb const &session_pb) {
     // 1. serialize
     string session_pb_string;
     if (!session_pb.SerializeToString(&session_pb_string)) {
@@ -366,7 +308,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::SetSessionByClientIdRemote(const string &
     }
 
     // TODO: remove
-    phxqueue_phxrpc::mqttbroker::SessionPb session_pb2;
+    phxqueue_phxrpc::logic::mqtt::SessionPb session_pb2;
     if (!session_pb2.ParseFromString(session_pb_string)) {
         QLErr("client_id \"%s\" ParseFromString err", client_id.c_str());
 
@@ -378,7 +320,7 @@ phxqueue::comm::RetCode MqttBrokerMgr::SetSessionByClientIdRemote(const string &
     return phxqueue::comm::RetCode::RET_OK;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::DeleteSessionByClientIdRemote(const string &client_id,
+phxqueue::comm::RetCode TableMgr::DeleteSessionByClientIdRemote(const string &client_id,
                                                                      const uint64_t version) {
     phxqueue::comm::RetCode ret{DeleteStringRemote(string(KEY_BROKER_CLIENT2SESSION_PREFIX),
                                                    client_id, version)};
@@ -393,7 +335,75 @@ phxqueue::comm::RetCode MqttBrokerMgr::DeleteSessionByClientIdRemote(const strin
 }
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+TableMgr::GetTopicSubscribeRemote(const string &topic_filter, uint64_t *const version,
+                                  TopicPb *const topic_pb) {
+    if (topic_filter.empty() || !version || !topic_pb) {
+        QLErr("out args nullptr topic \"%s\"", topic_filter.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    // mqtt-3.8.3-2
+    if (string::npos != topic_filter.find("#") ||
+        string::npos != topic_filter.find("+")) {
+        QLErr("not support wildcards topic \"%s\"", topic_filter.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    string topic_pb_string;
+    phxqueue::comm::RetCode ret{GetStringRemote(string(KEY_BROKER_TOPIC2CLIENT_PREFIX),
+            topic_filter, *version, topic_pb_string)};
+    if (phxqueue::comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret) {
+        if (phxqueue::comm::RetCode::RET_OK != ret) {
+            QLErr("GetStringRemote err %d topic \"%s\"", phxqueue::comm::as_integer(ret),
+                  topic_filter.c_str());
+
+            return ret;
+        }
+
+        if (!topic_pb->ParseFromString(topic_pb_string)) {
+            QLErr("ParseFromString err topic \"%s\"", topic_filter.c_str());
+
+            return phxqueue::comm::RetCode::RET_ERR_PROTOBUF_PARSE;
+        }
+    }
+
+    return phxqueue::comm::RetCode::RET_OK;
+}
+
+phxqueue::comm::RetCode
+TableMgr::SetTopicSubscribeRemote(const string &topic_filter, const uint64_t version,
+                                  const TopicPb &topic_pb) {
+    // mqtt-4.7.1-1
+    if (string::npos != topic_filter.find("#") ||
+        string::npos != topic_filter.find("+")) {
+        QLErr("not allowed wildcards topic \"%s\"", topic_filter.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    string topic_pb_string;
+    if (!topic_pb.SerializeToString(&topic_pb_string)) {
+        QLErr("SerializeToString err topic \"%s\"", topic_filter.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_PROTOBUF_SERIALIZE;
+    }
+
+    phxqueue::comm::RetCode ret{SetStringRemote(string(KEY_BROKER_TOPIC2CLIENT_PREFIX),
+            topic_filter, version, move(topic_pb_string))};
+    if (phxqueue::comm::RetCode::RET_OK != ret) {
+        QLErr("SetStringRemote err %d topic \"%s\"", phxqueue::comm::as_integer(ret),
+              topic_filter.c_str());
+
+        return ret;
+    }
+
+    return phxqueue::comm::RetCode::RET_OK;
+}
+
+phxqueue::comm::RetCode
+TableMgr::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                            phxqueue::comm::proto::GetLockInfoResponse &resp) {
     thread_local LockClient lock_client;
     auto ret = lock_client.ProtoGetLockInfo(req, resp);
@@ -408,7 +418,7 @@ MqttBrokerMgr::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
 }
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+TableMgr::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                            phxqueue::comm::proto::AcquireLockResponse &resp) {
     thread_local LockClient lock_client;
     auto ret = lock_client.ProtoAcquireLock(req, resp);
@@ -423,7 +433,7 @@ MqttBrokerMgr::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
 }
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::GetString(const phxqueue::comm::proto::GetStringRequest &req,
+TableMgr::GetString(const phxqueue::comm::proto::GetStringRequest &req,
                          phxqueue::comm::proto::GetStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoGetString(req, resp));
@@ -438,7 +448,7 @@ MqttBrokerMgr::GetString(const phxqueue::comm::proto::GetStringRequest &req,
 }
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::SetString(const phxqueue::comm::proto::SetStringRequest &req,
+TableMgr::SetString(const phxqueue::comm::proto::SetStringRequest &req,
                          phxqueue::comm::proto::SetStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoSetString(req, resp));
@@ -453,7 +463,7 @@ MqttBrokerMgr::SetString(const phxqueue::comm::proto::SetStringRequest &req,
 }
 
 phxqueue::comm::RetCode
-MqttBrokerMgr::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+TableMgr::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                             phxqueue::comm::proto::DeleteStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoDeleteString(req, resp));
@@ -467,13 +477,11 @@ MqttBrokerMgr::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &re
     return ret;
 }
 
-phxqueue::comm::RetCode MqttBrokerMgr::GetTopicIdAndLockId(int &topic_id, int &lock_id) {
-    topic_id = config_->GetTopicID();
-
+phxqueue::comm::RetCode TableMgr::GetLockId(int &lock_id) {
     shared_ptr<const phxqueue::config::LockConfig> lock_config;
-    phxqueue::comm::RetCode ret{phxqueue::config::GlobalConfig::GetThreadInstance()->GetLockConfig(topic_id, lock_config)};
+    phxqueue::comm::RetCode ret{phxqueue::config::GlobalConfig::GetThreadInstance()->GetLockConfig(topic_id_, lock_config)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        QLErr("GetLockConfig ret %d topic_id %u", phxqueue::comm::as_integer(ret), topic_id);
+        QLErr("GetLockConfig ret %d topic_id %u", phxqueue::comm::as_integer(ret), topic_id_);
 
         return ret;
     }
@@ -498,7 +506,9 @@ phxqueue::comm::RetCode MqttBrokerMgr::GetTopicIdAndLockId(int &topic_id, int &l
 }
 
 
-}  // namespace mqttbroker
+}  // namespace mqtt
+
+}  // namespace logic
 
 }  // namespace phxqueue_phxrpc
 

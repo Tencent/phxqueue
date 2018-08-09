@@ -21,18 +21,18 @@ class MqttBrokerDispatcher {
 
     virtual ~MqttBrokerDispatcher();
 
-    int PHXEcho(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttConnect(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPublish(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPuback(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPubrec(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPubrel(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPubcomp(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttSubscribe(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttUnsubscribe(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttPing(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxMqttDisconnect(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
-    int PhxHttpPublish(const phxrpc::BaseRequest *const req, phxrpc::BaseResponse *const resp);
+    int PHXEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int HttpPublish(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttConnect(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPublish(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPuback(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPubrec(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPubrel(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPubcomp(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttSubscribe(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttUnsubscribe(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttPing(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int MqttDisconnect(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
   private:
     MqttBrokerService &service_;

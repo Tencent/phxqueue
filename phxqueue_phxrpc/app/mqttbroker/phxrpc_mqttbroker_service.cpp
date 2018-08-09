@@ -23,58 +23,58 @@ int MqttBrokerService::PHXEcho(const google::protobuf::StringValue &/* req */, g
     return -1;
 }
 
-int MqttBrokerService::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttConnectPb &/* req */, phxqueue_phxrpc::mqttbroker::MqttConnackPb */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttConnect unimplemented");
+int MqttBrokerService::MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttConnackPb */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttConnect unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPublish unimplemented");
+int MqttBrokerService::MqttPublish(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPublish unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPuback unimplemented");
+int MqttBrokerService::MqttPuback(const phxqueue_phxrpc::logic::mqtt::MqttPubackPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPuback unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPubrecPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPubrec unimplemented");
+int MqttBrokerService::MqttPubrec(const phxqueue_phxrpc::logic::mqtt::MqttPubrecPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPubrec unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPubrelPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPubrel unimplemented");
+int MqttBrokerService::MqttPubrel(const phxqueue_phxrpc::logic::mqtt::MqttPubrelPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPubrel unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttPubcompPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPubcomp unimplemented");
+int MqttBrokerService::MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubcompPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPubcomp unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &/* req */, phxqueue_phxrpc::mqttbroker::MqttSubackPb */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttSubscribe unimplemented");
+int MqttBrokerService::MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttSubackPb */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttSubscribe unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &/* req */, phxqueue_phxrpc::mqttbroker::MqttUnsubackPb */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttUnsubscribe unimplemented");
+int MqttBrokerService::MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttUnsubscribe unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &/* req */, phxqueue_phxrpc::mqttbroker::MqttPingrespPb */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttPing unimplemented");
+int MqttBrokerService::MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttPingrespPb */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttPing unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &/* req */, google::protobuf::Empty */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxMqttDisconnect unimplemented");
+int MqttBrokerService::MqttDisconnect(const phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb &/* req */, google::protobuf::Empty */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: MqttDisconnect unimplemented");
     return -1;
 }
 
-int MqttBrokerService::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &/* req */, phxqueue_phxrpc::mqttbroker::HttpPubackPb */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: PhxHttpPublish unimplemented");
+int MqttBrokerService::HttpPublish(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &/* req */, phxqueue_phxrpc::logic::mqtt::HttpPubackPb */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: HttpPublish unimplemented");
     return -1;
 }
 

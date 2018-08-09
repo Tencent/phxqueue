@@ -50,6 +50,11 @@ bool MqttBrokerServerConfig::Read(const char *config_file) {
     ret &= config.ReadItem("MqttBroker", "TopicID", &topic_id_);
     ret &= config.ReadItem("MqttBroker", "PhxQueueGlobalConfigPath",
                            phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
+    config.ReadItem("MqttBroker", "MaxPublishQueueSize", &max_publish_queue_size_);
+    config.ReadItem("MqttBroker", "MaxPublishLruCacheSize", &max_publish_lru_cache_size_);
+    config.ReadItem("MqttBroker", "NrPublishThread", &nr_publish_thread_);
+    config.ReadItem("MqttBroker", "ShareStackSizeKb", &share_stack_size_kb_);
+    config.ReadItem("MqttBroker", "PublishSleepTimeMs", &publish_sleep_time_ms_);
 
     return ret;
 }
@@ -62,11 +67,31 @@ phxrpc::HshaServerConfig &MqttBrokerServerConfig::GetHshaServerConfig() {
     return hsha_server_config_;
 }
 
-int MqttBrokerServerConfig::GetTopicID() const {
+int MqttBrokerServerConfig::topic_id() const {
     return topic_id_;
 }
 
-const char *MqttBrokerServerConfig::GetPhxQueueGlobalConfigPath() const {
+const char *MqttBrokerServerConfig::phxqueue_global_config_path() const {
     return phxqueue_global_config_path_;
+}
+
+int MqttBrokerServerConfig::max_publish_queue_size() const {
+    return max_publish_queue_size_;
+}
+
+int MqttBrokerServerConfig::max_publish_lru_cache_size() const {
+    return max_publish_lru_cache_size_;
+}
+
+int MqttBrokerServerConfig::nr_publish_thread() const {
+    return nr_publish_thread_;
+}
+
+int MqttBrokerServerConfig::share_stack_size_kb() const {
+    return share_stack_size_kb_;
+}
+
+int MqttBrokerServerConfig::publish_sleep_time_ms() const {
+    return publish_sleep_time_ms_;
 }
 
