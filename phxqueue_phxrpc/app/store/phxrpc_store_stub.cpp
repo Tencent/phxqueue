@@ -24,36 +24,38 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxrpc/rpc.h"
 
 
-StoreStub::StoreStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)
-        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {}
+StoreStub::StoreStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                     phxrpc::BaseMessageHandlerFactory &msg_handler_factory)
+        : socket_(socket), client_monitor_(client_monitor),
+          msg_handler_factory_(msg_handler_factory) {}
 
 StoreStub::~StoreStub() {}
 
-void StoreStub::SetKeepAlive(const bool keep_alive) {
+void StoreStub::set_keep_alive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
 int StoreStub::PhxEcho(const google::protobuf::StringValue &req,
                        google::protobuf::StringValue *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.store/PhxEcho", -1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.store/PhxEcho", -1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int StoreStub::Add(const phxqueue::comm::proto::AddRequest &req,
                    phxqueue::comm::proto::AddResponse *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.store/Add", 1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.store/Add", 1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int StoreStub::Get(const phxqueue::comm::proto::GetRequest &req,
                    phxqueue::comm::proto::GetResponse *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.store/Get", 2);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.store/Get", 2);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 

@@ -26,6 +26,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 namespace phxrpc {
 
 
+class BaseMessageHandlerFactory;
 class BaseTcpStream;
 class ClientMonitor;
 
@@ -35,10 +36,11 @@ class ClientMonitor;
 
 class SchedulerStub {
   public:
-    SchedulerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor);
+    SchedulerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                  phxrpc::BaseMessageHandlerFactory &msg_handler_factory);
     ~SchedulerStub();
 
-    void SetKeepAlive(const bool keep_alive);
+    void set_keep_alive(const bool keep_alive);
 
     int PhxEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
@@ -49,6 +51,7 @@ class SchedulerStub {
   private:
     phxrpc::BaseTcpStream &socket_;
     phxrpc::ClientMonitor &client_monitor_;
-    bool keep_alive_;
+    bool keep_alive_{false};
+    phxrpc::BaseMessageHandlerFactory &msg_handler_factory_;
 };
 

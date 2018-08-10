@@ -23,9 +23,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 #include <mutex>
 
-#include "phxrpc_store_stub.h"
+#include "phxrpc/http.h"
 
 #include "phxqueue/comm.h"
+
+#include "phxrpc_store_stub.h"
 
 
 using namespace std;
@@ -74,7 +76,8 @@ int StoreClient::PhxEcho(const google::protobuf::StringValue &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.PhxEcho(req, resp);
         }
     }
@@ -95,7 +98,8 @@ int StoreClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                 if (phxrpc::PhxrpcTcpUtils::Open(&uthread_s, &socket, ep->ip, ep->port,
                             global_storeclient_config_.GetConnectTimeoutMS(), *(global_storeclient_monitor_.get()))) {
                     socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
-                    StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
                     int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
@@ -121,7 +125,8 @@ int StoreClient::Add(const phxqueue::comm::proto::AddRequest &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.Add(req, resp);
         }
     }
@@ -141,7 +146,8 @@ int StoreClient::Get(const phxqueue::comm::proto::GetRequest &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.Get(req, resp);
         }
     }
@@ -173,8 +179,9 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
         socket->SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
     }
 
-    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.Add(req, &resp)};
     if (0 > ret) {
         QLErr("Add err %d", ret);
@@ -209,8 +216,9 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
         socket->SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
     }
 
-    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.Get(req, &resp)};
     if (0 > ret) {
         QLErr("Get err %d", ret);

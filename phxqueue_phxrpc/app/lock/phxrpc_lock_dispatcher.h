@@ -29,20 +29,17 @@ class LockService;
 
 class LockDispatcher {
   public:
-    static const phxrpc::HttpDispatcher<LockDispatcher>::URIFuncMap &GetURIFuncMap();
+    static const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &GetURIFuncMap();
 
     LockDispatcher(LockService &service, phxrpc::DispatcherArgs_t *dispatcher_args);
 
     virtual ~LockDispatcher();
 
-    int PhxEcho(const phxrpc::HttpRequest &req,
-                phxrpc::HttpResponse *const resp);
+    int PhxEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
-    int GetLockInfo(const phxrpc::HttpRequest &req,
-                    phxrpc::HttpResponse *const resp);
+    int GetLockInfo(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
-    int AcquireLock(const phxrpc::HttpRequest &req,
-                    phxrpc::HttpResponse *const resp);
+    int AcquireLock(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
   private:
     LockService &service_;
