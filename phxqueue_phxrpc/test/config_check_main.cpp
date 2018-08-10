@@ -45,11 +45,11 @@ int main(int argc, const char *argv[]) {
     int debug = 0;
 
     for (int i = 0; i < argc; ++i) {
-		if (strcmp(argv[i], "--help") == 0)
-		{
-			ShowUsage(argv[0]);
-			return 0;
-		} else if (strcmp(argv[i], "-f") == 0) {
+        if (strcmp(argv[i], "--help") == 0)
+        {
+            ShowUsage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-f") == 0) {
             config_path = argv[++i];
             continue;
         } else if (strcmp(argv[i], "-d") == 0) {
@@ -64,18 +64,20 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
-    phxqueue::comm::Logger::GetInstance()->SetLogFunc([debug](const int log_level, const char *format, va_list args)->void {
-            if (!debug && log_level > static_cast<int>(phxqueue::comm::LogLevel::Error)) return;
-            vprintf(format, args);
-            printf("\n");
-        });
+    phxqueue::comm::Logger::GetInstance()->SetLogFunc([debug](const int log_level, const char *format,
+                                                              va_list args)->void {
+        if (!debug && log_level > static_cast<int>(phxqueue::comm::LogLevel::Error)) return;
+        vprintf(format, args);
+        printf("\n");
+    });
 
     string phxqueue_global_config_path = config_path;
-    phxqueue::plugin::ConfigFactory::SetConfigFactoryCreateFunc([phxqueue_global_config_path]()->unique_ptr<phxqueue::plugin::ConfigFactory> {
-            auto cf = new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path);
-            cf->SetNeedCheck(true);
-            return unique_ptr<phxqueue::plugin::ConfigFactory>(cf);
-        });
+    phxqueue::plugin::ConfigFactory::SetConfigFactoryCreateFunc([phxqueue_global_config_path]()->
+            unique_ptr<phxqueue::plugin::ConfigFactory> {
+        auto cf = new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path);
+        cf->SetNeedCheck(true);
+        return unique_ptr<phxqueue::plugin::ConfigFactory>(cf);
+    });
 
     phxqueue::config::GlobalConfig::GetThreadInstance();
 

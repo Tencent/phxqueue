@@ -29,9 +29,9 @@ using namespace std;
 void TestConfig::Process() {
     phxqueue::plugin::ConfigFactory::SetConfigFactoryCreateFunc(
             []()->unique_ptr<phxqueue::plugin::ConfigFactory> {
-                return unique_ptr<phxqueue::plugin::ConfigFactory>(
-                        new plugin::ConfigFactory("./etc/globalconfig.conf"));
-            });
+        return unique_ptr<phxqueue::plugin::ConfigFactory>(
+                new plugin::ConfigFactory("./etc/globalconfig.conf"));
+    });
 
     const int topic_id{1000};
 

@@ -65,7 +65,8 @@ comm::RetCode Scheduler::Init() {
     }
 
     if (impl_->opt.break_point_factory_create_func) {
-        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(impl_->opt.break_point_factory_create_func);
+        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(
+                impl_->opt.break_point_factory_create_func);
     }
 
     impl_->addr.set_ip(impl_->opt.ip);
@@ -123,7 +124,8 @@ comm::RetCode Scheduler::InitTopicID() {
     comm::RetCode ret;
 
     if (!impl_->opt.topic.empty()) {
-        if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicIDByTopicName(impl_->opt.topic, impl_->topic_id))) {
+        if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->
+                                      GetTopicIDByTopicName(impl_->opt.topic, impl_->topic_id))) {
             QLErr("GetTopicIDByTopicName ret %d topic %s", as_integer(ret), impl_->opt.topic.c_str());
         }
         return ret;
@@ -132,7 +134,8 @@ comm::RetCode Scheduler::InitTopicID() {
     QLInfo("no topic name. find toipc_id by addr(%s:%d)", impl_->addr.ip().c_str(), impl_->addr.port());
 
     set<int> topic_ids;
-    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetAllTopicID(topic_ids))) {
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->
+                                  GetAllTopicID(topic_ids))) {
         QLErr("GetAllTopicID ret %d", as_integer(ret));
         return ret;
     }
@@ -142,7 +145,8 @@ comm::RetCode Scheduler::InitTopicID() {
         QLVerb("check topic_id %d", topic_id);
 
         shared_ptr<const config::SchedulerConfig> scheduler_config;
-        if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetSchedulerConfig(topic_id, scheduler_config))) {
+        if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->
+                                      GetSchedulerConfig(topic_id, scheduler_config))) {
             QLErr("GetSchedulerConfig ret %d", as_integer(ret));
             continue;
         }
@@ -152,10 +156,11 @@ comm::RetCode Scheduler::InitTopicID() {
             QLErr("GetScheduler ret %d", as_integer(ret));
         } else {
             for (int i{0}; i < scheduler->addrs_size(); ++i) {
-                auto &&addr = scheduler->addrs(i);
+                auto &&addr(scheduler->addrs(i));
                 if (addr.ip() == impl_->addr.ip() && addr.port() == impl_->addr.port()) {
                     impl_->topic_id = topic_id;
-                    QLInfo("found toipc_id %d addr (%s:%d)", topic_id, impl_->addr.ip().c_str(), impl_->addr.port());
+                    QLInfo("found toipc_id %d addr (%s:%d)", topic_id,
+                           impl_->addr.ip().c_str(), impl_->addr.port());
                     return comm::RetCode::RET_OK;
                 }
             }

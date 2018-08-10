@@ -128,7 +128,8 @@ comm::RetCode Store::Init() {
     }
 
     if (impl_->opt.break_point_factory_create_func) {
-        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(impl_->opt.break_point_factory_create_func);
+        plugin::BreakPointFactory::SetBreakPointFactoryCreateFunc(
+                impl_->opt.break_point_factory_create_func);
     }
 
     if (!comm::utils::AccessDir(impl_->opt.data_dir_path)) {
@@ -231,7 +232,7 @@ comm::RetCode Store::PaxosInit() {
     }
 
     for (size_t i{0}; i < store->addrs_size(); ++i) {
-        auto &&addr = store->addrs(i);
+        auto &&addr(store->addrs(i));
         opts.vecNodeInfoList.emplace_back(addr.ip(), addr.paxos_port());
     }
 
@@ -586,7 +587,7 @@ bool Store::SkipGet(const comm::proto::QItem &item, const comm::proto::GetReques
         return true;
     }
 
-    if (0 == ((1ULL << (req.consumer_group_id() - 1)) & item.consumer_group_ids())) {
+    if (0 == ((1uLL << (req.consumer_group_id() - 1)) & item.consumer_group_ids())) {
         return true;
     }
 

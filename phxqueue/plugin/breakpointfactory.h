@@ -59,7 +59,7 @@ namespace plugin {
 
 class BreakPointFactory;
 
-using BreakPointFactoryCreateFunc = std::function<std::unique_ptr<BreakPointFactory> ()>;
+using BreakPointFactoryCreateFunc = std::function<std::unique_ptr<BreakPointFactory>()>;
 
 
 class BreakPointFactory {
