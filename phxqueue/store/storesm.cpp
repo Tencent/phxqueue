@@ -113,8 +113,7 @@ bool StoreSM::Execute(const int paxos_group_id, const uint64_t instance_id,
 const uint64_t StoreSM::GetCheckpointInstanceID(const int paxos_group_id) const {
     QLVerb("StoreSM::GetCheckpointInstanceID begin");
 
-    // TODO: use MAX_
-    uint64_t cp = -1;
+    uint64_t cp(-1);
 
     comm::RetCode ret;
 

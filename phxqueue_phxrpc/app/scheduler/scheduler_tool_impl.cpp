@@ -16,10 +16,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 */
 
+#include "scheduler_tool_impl.h"
+
 #include "phxrpc/file.h"
 
 #include "scheduler_client.h"
-#include "scheduler_tool_impl.h"
 
 
 using namespace phxrpc;
@@ -38,7 +39,7 @@ int SchedulerToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     req.set_value(opt_map.Get('s'));
 
     SchedulerClient client;
-    int ret = client.PhxEcho(req, &resp);
+    int ret{client.PhxEcho(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -52,7 +53,7 @@ int SchedulerToolImpl::GetAddrScale(phxrpc::OptMap &opt_map) {
     //TODO: fill req from opt_map
 
     SchedulerClient client;
-    int ret = client.GetAddrScale(req, &resp);
+    int ret{client.GetAddrScale(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 

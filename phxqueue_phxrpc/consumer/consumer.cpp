@@ -54,7 +54,7 @@ Consumer::Get(const phxqueue::comm::proto::GetRequest &req,
               phxqueue::comm::proto::GetResponse &resp) {
 
     static __thread StoreClient store_client;
-    auto ret = store_client.ProtoGet(req, resp);
+    auto ret(store_client.ProtoGet(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("ProtoGet ret %d", phxqueue::comm::as_integer(ret));
     }
@@ -66,7 +66,7 @@ Consumer::Add(phxqueue::comm::proto::AddRequest &req,
               phxqueue::comm::proto::AddResponse &resp) {
     phxqueue::producer::ProducerOption opt;
     phxqueue_phxrpc::producer::Producer producer(opt);
-    auto ret = producer.SelectAndAdd(req, resp, nullptr, nullptr);
+    auto ret(producer.SelectAndAdd(req, resp, nullptr, nullptr));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("Producer::SelectAndAdd ret %d", phxqueue::comm::as_integer(ret));
     }
@@ -77,7 +77,7 @@ phxqueue::comm::RetCode
 Consumer::GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,
                        phxqueue::comm::proto::GetAddrScaleResponse &resp) {
     static __thread SchedulerClient scheduler_client;
-    auto ret = scheduler_client.ProtoGetAddrScale(req, resp);
+    auto ret(scheduler_client.ProtoGetAddrScale(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("ProtoGetAddrScale ret %d", phxqueue::comm::as_integer(ret));
     }
@@ -88,7 +88,7 @@ phxqueue::comm::RetCode
 Consumer::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                       phxqueue::comm::proto::GetLockInfoResponse &resp) {
     static __thread LockClient lock_client;
-    auto ret = lock_client.ProtoGetLockInfo(req, resp);
+    auto ret(lock_client.ProtoGetLockInfo(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("ProtoGetLockInfo ret %d", phxqueue::comm::as_integer(ret));
     }
@@ -99,7 +99,7 @@ phxqueue::comm::RetCode
 Consumer::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                       phxqueue::comm::proto::AcquireLockResponse &resp) {
     static __thread LockClient lock_client;
-    auto ret = lock_client.ProtoAcquireLock(req, resp);
+    auto ret(lock_client.ProtoAcquireLock(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("ProtoAcquireLock ret %d", phxqueue::comm::as_integer(ret));
     }
