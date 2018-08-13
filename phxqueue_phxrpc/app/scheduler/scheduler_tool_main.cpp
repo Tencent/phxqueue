@@ -36,10 +36,10 @@ void ShowUsage(const char *program) {
 
     SchedulerTool::Name2Func_t *name2func = SchedulerTool::GetName2Func();
 
-    for (int i = 0; ; i++) {
+    for (int i{0}; ; ++i) {
         SchedulerTool::Name2Func_t *iter = &(name2func[i]);
 
-        if (NULL == iter->name) break;
+        if (nullptr == iter->name) break;
 
         printf("    -f %s %s\n", iter->name, iter->usage);
     }
@@ -48,33 +48,33 @@ void ShowUsage(const char *program) {
 }
 
 int main(int argc, char *argv[]) {
-    const char *func = NULL;
-    const char *config = NULL;
+    const char *func{nullptr};
+    const char *config{nullptr};
 
-    for (int i = 1; i < argc - 1; i++) {
+    for (int i{1}; i < argc - 1; ++i) {
         if (0 == strcmp(argv[i], "-c")) {
-            config = argv[ ++i ];
+            config = argv[++i];
         }
         if (0 == strcmp(argv[i], "-f")) {
-            func = argv[ ++i ];
+            func = argv[++i];
         }
         if (0 == strcmp(argv[i], "-v")) {
             ShowUsage(argv[0]);
         }
     }
 
-    if (NULL == func) ShowUsage(argv[0]);
+    if (nullptr == func) ShowUsage(argv[0]);
 
-    if (NULL != config) SchedulerClient::Init(config);
+    if (nullptr != config) SchedulerClient::Init(config);
 
-    SchedulerTool::Name2Func_t *target = NULL;
+    SchedulerTool::Name2Func_t *target{nullptr};
 
-    SchedulerTool::Name2Func_t *name2func = SchedulerTool::GetName2Func();
+    SchedulerTool::Name2Func_t *name2func{SchedulerTool::GetName2Func()};
 
-    for (int i = 0; i < 100; i++) {
+    for (int i{0}; i < 100; ++i) {
         SchedulerTool::Name2Func_t *iter = &(name2func[i]);
 
-        if (NULL == iter->name) break;
+        if (nullptr == iter->name) break;
 
         if (0 == strcasecmp(func, iter->name)) {
             target = iter;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (NULL == target) ShowUsage(argv[0]);
+    if (nullptr == target) ShowUsage(argv[0]);
 
     OptMap opt_map(target->opt_string);
 
@@ -96,3 +96,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+

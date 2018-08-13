@@ -56,9 +56,9 @@ int main(int argc, char **argv) {
 
     phxqueue::plugin::ConfigFactory::SetConfigFactoryCreateFunc(
             [global_config_path]()->unique_ptr<phxqueue::plugin::ConfigFactory> {
-                return unique_ptr<phxqueue::plugin::ConfigFactory>(
-                        new phxqueue_phxrpc::plugin::ConfigFactory(global_config_path));
-            });
+        return unique_ptr<phxqueue::plugin::ConfigFactory>(
+                new phxqueue_phxrpc::plugin::ConfigFactory(global_config_path));
+    });
 
     constexpr uint32_t len{10};
     char random_str[len + 1]{'\0'};

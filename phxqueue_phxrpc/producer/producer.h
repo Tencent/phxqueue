@@ -28,11 +28,11 @@ class Producer : public phxqueue::producer::Producer {
     virtual ~Producer();
 
     virtual void CompressBuffer(const std::string &buffer, std::string &compressed_buffer,
-                                int &buffer_type);
+                                int &buffer_type) override;
 
   protected:
     virtual phxqueue::comm::RetCode Add(const phxqueue::comm::proto::AddRequest &req,
-                                        phxqueue::comm::proto::AddResponse &resp);
+                                        phxqueue::comm::proto::AddResponse &resp) override;
 };
 
 

@@ -11,16 +11,16 @@ include ../../../makefile.mk
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS) # for boost
 
 SVR_OBJS = scheduler.pb.o \
-		   scheduler_service_impl.o \
-		   phxrpc_scheduler_service.o \
-		   phxrpc_scheduler_dispatcher.o \
-		   scheduler_server_config.o \
-		   scheduler_main.o
+		scheduler_service_impl.o \
+		phxrpc_scheduler_service.o \
+		phxrpc_scheduler_dispatcher.o \
+		scheduler_server_config.o \
+		scheduler_main.o
 
 CLI_OBJS = scheduler.pb.o \
-		   scheduler_client.o \
-		   scheduler_client_uthread.o \
-		   phxrpc_scheduler_stub.o
+		scheduler_client.o \
+		scheduler_client_uthread.o \
+		phxrpc_scheduler_stub.o
 
 TARGETS = libscheduler_client.a scheduler_main scheduler_tool_main
 

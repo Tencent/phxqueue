@@ -23,9 +23,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 #include <mutex>
 
-#include "phxrpc_store_stub.h"
+#include "phxrpc/http.h"
 
 #include "phxqueue/comm.h"
+
+#include "phxrpc_store_stub.h"
+
+
+using namespace std;
+
 
 static phxrpc::ClientConfig global_storeclient_config_;
 static phxrpc::ClientMonitorPtr global_storeclient_monitor_;
@@ -44,7 +50,7 @@ const char *StoreClient::GetPackageName() {
 }
 
 StoreClient::StoreClient() {
-    static std::mutex monitor_mutex;
+    static mutex monitor_mutex;
     if (!global_storeclient_monitor_.get()) {
         monitor_mutex.lock();
         if (!global_storeclient_monitor_.get()) {
@@ -70,7 +76,8 @@ int StoreClient::PhxEcho(const google::protobuf::StringValue &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.PhxEcho(req, resp);
         }
     }
@@ -91,7 +98,8 @@ int StoreClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                 if (phxrpc::PhxrpcTcpUtils::Open(&uthread_s, &socket, ep->ip, ep->port,
                             global_storeclient_config_.GetConnectTimeoutMS(), *(global_storeclient_monitor_.get()))) {
                     socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
-                    StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
                     int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
@@ -117,7 +125,8 @@ int StoreClient::Add(const phxqueue::comm::proto::AddRequest &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.Add(req, resp);
         }
     }
@@ -137,7 +146,8 @@ int StoreClient::Get(const phxqueue::comm::proto::GetRequest &req,
         if (open_ret) {
             socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
 
-            StoreStub stub(socket, *(global_storeclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
             return stub.Get(req, resp);
         }
     }
@@ -151,9 +161,9 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -169,14 +179,15 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
         socket->SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
     }
 
-    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.Add(req, &resp)};
     if (0 > ret) {
         QLErr("Add err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }
@@ -187,9 +198,9 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -205,14 +216,15 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
         socket->SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
     }
 
-    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    StoreStub stub(*(socket.get()), *(global_storeclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.Get(req, &resp)};
     if (0 > ret) {
         QLErr("Get err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }

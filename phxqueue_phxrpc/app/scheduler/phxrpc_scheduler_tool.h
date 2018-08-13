@@ -53,7 +53,7 @@ class SchedulerTool {
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
             { "PhxEcho", &SchedulerTool::PhxEcho, "c:f:vs:", "-s <string>" },
-            { NULL, NULL }
+            { nullptr, nullptr }
         };
 
         return name2func;

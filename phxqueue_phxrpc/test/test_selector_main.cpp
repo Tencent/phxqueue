@@ -40,17 +40,17 @@ void ShowUsage(const char *proc) {
 }
 
 int main(int argc, char ** argv) {
-    const char *global_config_path = nullptr;
-    int topic_id = -1;
-    int pub_id = -1;
-    uint64_t uin = -1;
-    bool retry_switch_store = 0;
+    const char *global_config_path{nullptr};
+    int topic_id{-1};
+    int pub_id{-1};
+    uint64_t uin(-1);
+    bool retry_switch_store{false};
 
-    for (int i = 0; i < argc; ++i) {
-		if (strcmp(argv[i], "--help") == 0) {
-			ShowUsage(argv[0]);
-			return 0;
-		} else if (strcmp(argv[i], "-f") == 0) {
+    for (int i{0}; i < argc; ++i) {
+        if (strcmp(argv[i], "--help") == 0) {
+            ShowUsage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-f") == 0) {
             global_config_path = argv[++i];
             continue;
         } else if (strcmp(argv[i], "-t") == 0) {
@@ -75,21 +75,21 @@ int main(int argc, char ** argv) {
 
 
     phxqueue::comm::Logger::GetInstance()->SetLogFunc([](const int log_level, const char *format, va_list args)->void {
-            if (log_level > static_cast<int>(phxqueue::comm::LogLevel::Error)) return;
-            vprintf(format, args);
-            printf("\n");
-        });
+        if (log_level > static_cast<int>(phxqueue::comm::LogLevel::Error)) return;
+        vprintf(format, args);
+        printf("\n");
+    });
 
     string phxqueue_global_config_path = global_config_path;
     phxqueue::plugin::ConfigFactory::SetConfigFactoryCreateFunc([phxqueue_global_config_path]()->unique_ptr<phxqueue::plugin::ConfigFactory> {
-            auto cf = new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path);
-            return unique_ptr<phxqueue::plugin::ConfigFactory>(cf);
-        });
+        auto cf(new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path));
+        return unique_ptr<phxqueue::plugin::ConfigFactory>(cf);
+    });
 
     phxqueue::producer::StoreSelectorDefault selector(topic_id, pub_id, uin, retry_switch_store);
-    int store_id = -1;
-    for (int i = 0; i < 3; ++i) {
-        phxqueue::comm::RetCode ret = selector.GetStoreID(store_id);
+    int store_id{-1};
+    for (int i{0}; i < 3; ++i) {
+        phxqueue::comm::RetCode ret{selector.GetStoreID(store_id)};
         printf("%d %d\n", as_integer(ret), store_id);
     }
 

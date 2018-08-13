@@ -23,6 +23,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 #include <mutex>
 
+#include "phxrpc/http.h"
+
 #include "phxqueue/comm.h"
 
 #include "phxrpc_lock_stub.h"
@@ -74,7 +76,8 @@ int LockClient::PhxEcho(const google::protobuf::StringValue &req,
         if (open_ret) {
             socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
 
-            LockStub stub(socket, *(global_lockclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
             return stub.PhxEcho(req, resp);
         }
     }
@@ -96,7 +99,8 @@ int LockClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                         global_lockclient_config_.GetConnectTimeoutMS(),
                         *(global_lockclient_monitor_.get()))) {
                     socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
-                    LockStub stub(socket, *(global_lockclient_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
                     int this_ret{stub.PhxEcho(req, resp)};
                     if (0 == this_ret) {
                         ret = this_ret;
@@ -122,7 +126,8 @@ int LockClient::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req
         if (open_ret) {
             socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
 
-            LockStub stub(socket, *(global_lockclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
             return stub.GetLockInfo(req, resp);
         }
     }
@@ -142,7 +147,8 @@ int LockClient::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req
         if (open_ret) {
             socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
 
-            LockStub stub(socket, *(global_lockclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
             return stub.AcquireLock(req, resp);
         }
     }
@@ -156,9 +162,9 @@ LockClient::ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &re
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -174,14 +180,15 @@ LockClient::ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &re
         socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
     }
 
-    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.GetLockInfo(req, &resp)};
     if (0 > ret) {
         QLErr("GetLockInfo err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }
@@ -192,9 +199,9 @@ LockClient::ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &re
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
 
     if (nullptr == socket.get()) {
@@ -211,14 +218,15 @@ LockClient::ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &re
         socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
     }
 
-    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.AcquireLock(req, &resp)};
     if (0 > ret) {
         QLErr("AcquireLock err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }

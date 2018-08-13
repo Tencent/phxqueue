@@ -21,8 +21,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 #include <mutex>
 
-#include "phxqueue/comm.h"
+#include "phxrpc/http.h"
 #include "phxrpc/rpc.h"
+
+#include "phxqueue/comm.h"
 
 #include "scheduler_client_uthread.h"
 #include "phxrpc_scheduler_stub.h"
@@ -75,7 +77,8 @@ int SchedulerClientUThread::PhxEcho(const google::protobuf::StringValue &req,
         if (open_ret) {
             socket.SetTimeout(global_schedulerclientuthread_config_.GetSocketTimeoutMS());
 
-            SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()), http_msg_factory);
             return stub.PhxEcho(req, resp);
         }
     }
@@ -97,7 +100,8 @@ int SchedulerClientUThread::PhxBatchEcho(const google::protobuf::StringValue &re
                         global_schedulerclientuthread_config_.GetConnectTimeoutMS(),
                         *(global_schedulerclientuthread_monitor_.get()))) {
                     socket.SetTimeout(global_schedulerclientuthread_config_.GetSocketTimeoutMS());
-                    SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()), http_msg_factory);
                     int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
@@ -123,7 +127,8 @@ int SchedulerClientUThread::GetAddrScale(const phxqueue::comm::proto::GetAddrSca
         if (open_ret) {
             socket.SetTimeout(global_schedulerclientuthread_config_.GetSocketTimeoutMS());
 
-            SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            SchedulerStub stub(socket, *(global_schedulerclientuthread_monitor_.get()), http_msg_factory);
             return stub.GetAddrScale(req, resp);
         }
     }

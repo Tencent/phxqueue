@@ -183,7 +183,7 @@ comm::RetCode TopicConfig::Rebuild() {
 
             for (int j{0}; j < queue_info.ranges_size(); ++j) {
                 vector<string> arr;
-                comm::utils::StrSplitList(queue_info.ranges(j).c_str(), "-", arr);
+                comm::utils::StrSplitList(queue_info.ranges(j), "-", arr);
                 if (2 == arr.size() && stoi(arr[0]) <= stoi(arr[1])) {
                     ranges.emplace_back(stoi(arr[0]), stoi(arr[1]));
                 } else if (1 == arr.size()) {

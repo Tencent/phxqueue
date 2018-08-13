@@ -18,43 +18,44 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 */
 
+#include "phxrpc_lock_stub.h"
+
 #include "phxrpc/rpc.h"
 #include "phxrpc/network.h"
 
-#include "phxrpc_lock_stub.h"
-#include "lock.pb.h"
 
-
-LockStub::LockStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)
-        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {}
+LockStub::LockStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                   phxrpc::BaseMessageHandlerFactory &msg_handler_factory)
+        : socket_(socket), client_monitor_(client_monitor),
+          msg_handler_factory_(msg_handler_factory) {}
 
 LockStub::~LockStub() {}
 
-void LockStub::SetKeepAlive(const bool keep_alive) {
+void LockStub::set_keep_alive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
 int LockStub::PhxEcho(const google::protobuf::StringValue &req,
                       google::protobuf::StringValue *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.lock/PhxEcho", -1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/PhxEcho", -1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int LockStub::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                           phxqueue::comm::proto::GetLockInfoResponse *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.lock/GetLockInfo", 1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/GetLockInfo", 1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int LockStub::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                           phxqueue::comm::proto::AcquireLockResponse *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.lock/AcquireLock", 2);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.lock/AcquireLock", 2);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 

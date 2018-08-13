@@ -13,31 +13,30 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #pragma once
 
 #include <map>
-#include <queue>
-#include <memory>
-#include <random>
-#include <sstream>
 #include <mutex>
+#include <queue>
+
 
 namespace phxqueue {
 
 namespace comm {
 
-template <typename KeyType, typename ResourceType>
-class ResourcePoll {
-  public:
-    ResourcePoll() {}
-    ~ResourcePoll() {}
 
-    static ResourcePoll *GetInstance() {
-        static ResourcePoll pool;
+template <typename KeyType, typename ResourceType>
+class ResourcePool final {
+  public:
+    ResourcePool() {}
+    ~ResourcePool() {}
+
+    static ResourcePool *GetInstance() {
+        static ResourcePool pool;
         return &pool;
     }
 
     std::unique_ptr<ResourceType> Get(const KeyType &key) {
         std::lock_guard<std::mutex> lg(lock_);
 
-        auto &&it = key2resources_.find(key);
+        auto &&it(key2resources_.find(key));
         if (key2resources_.end() == it) return nullptr;
         auto &resources = it->second;
         if (resources.empty()) return nullptr;
@@ -54,9 +53,10 @@ class ResourcePoll {
     }
 
   protected:
-    std::map<KeyType, std::queue<std::unique_ptr<ResourceType> > > key2resources_;
+    std::map<KeyType, std::queue<std::unique_ptr<ResourceType>>> key2resources_;
     std::mutex lock_;
 };
+
 
 }  // namespace comm
 

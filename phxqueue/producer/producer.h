@@ -43,8 +43,10 @@ class Producer {
 
     // Interface for Data first enqueue.
     // Pack argument info item, add to Store by Store::Add.
-    comm::RetCode Enqueue(const int topic_id, const uint64_t uin, const int handle_id, const std::string &buffer,
-                          int pub_id = -1, const std::set<int> *consumer_group_ids = nullptr, const std::string client_id = "");
+    comm::RetCode Enqueue(const int topic_id, const uint64_t uin, const int handle_id,
+                          const std::string &buffer, int pub_id = -1,
+                          const std::set<int> *consumer_group_ids = nullptr,
+                          const std::string client_id = "");
 
 
     // ------------------------ Interfaces used in Reenqueue scene  ------------------------
@@ -53,8 +55,8 @@ class Producer {
     // Items that belongs to the same queue_info is grouped together to facilitate batch adding to Store.
     // Parameters within Item can be modified by item_update_func.
     static comm::RetCode MakeAddRequests(const int topic_id,
-                                         const std::vector<std::shared_ptr<comm::proto::QItem> > &items,
-                                         std::vector<std::unique_ptr<comm::proto::AddRequest> > &reqs,
+                                         const std::vector<std::shared_ptr<comm::proto::QItem>> &items,
+                                         std::vector<std::unique_ptr<comm::proto::AddRequest>> &reqs,
                                          ItemUpdateFunc item_update_func = nullptr);
 
     // Process a batch add to Store.
@@ -69,7 +71,8 @@ class Producer {
     // ------------------------ Interfaces MUST be overrided ------------------------
 
     // Need to implement an RPC that corresponds to Store::Add().
-    virtual comm::RetCode Add(const comm::proto::AddRequest &req, comm::proto::AddResponse &resp) = 0;
+    virtual comm::RetCode Add(const comm::proto::AddRequest &req,
+                              comm::proto::AddResponse &resp) = 0;
 
 
     // ------------------------ Interfaces CAN be overrided ------------------------
@@ -80,10 +83,14 @@ class Producer {
     const ProducerOption * GetProducerOption() const;
 
     // Implement customize StoreSelector to determine which store to add.
-    virtual std::unique_ptr<QueueSelector> NewQueueSelector(const int topic_id, const int pub_id, const uint64_t uin, const int count = 0, const bool retry_switch_queue = false);
+    virtual std::unique_ptr<QueueSelector> NewQueueSelector(const int topic_id, const int pub_id,
+                                                            const uint64_t uin, const int count = 0,
+                                                            const bool retry_switch_queue = false);
 
     // Implement customize QueueSelector to determine which queue to add.
-    virtual std::unique_ptr<StoreSelector> NewStoreSelector(const int topic_id, const int pub_id, const uint64_t uin, const bool retry_switch_store = false);
+    virtual std::unique_ptr<StoreSelector> NewStoreSelector(const int topic_id, const int pub_id,
+                                                            const uint64_t uin,
+                                                            const bool retry_switch_store = false);
 
     // Implement of set usercookies.
     virtual void SetUserCookies(comm::proto::Cookies &user_cookie) {}
@@ -92,16 +99,19 @@ class Producer {
     virtual void SetSysCookies(comm::proto::Cookies &sys_cookie) {}
 
     // Implement of set syscookies.
-    virtual void CompressBuffer(const std::string &buffer, std::string &compressed_buffer, int &buffer_type) = 0;
+    virtual void CompressBuffer(const std::string &buffer, std::string &compressed_buffer,
+                                int &buffer_type) = 0;
 
     // If argument pub_id of Producer::Enqueue use default value, Producer need this implement to determine the real pub_id.
-    virtual void DecidePubIDOnEnqueue(const int topic_id, const uint64_t uin, const int handle_id, int &pub_id) {}
+    virtual void DecidePubIDOnEnqueue(const int topic_id, const uint64_t uin,
+                                      const int handle_id, int &pub_id) {}
 
     // Callback before Add.
     virtual void BeforeAdd(const comm::proto::AddRequest &req) {}
 
     // Callback after Add.
-    virtual void AfterAdd(const comm::proto::AddRequest &req, const comm::proto::AddResponse &resp) {}
+    virtual void AfterAdd(const comm::proto::AddRequest &req,
+                          const comm::proto::AddResponse &resp) {}
 
   private:
     class ProducerImpl;

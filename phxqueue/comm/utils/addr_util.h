@@ -34,6 +34,7 @@ std::string AddrScaleToString(const proto::AddrScale &addr_scale);
 std::string AddrScalesToString(const google::protobuf::RepeatedPtrField
                                <proto::AddrScale> &addr_scales);
 
+
 }  // namespace utils
 
 }  // namespace comm

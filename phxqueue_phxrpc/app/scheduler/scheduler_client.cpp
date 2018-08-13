@@ -23,6 +23,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 #include <mutex>
 
+#include "phxrpc/http.h"
+
 #include "phxqueue/comm.h"
 
 #include "phxrpc_scheduler_stub.h"
@@ -74,7 +76,8 @@ int SchedulerClient::PhxEcho(const google::protobuf::StringValue &req,
         if (open_ret) {
             socket.SetTimeout(global_schedulerclient_config_.GetSocketTimeoutMS());
 
-            SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()), http_msg_factory);
             return stub.PhxEcho(req, resp);
         }
     }
@@ -96,7 +99,8 @@ int SchedulerClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                         global_schedulerclient_config_.GetConnectTimeoutMS(),
                         *(global_schedulerclient_monitor_.get()))) {
                     socket.SetTimeout(global_schedulerclient_config_.GetSocketTimeoutMS());
-                    SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()), http_msg_factory);
                     int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
@@ -122,7 +126,8 @@ int SchedulerClient::GetAddrScale(const phxqueue::comm::proto::GetAddrScaleReque
         if (open_ret) {
             socket.SetTimeout(global_schedulerclient_config_.GetSocketTimeoutMS());
 
-            SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()), http_msg_factory);
             return stub.GetAddrScale(req, resp);
         }
     }
@@ -136,9 +141,9 @@ SchedulerClient::ProtoGetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequ
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socketpool = phxqueue::comm::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
     auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = std::move(socketpool->Get(key));
+    auto socket = move(socket_pool->Get(key));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -154,14 +159,15 @@ SchedulerClient::ProtoGetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequ
         socket->SetTimeout(global_schedulerclient_config_.GetSocketTimeoutMS());
     }
 
-    SchedulerStub stub(*(socket.get()), *(global_schedulerclient_monitor_.get()));
-    stub.SetKeepAlive(true);
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    SchedulerStub stub(*(socket.get()), *(global_schedulerclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
     int ret{stub.GetAddrScale(req, &resp)};
     if (0 > ret) {
         QLErr("GetAddrScale err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
-        socketpool->Put(key, socket);
+        socket_pool->Put(key, socket);
     }
     return static_cast<phxqueue::comm::RetCode>(ret);
 }

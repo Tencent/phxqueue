@@ -25,15 +25,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxrpc/http.h"
 #include "phxrpc/rpc.h"
 
-#include "lock_server_config.h"
-#include "lock_service_impl.h"
-#include "phxrpc_lock_dispatcher.h"
-
 #include "phxqueue/comm.h"
 #include "phxqueue/plugin.h"
 #include "phxqueue/lock.h"
 
 #include "phxqueue_phxrpc/plugin.h"
+
+#include "lock_server_config.h"
+#include "lock_service_impl.h"
+#include "phxrpc_lock_dispatcher.h"
 
 
 using namespace std;
@@ -76,19 +76,18 @@ static int MakeArgs(LockServerConfig &config, ServiceArgs_t &args) {
 }
 
 
-void Dispatch(const phxrpc::HttpRequest &req,
-              phxrpc::HttpResponse *const resp,
+void Dispatch(const phxrpc::BaseRequest &req,
+              phxrpc::BaseResponse *const resp,
               phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     LockServiceImpl service(*service_args);
     LockDispatcher dispatcher(service, args);
 
-    phxrpc::HttpDispatcher<LockDispatcher> base_dispatcher(
+    phxrpc::BaseDispatcher<LockDispatcher> base_dispatcher(
             dispatcher, LockDispatcher::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(req, resp)) {
-        resp->SetStatusCode(404);
-        resp->SetReasonPhrase("Not Found");
+        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
     }
 }
 
@@ -106,8 +105,8 @@ int main(int argc, char *argv[]) {
     bool daemonize{false};
     int log_level{-1};
     extern char *optarg;
-    int c ;
-    while ((c = getopt(argc, argv, "c:vl:d")) != EOF) {
+    int c;
+    while (EOF != (c = getopt(argc, argv, "c:vl:d"))) {
         switch (c) {
             case 'c': config_file = optarg; break;
             case 'd': daemonize = true; break;
@@ -132,8 +131,12 @@ int main(int argc, char *argv[]) {
 
     if (0 < log_level) config.GetHshaServerConfig().SetLogLevel(log_level);
 
-    //phxqueue::plugin::LoggerSys::GetLogger(program_invocation_short_name, config.GetHshaServerConfig().GetLogLevel(), daemonize, g_log_func);  // syslog
-    phxqueue::plugin::LoggerGoogle::GetLogger(program_invocation_short_name, config.GetHshaServerConfig().GetLogDir(), config.GetHshaServerConfig().GetLogLevel(), g_log_func);  // glog
+    //phxqueue::plugin::LoggerSys::GetLogger(program_invocation_short_name,
+    //                                       config.GetHshaServerConfig().GetLogLevel(),
+    //                                       daemonize, g_log_func);  // syslog
+    phxqueue::plugin::LoggerGoogle::GetLogger(program_invocation_short_name,
+                                              config.GetHshaServerConfig().GetLogDir(),
+                                              config.GetHshaServerConfig().GetLogLevel(), g_log_func);  // glog
 
     ServiceArgs_t service_args;
     int ret{MakeArgs(config, service_args)};

@@ -18,35 +18,36 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 */
 
+#include "phxrpc_scheduler_stub.h"
+
 #include "phxrpc/rpc.h"
 #include "phxrpc/network.h"
 
-#include "phxrpc_scheduler_stub.h"
-#include "scheduler.pb.h"
 
-
-SchedulerStub::SchedulerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)
-    : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {}
+SchedulerStub::SchedulerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                             phxrpc::BaseMessageHandlerFactory &msg_handler_factory)
+    : socket_(socket), client_monitor_(client_monitor),
+      msg_handler_factory_(msg_handler_factory) {}
 
 SchedulerStub::~SchedulerStub() {}
 
-void SchedulerStub::SetKeepAlive(const bool keep_alive) {
+void SchedulerStub::set_keep_alive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
 int SchedulerStub::PhxEcho(const google::protobuf::StringValue &req,
                            google::protobuf::StringValue *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.scheduler/PhxEcho", -1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.scheduler/PhxEcho", -1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
 int SchedulerStub::GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,
                                 phxqueue::comm::proto::GetAddrScaleResponse *resp) {
-    phxrpc::HttpCaller caller(socket_, client_monitor_);
-    caller.SetURI("/phxqueue_phxrpc.scheduler/GetAddrScale", 1);
-    caller.SetKeepAlive(keep_alive_);
+    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc.scheduler/GetAddrScale", 1);
+    caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }
 
