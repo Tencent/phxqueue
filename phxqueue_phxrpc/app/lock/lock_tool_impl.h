@@ -20,6 +20,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include <cstdio>
 
+#include "phxqueue/comm.h"
+
 #include "phxrpc_lock_tool.h"
 
 
@@ -49,5 +51,25 @@ class LockToolImpl : public LockTool {
 
     virtual int DeleteString(phxrpc::OptMap &opt_map) override;
 
+  private:
+    phxqueue::comm::RetCode
+    GetLockInfoImpl(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                    phxqueue::comm::proto::GetLockInfoResponse &resp);
+
+    phxqueue::comm::RetCode
+    AcquireLockImpl(const phxqueue::comm::proto::AcquireLockRequest &req,
+                    phxqueue::comm::proto::AcquireLockResponse &resp);
+
+    phxqueue::comm::RetCode
+    GetStringImpl(const phxqueue::comm::proto::GetStringRequest &req,
+                  phxqueue::comm::proto::GetStringResponse &resp);
+
+    phxqueue::comm::RetCode
+    SetStringImpl(const phxqueue::comm::proto::SetStringRequest &req,
+                  phxqueue::comm::proto::SetStringResponse &resp);
+
+    phxqueue::comm::RetCode
+    DeleteStringImpl(const phxqueue::comm::proto::DeleteStringRequest &req,
+                     phxqueue::comm::proto::DeleteStringResponse &resp);
 };
 

@@ -62,6 +62,8 @@ class LockTool {
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
             { "PhxEcho", &LockTool::PhxEcho, "c:f:vs:", "-s <string>" },
+            { "GetLockInfo", &LockTool::GetLockInfo, "c:f:vt:l:k:", "-t <topic_id> -l <lock_id> -k <lock_key>" },
+            { "AcquireLock", &LockTool::AcquireLock, "c:f:vt:l:k:r:s:l:", "-t <topic_id> -l <lock_id> -k <lock_key> -r <version> -s <client_id> -l <lease_time_ms>" },
             { "GetString", &LockTool::GetString, "c:f:vt:l:k:", "-t <topic_id> -l <lock_id> -k <key>" },
             { "SetString", &LockTool::SetString, "c:f:vt:l:k:r:s:l:", "-t <topic_id> -l <lock_id> -k <key> -r <version> -s <string> -l <lease_time_ms>" },
             { "DeleteString", &LockTool::DeleteString, "c:f:vt:l:k:r:", "-t <topic_id> -l <lock_id> -k <key> -r <version>" },

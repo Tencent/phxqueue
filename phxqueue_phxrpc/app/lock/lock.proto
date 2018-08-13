@@ -10,10 +10,14 @@ import "phxrpc/rpc/phxrpc.proto";
 service Lock {
     rpc GetLockInfo(phxqueue.comm.proto.GetLockInfoRequest) returns(phxqueue.comm.proto.GetLockInfoResponse) {
         option(phxrpc.CmdID) = 1;
+        option(phxrpc.OptString) = "t:l:k:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key>";
     }
 
     rpc AcquireLock(phxqueue.comm.proto.AcquireLockRequest) returns(phxqueue.comm.proto.AcquireLockResponse) {
         option(phxrpc.CmdID) = 2;
+        option(phxrpc.OptString) = "t:l:k:r:s:l:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key> -r <version> -s <client_id> -l <lease_time_ms>";
     }
 
     rpc GetString(phxqueue.comm.proto.GetStringRequest) returns(phxqueue.comm.proto.GetStringResponse) {
