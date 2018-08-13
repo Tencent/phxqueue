@@ -1,0 +1,187 @@
+syntax = "proto3";
+
+package phxqueue_phxrpc.mqttbroker;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "phxqueue/comm/proto/comm.proto";
+import "phxrpc/rpc/phxrpc.proto";
+
+
+message MqttConnectPb {
+    string client_identifier = 11;
+    string proto_name = 12;
+    uint32 proto_level = 13;
+    bool clean_session = 14;
+    uint32 keep_alive = 15;
+    string user_name = 16;
+    string password = 17;
+    bool will_flag = 18;
+    uint32 will_qos = 19;
+    bool will_retain = 20;
+    string will_topic = 21;
+    string will_message = 22;
+}
+
+message MqttConnackPb {
+    bool session_present = 11;
+    uint32 connect_return_code = 12;
+}
+
+message MqttPublishPb {
+    bool dup = 1;
+    uint32 qos = 2;
+    bool retain = 3;
+    uint32 packet_identifier = 11;
+    string topic_name = 12;
+    string content = 13;
+}
+
+message MqttPubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPubrecPb {
+}
+
+message MqttPubrelPb {
+}
+
+message MqttPubcompPb {
+}
+
+message MqttSubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+    repeated uint32 qoss = 13;
+}
+
+message MqttSubackPb {
+    uint32 packet_identifier = 11;
+    repeated uint32 return_codes = 12;
+}
+
+message MqttUnsubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+}
+
+message MqttUnsubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPingreqPb {
+}
+
+message MqttPingrespPb {
+}
+
+message MqttDisconnectPb {
+}
+
+message HttpPublishPb {
+    string client_id = 1;
+    MqttPublishPb mqtt_publish = 11;
+}
+
+message HttpPubackPb {
+    string client_id = 1;
+    MqttPubackPb mqtt_puback = 11;
+}
+
+message SessionAttributePb {
+    bool clean_session = 1;
+    string user_name = 11;
+    string password = 12;
+    bool will_flag = 21;
+    uint32 will_qos = 22;
+    bool will_retain = 23;
+    string will_topic = 24;
+    string will_message = 25;
+}
+
+message SessionPb {
+    uint32 session_ip = 1;
+    uint64 session_id = 2;
+    SessionAttributePb session_attribute = 101;
+}
+
+message SubscribePb {
+    string client_identifier = 1;
+    uint32 qos = 2;
+}
+
+message TopicPb {
+    repeated SubscribePb subscribes = 1;
+}
+
+service MqttBroker {
+
+    rpc PhxMqttConnect(MqttConnectPb) returns (MqttConnackPb) {
+        option(phxrpc.CmdID) = 2000011;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+    rpc PhxMqttPublish(MqttPublishPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000012;
+        option(phxrpc.OptString) = "l:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+    }
+
+    rpc PhxMqttPuback(MqttPubackPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000013;
+        option(phxrpc.OptString) = "l:p:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier>";
+    }
+
+    rpc PhxMqttPubrec(MqttPubrecPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000014;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttPubrel(MqttPubrelPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000015;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttPubcomp(MqttPubcompPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000016;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttSubscribe(MqttSubscribePb) returns (MqttSubackPb) {
+        option(phxrpc.CmdID) = 2000017;
+        option(phxrpc.OptString) = "l:p:t:q:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>";
+    }
+
+    rpc PhxMqttUnsubscribe(MqttUnsubscribePb) returns (MqttUnsubackPb) {
+        option(phxrpc.CmdID) = 2000018;
+        option(phxrpc.OptString) = "l:p:t:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters>";
+    }
+
+    rpc PhxMqttPing(MqttPingreqPb) returns (MqttPingrespPb) {
+        option(phxrpc.CmdID) = 2000019;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+    rpc PhxMqttDisconnect(MqttDisconnectPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000020;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+    rpc PhxHttpPublish(HttpPublishPb) returns (HttpPubackPb) {
+        option(phxrpc.CmdID) = 2000031;
+        option(phxrpc.OptString) = "e:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+    }
+
+}
+

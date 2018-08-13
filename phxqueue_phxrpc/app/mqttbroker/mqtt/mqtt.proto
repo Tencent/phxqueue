@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package phxqueue_phxrpc.mqttbroker;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+import "phxrpc/rpc/phxrpc.proto";
+
+
+service Mqtt {
+
+}
+

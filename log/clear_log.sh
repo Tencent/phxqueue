@@ -26,3 +26,5 @@ clear_dir 'scheduler.0'
 clear_dir 'scheduler.1'
 clear_dir 'scheduler.2'
 
+clear_dir 'mqttbroker.0'
+

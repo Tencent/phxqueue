@@ -31,7 +31,8 @@ SUB_MAKE_LIB_TARGETS := phxqueue_phxrpc/app/store/libstore_client.a \
 
 SUB_MAKE_BIN_TARGETS := phxqueue_phxrpc/app/store/store_main phxqueue_phxrpc/app/store/store_tool_main \
 						phxqueue_phxrpc/app/lock/lock_main phxqueue_phxrpc/app/lock/lock_tool_main \
-						phxqueue_phxrpc/app/scheduler/scheduler_main phxqueue_phxrpc/app/scheduler/scheduler_tool_main
+						phxqueue_phxrpc/app/scheduler/scheduler_main phxqueue_phxrpc/app/scheduler/scheduler_tool_main \
+						phxqueue_phxrpc/app/mqttbroker/mqttbroker_main
 
 
 define LIB_GEN
