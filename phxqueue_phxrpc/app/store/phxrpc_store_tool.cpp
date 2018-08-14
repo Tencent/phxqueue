@@ -32,8 +32,8 @@ StoreTool::StoreTool() {}
 
 StoreTool::~StoreTool() {}
 
-int StoreTool::PhxEcho(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxEcho unimplement ***\n");
+int StoreTool::PHXEcho(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** PHXEcho unimplement ***\n");
 
     return -1;
 }

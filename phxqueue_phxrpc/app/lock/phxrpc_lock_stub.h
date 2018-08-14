@@ -42,7 +42,7 @@ class LockStub {
 
     void set_keep_alive(const bool keep_alive);
 
-    int PhxEcho(const google::protobuf::StringValue &req,
+    int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
     int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,

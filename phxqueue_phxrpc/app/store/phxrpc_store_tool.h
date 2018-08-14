@@ -37,7 +37,7 @@ class StoreTool {
     StoreTool();
     virtual ~StoreTool();
 
-    virtual int PhxEcho(phxrpc::OptMap &bigmap);
+    virtual int PHXEcho(phxrpc::OptMap &bigmap);
 
     virtual int Add(phxrpc::OptMap &bigmap);
 
@@ -54,7 +54,7 @@ class StoreTool {
 
     static Name2Func_t *GetName2Func() {
         static Name2Func_t name2func[]{
-            { "PhxEcho", &StoreTool::PhxEcho, "c:f:vs:", "-s <string>" },
+            { "PHXEcho", &StoreTool::PHXEcho, "c:f:vs:", "-s <string>" },
             { nullptr, nullptr }
         };
 

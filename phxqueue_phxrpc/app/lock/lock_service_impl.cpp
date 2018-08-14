@@ -28,7 +28,7 @@ LockServiceImpl::LockServiceImpl(ServiceArgs_t &app_args) : args_(app_args), loc
 
 LockServiceImpl::~LockServiceImpl() {}
 
-int LockServiceImpl::PhxEcho(const google::protobuf::StringValue &req,
+int LockServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
                              google::protobuf::StringValue *resp) {
     resp->set_value(req.value());
     return 0;

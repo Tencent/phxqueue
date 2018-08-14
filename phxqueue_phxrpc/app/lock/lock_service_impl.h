@@ -38,7 +38,7 @@ class LockServiceImpl : public LockService {
     LockServiceImpl(ServiceArgs_t &app_args);
     virtual ~LockServiceImpl();
 
-    virtual int PhxEcho(const google::protobuf::StringValue &req,
+    virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) override;
 
     virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,

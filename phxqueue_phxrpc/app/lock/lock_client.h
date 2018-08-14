@@ -33,10 +33,10 @@ class LockClient {
     LockClient();
     virtual ~LockClient();
 
-    int PhxEcho(const google::protobuf::StringValue &req,
+    int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
-    int PhxBatchEcho(const google::protobuf::StringValue &req,
+    int PHXBatchEcho(const google::protobuf::StringValue &req,
                      google::protobuf::StringValue *resp);
 
     int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,

@@ -35,10 +35,10 @@ void StoreStub::set_keep_alive(const bool keep_alive) {
     keep_alive_ = keep_alive;
 }
 
-int StoreStub::PhxEcho(const google::protobuf::StringValue &req,
+int StoreStub::PHXEcho(const google::protobuf::StringValue &req,
                        google::protobuf::StringValue *resp) {
     phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
-    caller.set_uri("/phxqueue_phxrpc.store/PhxEcho", -1);
+    caller.set_uri("/phxqueue_phxrpc.store/PHXEcho", -1);
     caller.set_keep_alive(keep_alive_);
     return caller.Call(req, resp);
 }

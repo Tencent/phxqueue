@@ -37,15 +37,15 @@ LockDispatcher::~LockDispatcher() {}
 const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &
 LockDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.lock/PhxEcho", &LockDispatcher::PhxEcho},
+        {"/phxqueue_phxrpc.lock/PHXEcho", &LockDispatcher::PHXEcho},
         {"/phxqueue_phxrpc.lock/GetLockInfo", &LockDispatcher::GetLockInfo},
         {"/phxqueue_phxrpc.lock/AcquireLock", &LockDispatcher::AcquireLock}};
     return uri_func_map;
 }
 
-int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
+int LockDispatcher::PHXEcho(const phxrpc::BaseRequest &req,
                             phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
+    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
 
     int ret{-1};
 
@@ -64,7 +64,7 @@ int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // logic process
     {
-        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
+        if (0 == ret) ret = service_.PHXEcho(req_pb, &resp_pb);
     }
 
     // pack response
@@ -76,7 +76,7 @@ int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
 
     return ret;
 }

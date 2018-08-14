@@ -32,8 +32,8 @@ SchedulerTool::SchedulerTool() {}
 
 SchedulerTool::~SchedulerTool() {}
 
-int SchedulerTool::PhxEcho(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxEcho unimplement ***\n");
+int SchedulerTool::PHXEcho(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** PHXEcho unimplement ***\n");
 
     return -1;
 }

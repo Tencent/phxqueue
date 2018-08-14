@@ -35,7 +35,7 @@ class LockDispatcher {
 
     virtual ~LockDispatcher();
 
-    int PhxEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int PHXEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
     int GetLockInfo(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 

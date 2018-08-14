@@ -39,7 +39,7 @@ class LockToolImpl : public LockTool {
     LockToolImpl();
     virtual ~LockToolImpl();
 
-    virtual int PhxEcho(phxrpc::OptMap &opt_map) override;
+    virtual int PHXEcho(phxrpc::OptMap &opt_map) override;
 
     virtual int GetLockInfo(phxrpc::OptMap &opt_map) override;
 

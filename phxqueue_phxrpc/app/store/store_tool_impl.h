@@ -37,7 +37,7 @@ class StoreToolImpl : public StoreTool {
     StoreToolImpl();
     virtual ~StoreToolImpl();
 
-    virtual int PhxEcho(phxrpc::OptMap &opt_map);
+    virtual int PHXEcho(phxrpc::OptMap &opt_map);
 
     virtual int Add(phxrpc::OptMap &opt_map) override;
 

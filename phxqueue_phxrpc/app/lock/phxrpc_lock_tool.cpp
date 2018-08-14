@@ -32,8 +32,8 @@ LockTool::LockTool() {}
 
 LockTool::~LockTool() {}
 
-int LockTool::PhxEcho(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxEcho unimplement ***\n");
+int LockTool::PHXEcho(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** PHXEcho unimplement ***\n");
 
     return -1;
 }

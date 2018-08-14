@@ -33,10 +33,10 @@ class SchedulerClientUThread {
     SchedulerClientUThread(phxrpc::UThreadEpollScheduler *uthread_scheduler);
     virtual ~SchedulerClientUThread();
 
-    int PhxEcho(const google::protobuf::StringValue &req,
+    int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
-    int PhxBatchEcho(const google::protobuf::StringValue &req,
+    int PHXBatchEcho(const google::protobuf::StringValue &req,
                      google::protobuf::StringValue *resp);
 
     int GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,

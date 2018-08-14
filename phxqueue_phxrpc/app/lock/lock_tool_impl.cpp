@@ -32,7 +32,7 @@ LockToolImpl::LockToolImpl() {}
 
 LockToolImpl::~LockToolImpl() {}
 
-int LockToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
+int LockToolImpl::PHXEcho(phxrpc::OptMap &opt_map) {
     google::protobuf::StringValue req;
     google::protobuf::StringValue resp;
 
@@ -41,7 +41,7 @@ int LockToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     req.set_value(opt_map.Get('s'));
 
     LockClient client;
-    int ret = client.PhxEcho(req, &resp);
+    int ret = client.PHXEcho(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 

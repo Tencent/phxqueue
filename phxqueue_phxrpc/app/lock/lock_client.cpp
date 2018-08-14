@@ -64,7 +64,7 @@ LockClient::LockClient() {
 
 LockClient::~LockClient() {}
 
-int LockClient::PhxEcho(const google::protobuf::StringValue &req,
+int LockClient::PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) {
     const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
@@ -78,14 +78,14 @@ int LockClient::PhxEcho(const google::protobuf::StringValue &req,
 
             phxrpc::HttpMessageHandlerFactory http_msg_factory;
             LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
-            return stub.PhxEcho(req, resp);
+            return stub.PHXEcho(req, resp);
         }
     }
 
     return -1;
 }
 
-int LockClient::PhxBatchEcho(const google::protobuf::StringValue &req,
+int LockClient::PHXBatchEcho(const google::protobuf::StringValue &req,
                              google::protobuf::StringValue *resp) {
     int ret{-1};
     size_t echo_server_count{2};
@@ -101,7 +101,7 @@ int LockClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                     socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
                     phxrpc::HttpMessageHandlerFactory http_msg_factory;
                     LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
-                    int this_ret{stub.PhxEcho(req, resp)};
+                    int this_ret{stub.PHXEcho(req, resp)};
                     if (0 == this_ret) {
                         ret = this_ret;
                         uthread_s.Close();

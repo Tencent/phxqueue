@@ -64,7 +64,7 @@ StoreClient::StoreClient() {
 
 StoreClient::~StoreClient() {}
 
-int StoreClient::PhxEcho(const google::protobuf::StringValue &req,
+int StoreClient::PHXEcho(const google::protobuf::StringValue &req,
                          google::protobuf::StringValue *resp) {
     const phxrpc::Endpoint_t *ep = global_storeclient_config_.GetRandom();
 
@@ -78,14 +78,14 @@ int StoreClient::PhxEcho(const google::protobuf::StringValue &req,
 
             phxrpc::HttpMessageHandlerFactory http_msg_factory;
             StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
-            return stub.PhxEcho(req, resp);
+            return stub.PHXEcho(req, resp);
         }
     }
 
     return -1;
 }
 
-int StoreClient::PhxBatchEcho(const google::protobuf::StringValue &req,
+int StoreClient::PHXBatchEcho(const google::protobuf::StringValue &req,
                               google::protobuf::StringValue *resp) {
     int ret = -1;
     size_t echo_server_count = 2;
@@ -100,7 +100,7 @@ int StoreClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                     socket.SetTimeout(global_storeclient_config_.GetSocketTimeoutMS());
                     phxrpc::HttpMessageHandlerFactory http_msg_factory;
                     StoreStub stub(socket, *(global_storeclient_monitor_.get()), http_msg_factory);
-                    int this_ret = stub.PhxEcho(req, resp);
+                    int this_ret = stub.PHXEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();

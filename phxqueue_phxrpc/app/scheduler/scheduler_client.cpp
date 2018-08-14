@@ -64,7 +64,7 @@ SchedulerClient::SchedulerClient() {
 
 SchedulerClient::~SchedulerClient() {}
 
-int SchedulerClient::PhxEcho(const google::protobuf::StringValue &req,
+int SchedulerClient::PHXEcho(const google::protobuf::StringValue &req,
                              google::protobuf::StringValue *resp) {
     const phxrpc::Endpoint_t *ep = global_schedulerclient_config_.GetRandom();
 
@@ -78,14 +78,14 @@ int SchedulerClient::PhxEcho(const google::protobuf::StringValue &req,
 
             phxrpc::HttpMessageHandlerFactory http_msg_factory;
             SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()), http_msg_factory);
-            return stub.PhxEcho(req, resp);
+            return stub.PHXEcho(req, resp);
         }
     }
 
     return -1;
 }
 
-int SchedulerClient::PhxBatchEcho(const google::protobuf::StringValue &req,
+int SchedulerClient::PHXBatchEcho(const google::protobuf::StringValue &req,
                                   google::protobuf::StringValue *resp) {
     int ret = -1;
     size_t echo_server_count = 2;
@@ -101,7 +101,7 @@ int SchedulerClient::PhxBatchEcho(const google::protobuf::StringValue &req,
                     socket.SetTimeout(global_schedulerclient_config_.GetSocketTimeoutMS());
                     phxrpc::HttpMessageHandlerFactory http_msg_factory;
                     SchedulerStub stub(socket, *(global_schedulerclient_monitor_.get()), http_msg_factory);
-                    int this_ret = stub.PhxEcho(req, resp);
+                    int this_ret = stub.PHXEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();
