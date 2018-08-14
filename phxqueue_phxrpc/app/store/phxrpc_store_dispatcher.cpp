@@ -69,8 +69,7 @@ int StoreDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
@@ -108,8 +107,7 @@ int StoreDispatcher::Add(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
@@ -147,8 +145,7 @@ int StoreDispatcher::Get(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;

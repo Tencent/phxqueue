@@ -69,8 +69,7 @@ int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
@@ -108,8 +107,7 @@ int LockDispatcher::GetLockInfo(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;
@@ -147,8 +145,7 @@ int LockDispatcher::AcquireLock(const phxrpc::BaseRequest &req,
 
     // pack response
     {
-        ret = resp->FromPb(resp_pb);
-        if (0 != ret) {
+        if (0 != resp->FromPb(resp_pb)) {
             phxrpc::log(LOG_ERR, "FromPb err %d", ret);
 
             return -ENOMEM;

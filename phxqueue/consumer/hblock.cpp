@@ -373,7 +373,7 @@ comm::RetCode HeartBeatLock::GetAddrScale(ConsumerGroupID2AddrScales &consumer_g
         comm::proto::GetAddrScaleRequest req;
         comm::proto::GetAddrScaleResponse resp;
         req.set_topic_id(topic_id);
-        auto &&addr = req.mutable_addr();
+        auto &&addr(req.mutable_addr());
         addr->set_ip(opt->ip);
         addr->set_port(opt->port);
         auto &&load_info = req.mutable_load_info();
@@ -740,7 +740,8 @@ comm::RetCode HeartBeatLock::DoLock(const int vpid, Queue_t *const queue) {
             version = resp.lock_info().version();
             overdue_time_ms = cur_time_ms + resp.lock_info().lease_time_ms();
         }
-        if (client_id == resp.lock_info().client_id() || cur_time_ms > overdue_time_ms) need_acquire_lock = true;
+        if (client_id == resp.lock_info().client_id() || cur_time_ms > overdue_time_ms)
+            need_acquire_lock = true;
     }
 
     if (need_acquire_lock) {
@@ -770,7 +771,7 @@ comm::RetCode HeartBeatLock::DoLock(const int vpid, Queue_t *const queue) {
 }
 
 comm::RetCode HeartBeatLock::Lock(const int vpid, int &consumer_group_id, int &store_id, int &queue_id) {
-    auto &&opt = impl_->consumer->GetConsumerOption();
+    auto &&opt(impl_->consumer->GetConsumerOption());
 
     auto topic_id = impl_->consumer->GetTopicID();
 

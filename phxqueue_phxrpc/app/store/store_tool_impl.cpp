@@ -39,7 +39,7 @@ int StoreToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     req.set_value(opt_map.Get('s'));
 
     StoreClient client;
-    int ret = client.PhxEcho(req, &resp);
+    int ret{client.PhxEcho(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -53,7 +53,7 @@ int StoreToolImpl::Add(phxrpc::OptMap &opt_map) {
     //TODO: fill req from opt_map
 
     StoreClient client;
-    int ret = client.Add(req, &resp);
+    int ret{client.Add(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -67,7 +67,7 @@ int StoreToolImpl::Get(phxrpc::OptMap &opt_map) {
     //TODO: fill req from opt_map
 
     StoreClient client;
-    int ret = client.Get(req, &resp);
+    int ret{client.Get(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
