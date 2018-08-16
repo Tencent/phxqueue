@@ -41,12 +41,6 @@ class LockServiceImpl : public LockService {
     virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp) override;
 
-    virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                            phxqueue::comm::proto::GetLockInfoResponse *resp) override;
-
-    virtual int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                            phxqueue::comm::proto::AcquireLockResponse *resp) override;
-
     virtual int GetString(const phxqueue::comm::proto::GetStringRequest &req,
                           phxqueue::comm::proto::GetStringResponse *resp) override;
 
@@ -55,6 +49,12 @@ class LockServiceImpl : public LockService {
 
     virtual int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                              phxqueue::comm::proto::DeleteStringResponse *resp) override;
+
+    virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                            phxqueue::comm::proto::GetLockInfoResponse *resp) override;
+
+    virtual int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                            phxqueue::comm::proto::AcquireLockResponse *resp) override;
 
   private:
     ServiceArgs_t &args_;

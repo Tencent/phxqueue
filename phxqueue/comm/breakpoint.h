@@ -386,6 +386,18 @@ class LockBP {
     virtual void OnInit(const int topic_id) {}
     virtual void OnDispose(const int topic_id) {}
 
+    virtual void OnGetString(const proto::GetStringRequest &req) {}
+    virtual void OnGetStringRequestInvalid(const proto::GetStringRequest &req) {}
+    virtual void OnGetStringCheckMasterPass(const proto::GetStringRequest &req) {}
+
+    virtual void OnSetString(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringRequestInvalid(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringCheckMasterPass(const proto::SetStringRequest &req) {}
+
+    virtual void OnDeleteString(const proto::DeleteStringRequest &req) {}
+    virtual void OnDeleteStringRequestInvalid(const proto::DeleteStringRequest &req) {}
+    virtual void OnDeleteStringCheckMasterPass(const proto::DeleteStringRequest &req) {}
+
     virtual void OnAcquireLock(const proto::AcquireLockRequest &req) {}
     virtual void OnAcquireLockRequestInvalid(const proto::AcquireLockRequest &req) {}
     virtual void OnAcquireLockCheckMasterPass(const proto::AcquireLockRequest &req) {}

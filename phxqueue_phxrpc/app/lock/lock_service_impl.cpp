@@ -34,28 +34,6 @@ int LockServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
     return 0;
 }
 
-int LockServiceImpl::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                                 phxqueue::comm::proto::GetLockInfoResponse *resp) {
-    int ret{static_cast<int>(lock_->GetLockInfo(req, *resp))};
-
-    if (0 != ret) {
-        QLErr("Lock GetLockInfo err %d", ret);
-    }
-
-    return ret;
-}
-
-int LockServiceImpl::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                                 phxqueue::comm::proto::AcquireLockResponse *resp) {
-    int ret{static_cast<int>(lock_->AcquireLock(req, *resp))};
-
-    if (0 != ret) {
-        QLErr("Lock AcquireLock err %d", ret);
-    }
-
-    return ret;
-}
-
 int LockServiceImpl::GetString(const phxqueue::comm::proto::GetStringRequest &req,
                                phxqueue::comm::proto::GetStringResponse *resp) {
     int ret{static_cast<int>(lock_->GetString(req, *resp))};
@@ -84,6 +62,28 @@ int LockServiceImpl::DeleteString(const phxqueue::comm::proto::DeleteStringReque
 
     if (0 != ret) {
         QLErr("Lock DeleteString err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                                 phxqueue::comm::proto::GetLockInfoResponse *resp) {
+    int ret{static_cast<int>(lock_->GetLockInfo(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock GetLockInfo err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                                 phxqueue::comm::proto::AcquireLockResponse *resp) {
+    int ret{static_cast<int>(lock_->AcquireLock(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock AcquireLock err %d", ret);
     }
 
     return ret;

@@ -8,18 +8,6 @@ import "phxqueue/comm/proto/comm.proto";
 import "phxrpc/rpc/phxrpc.proto";
 
 service Lock {
-    rpc GetLockInfo(phxqueue.comm.proto.GetLockInfoRequest) returns(phxqueue.comm.proto.GetLockInfoResponse) {
-        option(phxrpc.CmdID) = 1;
-        option(phxrpc.OptString) = "t:l:k:";
-        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key>";
-    }
-
-    rpc AcquireLock(phxqueue.comm.proto.AcquireLockRequest) returns(phxqueue.comm.proto.AcquireLockResponse) {
-        option(phxrpc.CmdID) = 2;
-        option(phxrpc.OptString) = "t:l:k:r:s:l:";
-        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key> -r <version> -s <client_id> -l <lease_time_ms>";
-    }
-
     rpc GetString(phxqueue.comm.proto.GetStringRequest) returns(phxqueue.comm.proto.GetStringResponse) {
         option(phxrpc.CmdID) = 11;
         option(phxrpc.OptString) = "t:l:k:";
@@ -28,14 +16,26 @@ service Lock {
 
     rpc SetString(phxqueue.comm.proto.SetStringRequest) returns(phxqueue.comm.proto.SetStringResponse) {
         option(phxrpc.CmdID) = 12;
-        option(phxrpc.OptString) = "t:l:k:r:s:l:";
-        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key> -r <version> -s <string> -l <lease_time_ms>";
+        option(phxrpc.OptString) = "t:l:k:r:s:T:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key> -r <version> -s <string> -T <lease_time_ms>";
     }
 
     rpc DeleteString(phxqueue.comm.proto.DeleteStringRequest) returns(phxqueue.comm.proto.DeleteStringResponse) {
         option(phxrpc.CmdID) = 13;
         option(phxrpc.OptString) = "t:l:k:r:";
         option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <key> -r <version>";
+    }
+
+    rpc GetLockInfo(phxqueue.comm.proto.GetLockInfoRequest) returns(phxqueue.comm.proto.GetLockInfoResponse) {
+        option(phxrpc.CmdID) = 21;
+        option(phxrpc.OptString) = "t:l:k:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key>";
+    }
+
+    rpc AcquireLock(phxqueue.comm.proto.AcquireLockRequest) returns(phxqueue.comm.proto.AcquireLockResponse) {
+        option(phxrpc.CmdID) = 22;
+        option(phxrpc.OptString) = "t:l:k:r:s:T:";
+        option(phxrpc.Usage) = "-t <topic_id> -l <lock_id> -k <lock_key> -r <version> -s <client_id> -T <lease_time_ms>";
     }
 }
 

@@ -114,48 +114,6 @@ int LockClient::PHXBatchEcho(const google::protobuf::StringValue &req,
     return ret;
 }
 
-int LockClient::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                            phxqueue::comm::proto::GetLockInfoResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
-
-    if (nullptr != ep) {
-        phxrpc::BlockTcpStream socket;
-        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
-                global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
-                *(global_lockclient_monitor_.get()));
-        if (open_ret) {
-            socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
-
-            phxrpc::HttpMessageHandlerFactory http_msg_factory;
-            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
-            return stub.GetLockInfo(req, resp);
-        }
-    }
-
-    return -1;
-}
-
-int LockClient::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                            phxqueue::comm::proto::AcquireLockResponse *resp) {
-    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
-
-    if (ep != nullptr) {
-        phxrpc::BlockTcpStream socket;
-        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
-                global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
-                *(global_lockclient_monitor_.get()))};
-        if (open_ret) {
-            socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
-
-            phxrpc::HttpMessageHandlerFactory http_msg_factory;
-            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
-            return stub.AcquireLock(req, resp);
-        }
-    }
-
-    return -1;
-}
-
 int LockClient::GetString(const phxqueue::comm::proto::GetStringRequest &req,
                           phxqueue::comm::proto::GetStringResponse *resp) {
     const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
@@ -219,79 +177,46 @@ int LockClient::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &r
     return -1;
 }
 
-phxqueue::comm::RetCode
-LockClient::ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                             phxqueue::comm::proto::GetLockInfoResponse &resp) {
-    const char *ip{req.master_addr().ip().c_str()};
-    const int port{req.master_addr().port()};
+int LockClient::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                            phxqueue::comm::proto::GetLockInfoResponse *resp) {
+    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    if (nullptr != ep) {
+        phxrpc::BlockTcpStream socket;
+        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
+                global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                *(global_lockclient_monitor_.get()));
+        if (open_ret) {
+            socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
 
-    if (nullptr == socket.get()) {
-        socket.reset(new phxrpc::BlockTcpStream());
-
-        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ip, port,
-                                                   global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
-                                                   *(global_lockclient_monitor_.get()))};
-        if (!open_ret) {
-            QLErr("phxrpc Open err. ip %s port %d", ip, port);
-
-            return phxqueue::comm::RetCode::RET_ERR_SYS;
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
+            return stub.GetLockInfo(req, resp);
         }
-        socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
     }
 
-    phxrpc::HttpMessageHandlerFactory http_msg_factory;
-    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
-    stub.set_keep_alive(true);
-    int ret{stub.GetLockInfo(req, &resp)};
-    if (0 > ret) {
-        QLErr("GetLockInfo err %d", ret);
-    }
-    if (-1 != ret && -202 != ret) {
-        socket_pool->Put(key, socket);
-    }
-    return static_cast<phxqueue::comm::RetCode>(ret);
+    return -1;
 }
 
-phxqueue::comm::RetCode
-LockClient::ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                             phxqueue::comm::proto::AcquireLockResponse &resp) {
-    const char *ip{req.master_addr().ip().c_str()};
-    const int port{req.master_addr().port()};
+int LockClient::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                            phxqueue::comm::proto::AcquireLockResponse *resp) {
+    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    if (ep != nullptr) {
+        phxrpc::BlockTcpStream socket;
+        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
+                global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                *(global_lockclient_monitor_.get()))};
+        if (open_ret) {
+            socket.SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
 
-
-    if (nullptr == socket.get()) {
-        socket.reset(new phxrpc::BlockTcpStream());
-
-        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ip, port,
-                                                   global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
-                                                   *(global_lockclient_monitor_.get()))};
-        if (!open_ret) {
-            QLErr("phxrpc Open err. ip %s port %d", ip, port);
-
-            return phxqueue::comm::RetCode::RET_ERR_SYS;
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            LockStub stub(socket, *(global_lockclient_monitor_.get()), http_msg_factory);
+            return stub.AcquireLock(req, resp);
         }
-        socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
     }
 
-    phxrpc::HttpMessageHandlerFactory http_msg_factory;
-    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
-    stub.set_keep_alive(true);
-    int ret{stub.AcquireLock(req, &resp)};
-    if (0 > ret) {
-        QLErr("AcquireLock err %d", ret);
-    }
-    if (-1 != ret && -202 != ret) {
-        socket_pool->Put(key, socket);
-    }
-    return static_cast<phxqueue::comm::RetCode>(ret);
+    return -1;
 }
 
 phxqueue::comm::RetCode
@@ -398,6 +323,81 @@ LockClient::ProtoDeleteString(const phxqueue::comm::proto::DeleteStringRequest &
     int ret{stub.DeleteString(req, &resp)};
     if (0 > ret) {
         QLErr("DeleteString err %d", ret);
+    }
+    if (-1 != ret && -202 != ret) {
+        socket_pool->Put(key, socket);
+    }
+    return static_cast<phxqueue::comm::RetCode>(ret);
+}
+
+phxqueue::comm::RetCode
+LockClient::ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                             phxqueue::comm::proto::GetLockInfoResponse &resp) {
+    const char *ip{req.master_addr().ip().c_str()};
+    const int port{req.master_addr().port()};
+
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
+    auto socket = move(socket_pool->Get(key));
+
+    if (nullptr == socket.get()) {
+        socket.reset(new phxrpc::BlockTcpStream());
+
+        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ip, port,
+                                                   global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                                                   *(global_lockclient_monitor_.get()))};
+        if (!open_ret) {
+            QLErr("phxrpc Open err. ip %s port %d", ip, port);
+
+            return phxqueue::comm::RetCode::RET_ERR_SYS;
+        }
+        socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
+    }
+
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
+    int ret{stub.GetLockInfo(req, &resp)};
+    if (0 > ret) {
+        QLErr("GetLockInfo err %d", ret);
+    }
+    if (-1 != ret && -202 != ret) {
+        socket_pool->Put(key, socket);
+    }
+    return static_cast<phxqueue::comm::RetCode>(ret);
+}
+
+phxqueue::comm::RetCode
+LockClient::ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                             phxqueue::comm::proto::AcquireLockResponse &resp) {
+    const char *ip{req.master_addr().ip().c_str()};
+    const int port{req.master_addr().port()};
+
+    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
+    auto socket = move(socket_pool->Get(key));
+
+
+    if (nullptr == socket.get()) {
+        socket.reset(new phxrpc::BlockTcpStream());
+
+        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ip, port,
+                                                   global_lockclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                                                   *(global_lockclient_monitor_.get()))};
+        if (!open_ret) {
+            QLErr("phxrpc Open err. ip %s port %d", ip, port);
+
+            return phxqueue::comm::RetCode::RET_ERR_SYS;
+        }
+        socket->SetTimeout(global_lockclient_config_.GetSocketTimeoutMS());
+    }
+
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    LockStub stub(*(socket.get()), *(global_lockclient_monitor_.get()), http_msg_factory);
+    stub.set_keep_alive(true);
+    int ret{stub.AcquireLock(req, &resp)};
+    if (0 > ret) {
+        QLErr("AcquireLock err %d", ret);
     }
     if (-1 != ret && -202 != ret) {
         socket_pool->Put(key, socket);

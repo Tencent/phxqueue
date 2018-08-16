@@ -45,12 +45,6 @@ class LockStub {
     int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
-    int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                    phxqueue::comm::proto::GetLockInfoResponse *resp);
-
-    int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                    phxqueue::comm::proto::AcquireLockResponse *resp);
-
     int GetString(const phxqueue::comm::proto::GetStringRequest &req,
                   phxqueue::comm::proto::GetStringResponse *resp);
 
@@ -59,6 +53,12 @@ class LockStub {
 
     int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                      phxqueue::comm::proto::DeleteStringResponse *resp);
+
+    int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                    phxqueue::comm::proto::GetLockInfoResponse *resp);
+
+    int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                    phxqueue::comm::proto::AcquireLockResponse *resp);
 
   private:
     phxrpc::BaseTcpStream &socket_;

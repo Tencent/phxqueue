@@ -41,20 +41,20 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
     }
 
     if (!lock || !lock->GetLockMgr()) {
-        NLErr("topic_id %d paxos_group_id %d instance_id %llu lock_mgr nullptr storage %d",
-              lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+        NLErr("storage %d topic_id %d paxos_group_id %d instance_id %llu lock_mgr nullptr",
+              static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
         if (lc)
             lc->result = comm::RetCode::RET_ERR_LOGIC;
 
         return false;
     }
 
-    NLVerb("topic_id %d paxos_group_id %d instance_id %llu storage %d",
-           lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+    NLVerb("storage %d topic_id %d paxos_group_id %d instance_id %llu",
+           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
 
     if (args.has_acquire_lock_req()) {
-        NLInfo("topic_id %d paxos_group_id %d instance_id %llu acquire lock storage %d sync %d",
-               lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type), sync);
+        NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu acquire lock sync %d",
+               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, sync);
         auto &&lock_info(args.acquire_lock_req().lock_info());
 
         proto::RecordKeyInfo record_key_info;
@@ -77,8 +77,8 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
 
             // update last instance id
             lock->GetLockMgr()->set_last_instance_id(paxos_group_id, instance_id);
-            NLInfo("topic_id %d paxos_group_id %d last_instance_id %llu storage %d",
-                   lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+            NLInfo("storage %d topic_id %d paxos_group_id %d last_instance_id %llu",
+                   static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
         } else if (LockDb::StorageType::LEVELDB == storage_type) {
             ret = lock->GetLockMgr()->leveldb(paxos_group_id).
                     AcquireLock(record_key_info, local_record_info, sync);
@@ -87,31 +87,31 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
             if (comm::RetCode::RET_OK == ret && sync) {
                 ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
                 if (comm::RetCode::RET_OK == ret) {
-                    NLInfo("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok storage %d",
-                           lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+                    NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
+                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
                 } else {
-                    NLErr("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d storage %d",
-                          lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+                    NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
+                          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
                 }
             }
         } else {
             ret = comm::RetCode::RET_ERR_NO_IMPL;
         }
         if (comm::RetCode::RET_OK != ret) {
-            NLErr("topic_id %d paxos_group_id %d instance_id %llu Put err %d storage %d",
-                  lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+            NLErr("storage %d topic_id %d paxos_group_id %d instance_id %llu Put err %d",
+                  static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
             if (lc)
                 lc->result = ret;
         } else {
-            NLInfo("topic_id %d paxos_group_id %d instance_id %llu Put ok storage %d",
-                   lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+            NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu Put ok",
+                   static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
             if (lc)
                 lc->result = comm::RetCode::RET_OK;
         }
 
     } else if (args.has_set_string_req()) {
-        NLInfo("topic_id %d paxos_group_id %d instance_id %llu set string storage %d sync %d",
-               lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type), sync);
+        NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu set string sync %d",
+               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, sync);
         const auto &string_info(args.set_string_req().string_info());
 
         proto::RecordKeyInfo record_key_info;
@@ -134,8 +134,8 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
 
             // update last instance id
             lock->GetLockMgr()->set_last_instance_id(paxos_group_id, instance_id);
-            NLInfo("topic_id %d paxos_group_id %d last_instance_id %llu storage %d",
-                   lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+            NLInfo("storage %d topic_id %d paxos_group_id %d last_instance_id %llu",
+                   static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
         } else if (LockDb::StorageType::LEVELDB == storage_type) {
             ret = lock->GetLockMgr()->leveldb(paxos_group_id).
                     VersionSetString(record_key_info, local_record_info, sync);
@@ -144,32 +144,32 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
             if (comm::RetCode::RET_OK == ret && sync) {
                 ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
                 if (comm::RetCode::RET_OK == ret) {
-                    NLInfo("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok storage %d",
-                           lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+                    NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
+                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
                 } else {
-                    NLErr("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d storage %d",
-                          lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+                    NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
+                          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
                 }
             }
         } else {
             ret = comm::RetCode::RET_ERR_NO_IMPL;
         }
         if (comm::RetCode::RET_OK != ret) {
-            NLErr("topic_id %d paxos_group_id %d instance_id %llu Put err %d storage %d",
-                  lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+            NLErr("storage %d topic_id %d paxos_group_id %d instance_id %llu Put err %d",
+                  static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
             if (lc)
                 lc->result = ret;
         } else {
-            NLInfo("topic_id %d paxos_group_id %d instance_id %llu Put ok storage %d",
-                   lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+            NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu Put ok",
+                   static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
             if (lc)
                 lc->result = comm::RetCode::RET_OK;
         }
 
     }
     //else if (args.has_delete_string_req()) {
-    //    NLInfo("topic_id %d paxos_group_id %d instance_id %llu delete string storage %d sync %d",
-    //           lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type), sync);
+    //    NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu delete string sync %d",
+    //           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, sync);
     //    const auto &string_info(args.delete_string_req().string_info());
 
     //    proto::RecordKeyInfo record_key_info;
@@ -192,8 +192,8 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
 
     //        // update last instance id
     //        lock->GetLockMgr()->set_last_instance_id(paxos_group_id, instance_id);
-    //        NLInfo("topic_id %d paxos_group_id %d last_instance_id %llu storage %d",
-    //               lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+    //        NLInfo("storage %d topic_id %d paxos_group_id %d last_instance_id %llu",
+    //               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
     //    } else if (LockDb::StorageType::LEVELDB == storage_type) {
     //        ret = lock->GetLockMgr()->leveldb(paxos_group_id).
     //                VersionDeleteString(record_key_info, sync);
@@ -202,24 +202,24 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
     //        if (comm::RetCode::RET_OK == ret && sync) {
     //            ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
     //            if (comm::RetCode::RET_OK == ret) {
-    //                NLInfo("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok storage %d",
-    //                       lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+    //                NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
+    //                       static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
     //            } else {
-    //                NLErr("topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d storage %d",
-    //                      lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+    //                NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
+    //                      static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
     //            }
     //        }
     //    } else {
     //        ret = comm::RetCode::RET_ERR_NO_IMPL;
     //    }
     //    if (comm::RetCode::RET_OK != ret) {
-    //        NLErr("topic_id %d paxos_group_id %d instance_id %llu Put err %d storage %d",
-    //              lock->GetTopicID(), paxos_group_id, instance_id, ret, static_cast<int>(storage_type));
+    //        NLErr("storage %d topic_id %d paxos_group_id %d instance_id %llu Put err %d",
+    //              static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
     //        if (lc)
     //            lc->result = ret;
     //    } else {
-    //        NLInfo("topic_id %d paxos_group_id %d instance_id %llu Put ok storage %d",
-    //               lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+    //        NLInfo("storage %d topic_id %d paxos_group_id %d instance_id %llu Put ok",
+    //               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
     //        if (lc)
     //            lc->result = comm::RetCode::RET_OK;
     //    }
@@ -227,8 +227,8 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
     // may be drop master request
     //else {
     //    comm::RetCode ret{comm::RetCode::RET_ERR_NO_IMPL};
-    //    NLErr("topic_id %d paxos_group_id %d instance_id %llu unknown paxos_args err storage %d",
-    //          lock->GetTopicID(), paxos_group_id, instance_id, static_cast<int>(storage_type));
+    //    NLErr("storage %d topic_id %d paxos_group_id %d instance_id %llu unknown paxos_args err",
+    //          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
     //    if (lc)
     //        lc->result = ret;
     //}

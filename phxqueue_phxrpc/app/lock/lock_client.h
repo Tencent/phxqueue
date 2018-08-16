@@ -39,12 +39,6 @@ class LockClient {
     int PHXBatchEcho(const google::protobuf::StringValue &req,
                      google::protobuf::StringValue *resp);
 
-    int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                    phxqueue::comm::proto::GetLockInfoResponse *resp);
-
-    int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                    phxqueue::comm::proto::AcquireLockResponse *resp);
-
     int GetString(const phxqueue::comm::proto::GetStringRequest &req,
                   phxqueue::comm::proto::GetStringResponse *resp);
 
@@ -54,13 +48,11 @@ class LockClient {
     int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                      phxqueue::comm::proto::DeleteStringResponse *resp);
 
-    phxqueue::comm::RetCode
-    ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                     phxqueue::comm::proto::GetLockInfoResponse &resp);
+    int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                    phxqueue::comm::proto::GetLockInfoResponse *resp);
 
-    phxqueue::comm::RetCode
-    ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                     phxqueue::comm::proto::AcquireLockResponse &resp);
+    int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                    phxqueue::comm::proto::AcquireLockResponse *resp);
 
     phxqueue::comm::RetCode
     ProtoGetString(const phxqueue::comm::proto::GetStringRequest &req,
@@ -73,5 +65,13 @@ class LockClient {
     phxqueue::comm::RetCode
     ProtoDeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                       phxqueue::comm::proto::DeleteStringResponse &resp);
+
+    phxqueue::comm::RetCode
+    ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                     phxqueue::comm::proto::GetLockInfoResponse &resp);
+
+    phxqueue::comm::RetCode
+    ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                     phxqueue::comm::proto::AcquireLockResponse &resp);
 };
 

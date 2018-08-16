@@ -88,7 +88,7 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
             string key;
             string value;
             LockDb::DataType data_type{LockDb::DataType::NONE};
-            comm::RetCode ret{group.leveldb.DiskGetCurrent(key, value, data_type)};
+            comm::RetCode ret{group.leveldb.DiskGetCurrent(&key, &value, &data_type)};
             if (comm::RetCode::RET_OK != ret) {
                 QLErr("paxos_group_id %d key \"%s\" DiskGetCurrent err %d", paxos_group_id, key.c_str(), ret);
 

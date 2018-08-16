@@ -161,6 +161,8 @@ LockMgr *Lock::GetLockMgr() {
 
 comm::RetCode Lock::GetString(const comm::proto::GetStringRequest &req,
                               comm::proto::GetStringResponse &resp) {
+    comm::LockBP::GetThreadInstance()->OnGetString(req);
+
     if (0 >= req.key().size()) {
         QLErr("key \"%s\" invalid", req.key().c_str());
 
@@ -171,11 +173,13 @@ comm::RetCode Lock::GetString(const comm::proto::GetStringRequest &req,
 
     comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
     if (comm::RetCode::RET_OK != ret) {
+        comm::LockBP::GetThreadInstance()->OnGetStringRequestInvalid(req);
         QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
               paxos_group_id, req.key().c_str(), ret);
 
         return ret;
     }
+    comm::LockBP::GetThreadInstance()->OnGetStringCheckMasterPass(req);
     QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
            paxos_group_id, req.key().c_str(), impl_->node->GetMyNodeID());
 
@@ -206,53 +210,71 @@ comm::RetCode Lock::GetString(const comm::proto::GetStringRequest &req,
     string_info->set_version(local_record_info.version());
     string_info->set_value(local_record_info.value());
     string_info->set_lease_time_ms(local_record_info.lease_time_ms());
-    QLInfo("paxos_group %d key \"%s\" GetString ok", paxos_group_id, req.key().c_str());
+    QLInfo("paxos_group %d key \"%s\" GetString ok resp.ver %llu "
+           "resp.lease_time_ms %llu resp.expire_time_ms %llu",
+           paxos_group_id, req.key().c_str(), local_record_info.version(),
+           local_record_info.lease_time_ms(), local_record_info.expire_time_ms());
 
     return ret;
 }
 
 comm::RetCode Lock::SetString(const comm::proto::SetStringRequest &req,
                               comm::proto::SetStringResponse &resp) {
-    if (0 >= req.string_info().key().size()) {
-        QLErr("key \"%s\" invalid", req.string_info().key().c_str());
+    comm::LockBP::GetThreadInstance()->OnSetString(req);
+
+    auto &&string_info(req.string_info());
+
+    if (0 >= string_info.key().size()) {
+        QLErr("key \"%s\" invalid", string_info.key().c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
+    uint32_t paxos_group_id{HashUi32(string_info.key()) % impl_->opt.nr_group};
 
     comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
     if (comm::RetCode::RET_OK != ret) {
-        QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
-              paxos_group_id, req.string_info().key().c_str(), ret);
+        comm::LockBP::GetThreadInstance()->OnSetStringRequestInvalid(req);
+        QLErr("paxos_group %d key \"%s\" CheckMaster err %d req.value \"%s\"",
+              paxos_group_id, string_info.key().c_str(), ret, string_info.value().c_str());
 
         return ret;
     }
-    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
-           paxos_group_id, req.string_info().key().c_str(), impl_->node->GetMyNodeID());
+    comm::LockBP::GetThreadInstance()->OnSetStringCheckMasterPass(req);
+    QLVerb("paxos_group %d key \"%s\" node %" PRIu64
+           " master 1 req.ver %llu req.value \"%s\" lease_time_ms %llu",
+           paxos_group_id, string_info.key().c_str(), impl_->node->GetMyNodeID(),
+           string_info.version(), string_info.value().c_str(), string_info.lease_time_ms());
 
     return PaxosSetString(req, resp);
 }
 
 comm::RetCode Lock::DeleteString(const comm::proto::DeleteStringRequest &req,
                                  comm::proto::DeleteStringResponse &resp) {
-    if (0 >= req.string_key_info().key().size()) {
-        QLErr("key \"%s\" invalid", req.string_key_info().key().c_str());
+    comm::LockBP::GetThreadInstance()->OnDeleteString(req);
+
+    auto &&string_key_info(req.string_key_info());
+
+    if (0 >= string_key_info.key().size()) {
+        QLErr("key \"%s\" invalid", string_key_info.key().c_str());
 
         return comm::RetCode::RET_ERR_KEY;
     }
 
-    uint32_t paxos_group_id{HashUi32(req.string_key_info().key()) % impl_->opt.nr_group};
+    uint32_t paxos_group_id{HashUi32(string_key_info.key()) % impl_->opt.nr_group};
 
     comm::RetCode ret{CheckMaster(paxos_group_id, *resp.mutable_redirect_addr())};
     if (comm::RetCode::RET_OK != ret) {
+        comm::LockBP::GetThreadInstance()->OnDeleteStringRequestInvalid(req);
         QLErr("paxos_group %d key \"%s\" CheckMaster err %d",
-              paxos_group_id, req.string_key_info().key().c_str(), ret);
+              paxos_group_id, string_key_info.key().c_str(), ret);
 
         return ret;
     }
-    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1",
-           paxos_group_id, req.string_key_info().key().c_str(), impl_->node->GetMyNodeID());
+    comm::LockBP::GetThreadInstance()->OnDeleteStringCheckMasterPass(req);
+    QLVerb("paxos_group %d key \"%s\" node %" PRIu64 " master 1 req.ver %llu",
+           paxos_group_id, string_key_info.key().c_str(), impl_->node->GetMyNodeID(),
+           string_key_info.version());
 
     return PaxosDeleteString(req, resp);
 }
@@ -312,9 +334,11 @@ comm::RetCode Lock::GetLockInfo(const comm::proto::GetLockInfoRequest &req,
     }
 
     LocalRecordInfo2LockInfo(local_record_info, *resp.mutable_lock_info());
-    QLInfo("paxos_group %d lock \"%s\" GetLock ok map.ver %llu map.client_id \"%s\"",
+    QLInfo("paxos_group %d lock \"%s\" GetLock ok resp.ver %llu resp.client_id \"%s\" "
+           "resp.lease_time_ms %llu resp.expire_time_ms %llu",
            paxos_group_id, req.lock_key().c_str(), resp.lock_info().version(),
-           resp.lock_info().client_id().c_str());
+           resp.lock_info().client_id().c_str(), resp.lock_info().lease_time_ms(),
+           local_record_info.expire_time_ms());
 
     return ret;
 }
@@ -343,9 +367,10 @@ comm::RetCode Lock::AcquireLock(const comm::proto::AcquireLockRequest &req,
         return ret;
     }
     comm::LockBP::GetThreadInstance()->OnAcquireLockCheckMasterPass(req);
-    QLVerb("paxos_group %d lock \"%s\" node %" PRIu64 " master 1 req.ver %llu req.client_id \"%s\"",
+    QLVerb("paxos_group %d lock \"%s\" node %" PRIu64
+           " master 1 req.ver %llu req.client_id \"%s\" req.lease_time_ms %llu",
            paxos_group_id, lock_info.lock_key().c_str(), impl_->node->GetMyNodeID(),
-           lock_info.version(), lock_info.client_id().c_str());
+           lock_info.version(), lock_info.client_id().c_str(), lock_info.lease_time_ms());
 
     // compare version
     proto::LocalRecordInfo local_record_info;

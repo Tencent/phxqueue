@@ -34,18 +34,6 @@ int LockService::PHXEcho(const google::protobuf::StringValue &/* req */,
     return -1;
 }
 
-int LockService::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &/* req */,
-                             phxqueue::comm::proto::GetLockInfoResponse */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: GetLockInfo unimplemented");
-    return -1;
-}
-
-int LockService::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &/* req */,
-                             phxqueue::comm::proto::AcquireLockResponse */* resp */) {
-    phxrpc::log(LOG_ERR, "ERROR: AcquireLock unimplemented");
-    return -1;
-}
-
 int LockService::GetString(const phxqueue::comm::proto::GetStringRequest &/* req */,
                            phxqueue::comm::proto::GetStringResponse */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: GetString unimplemented");
@@ -61,6 +49,18 @@ int LockService::SetString(const phxqueue::comm::proto::SetStringRequest &/* req
 int LockService::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &/* req */,
                            phxqueue::comm::proto::DeleteStringResponse */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: DeleteString unimplemented");
+    return -1;
+}
+
+int LockService::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &/* req */,
+                             phxqueue::comm::proto::GetLockInfoResponse */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: GetLockInfo unimplemented");
+    return -1;
+}
+
+int LockService::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &/* req */,
+                             phxqueue::comm::proto::AcquireLockResponse */* resp */) {
+    phxrpc::log(LOG_ERR, "ERROR: AcquireLock unimplemented");
     return -1;
 }
 

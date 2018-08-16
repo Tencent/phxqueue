@@ -36,7 +36,7 @@ class CleanThread {
     void DoRun();
 
     void CleanRecord(const int paxos_group_id, const uint64_t now,
-                     int &nr_group_key, int &nr_group_clean_key);
+                     int *const nr_group_key, int *const nr_group_clean_key);
 
     // if no request at all, we should write checkpoint sometimes
     // there are other paxos log need to be converted to mirror, such as 'try be master' paxos log

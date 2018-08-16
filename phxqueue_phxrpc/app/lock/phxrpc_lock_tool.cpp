@@ -38,18 +38,6 @@ int LockTool::PHXEcho(phxrpc::OptMap &/* opt_map */) {
     return -1;
 }
 
-int LockTool::GetLockInfo(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** GetLockInfo unimplement ***\n");
-
-    return -1;
-}
-
-int LockTool::AcquireLock(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** AcquireLock unimplement ***\n");
-
-    return -1;
-}
-
 int LockTool::GetString(phxrpc::OptMap &/* opt_map */) {
     printf("\n    *** GetString unimplement ***\n");
 
@@ -64,6 +52,18 @@ int LockTool::SetString(phxrpc::OptMap &/* opt_map */) {
 
 int LockTool::DeleteString(phxrpc::OptMap &/* opt_map */) {
     printf("\n    *** DeleteString unimplement ***\n");
+
+    return -1;
+}
+
+int LockTool::GetLockInfo(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** GetLockInfo unimplement ***\n");
+
+    return -1;
+}
+
+int LockTool::AcquireLock(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** AcquireLock unimplement ***\n");
 
     return -1;
 }

@@ -31,12 +31,6 @@ class LockService {
     virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp);
 
-    virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                            phxqueue::comm::proto::GetLockInfoResponse *resp);
-
-    virtual int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                            phxqueue::comm::proto::AcquireLockResponse *resp);
-
     virtual int GetString(const phxqueue::comm::proto::GetStringRequest &req,
                           phxqueue::comm::proto::GetStringResponse *resp);
 
@@ -45,6 +39,12 @@ class LockService {
 
     virtual int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                              phxqueue::comm::proto::DeleteStringResponse *resp);
+
+    virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
+                            phxqueue::comm::proto::GetLockInfoResponse *resp);
+
+    virtual int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
+                            phxqueue::comm::proto::AcquireLockResponse *resp);
 
 };
 

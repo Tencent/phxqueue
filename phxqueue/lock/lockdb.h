@@ -88,15 +88,17 @@ class LockDb {
     void SeekToFirstRecord();
     void NextRecord();
     bool ValidRecord() const;
-    comm::RetCode GetCurrentRecord(std::string &k, std::string &vstr, proto::LocalRecordInfo &local_record_info);
+    comm::RetCode GetCurrentRecord(std::string *const k, std::string *const vstr,
+                                   proto::LocalRecordInfo *const local_record_info);
 
     void DiskSeekToFirst();
     void DiskNext();
     bool DiskValid() const;
-    comm::RetCode DiskGetCurrent(std::string &k, std::string &vstr, DataType &data_type);
+    comm::RetCode DiskGetCurrent(std::string *const k, std::string *const vstr,
+                                 DataType *const data_type);
 
     inline int GetSizeRecord() { return StorageType::MAP == storage_type_ ? map_.size() : 0; }
-    comm::RetCode ForwardCleanKey(std::string &k);
+    comm::RetCode ForwardLoopKey(std::string *const k);
 
     pthread_mutex_t *mutex_{nullptr};
     StorageType storage_type_{StorageType::NONE};
@@ -105,7 +107,7 @@ class LockDb {
     leveldb::DB *leveldb_{nullptr};
     leveldb::Iterator *leveldb_it_{nullptr};
     bool leveldb_checks_{true};
-    std::string current_clean_key_;
+    std::string prev_loop_key_;
     // must modify move constructor & move assignment at the same time
 };
 
