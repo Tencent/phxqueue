@@ -114,17 +114,17 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
             }
         }
 
-        // recover checkpoint
-        uint64_t checkpoint{phxpaxos::NoCheckpoint};
-        ret = ReadCheckpoint(paxos_group_id, checkpoint);
+        // recover disk_checkpoint
+        uint64_t disk_checkpoint{phxpaxos::NoCheckpoint};
+        ret = ReadDiskCheckpoint(paxos_group_id, disk_checkpoint);
         if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-            QLErr("topic_id %d paxos_group_id %d ReadCheckpoint not exist",
+            QLErr("topic_id %d paxos_group_id %d ReadDiskCheckpoint not exist",
                   impl_->lock->GetTopicID(), paxos_group_id);
         } else if (comm::RetCode::RET_OK == ret) {
-            QLInfo("topic_id %d paxos_group_id %d ReadCheckpoint cp %llu ok",
-                   impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+            QLInfo("topic_id %d paxos_group_id %d ReadDiskCheckpoint disk_cp %llu ok",
+                   impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
         } else {
-            QLErr("topic_id %d paxos_group_id %d ReadCheckpoint err %d",
+            QLErr("topic_id %d paxos_group_id %d ReadDiskCheckpoint err %d",
                   impl_->lock->GetTopicID(), paxos_group_id, ret);
 
             assert(false);
@@ -137,28 +137,28 @@ comm::RetCode LockMgr::Init(const string &mirror_dir_path) {
             QLErr("topic_id %d paxos_group_id %d ReadRestartCheckpoint not exist",
                   impl_->lock->GetTopicID(), paxos_group_id);
         } else if (comm::RetCode::RET_OK == ret) {
-            QLInfo("topic_id %d paxos_group_id %d ReadRestartCheckpoint cp %llu ok",
+            QLInfo("topic_id %d paxos_group_id %d ReadRestartCheckpoint restart_cp %llu ok",
                    impl_->lock->GetTopicID(), paxos_group_id, restart_checkpoint);
         }
 
-        NLInfo("topic_id %d paxos_group_id %d cp %llu restart_cp %llu",
-               impl_->lock->GetTopicID(), paxos_group_id, checkpoint, restart_checkpoint);
-        // if restart_checkpoint > checkpoint, over write
+        NLInfo("topic_id %d paxos_group_id %d disk_cp %llu restart_cp %llu",
+               impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint, restart_checkpoint);
+        // if restart_checkpoint > disk_checkpoint, over write
         if (phxpaxos::NoCheckpoint != restart_checkpoint &&
-            (phxpaxos::NoCheckpoint == checkpoint || restart_checkpoint > checkpoint)) {
-            //impl_->groups[paxos_group_id].set_checkpoint(restart_checkpoint);
-            ret = WriteCheckpoint(paxos_group_id, restart_checkpoint);
+            (phxpaxos::NoCheckpoint == disk_checkpoint || restart_checkpoint > disk_checkpoint)) {
+            //impl_->groups[paxos_group_id].set_disk_checkpoint(restart_checkpoint);
+            ret = WriteDiskCheckpoint(paxos_group_id, restart_checkpoint);
             if (comm::RetCode::RET_OK == ret) {
-                NLInfo("topic_id %d paxos_group_id %d WriteCheckpoint restart_cp %llu ok",
+                NLInfo("topic_id %d paxos_group_id %d WriteDiskCheckpoint restart_cp %llu ok",
                        impl_->lock->GetTopicID(), paxos_group_id, restart_checkpoint);
             } else {
-                NLErr("topic_id %d paxos_group_id %d WriteCheckpoint restart_cp %llu err %d",
+                NLErr("topic_id %d paxos_group_id %d WriteDiskCheckpoint restart_cp %llu err %d",
                       impl_->lock->GetTopicID(), paxos_group_id, restart_checkpoint, ret);
             }
         }
 
         // recover last_instance_id
-        impl_->groups[paxos_group_id].set_last_instance_id(impl_->groups[paxos_group_id].checkpoint());
+        impl_->groups[paxos_group_id].set_last_instance_id(impl_->groups[paxos_group_id].disk_checkpoint());
 
     }  // foreach group
 
@@ -185,8 +185,8 @@ comm::RetCode LockMgr::Dispose() {
     return ret;
 }
 
-comm::RetCode LockMgr::ReadCheckpoint(const GroupVector::size_type paxos_group_id,
-                                      uint64_t &checkpoint) {
+comm::RetCode LockMgr::ReadDiskCheckpoint(const GroupVector::size_type paxos_group_id,
+                                          uint64_t &disk_checkpoint) {
     comm::LockMgrBP::GetThreadInstance()->
             OnReadCheckpoint(impl_->lock->GetTopicID(), paxos_group_id);
 
@@ -197,53 +197,57 @@ comm::RetCode LockMgr::ReadCheckpoint(const GroupVector::size_type paxos_group_i
         // TODO: deprecated
         ret = leveldb(paxos_group_id).DiskGet(KEY_IGNORE_CHECKPOINT_DEPRECATED, vstr);
         if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
-            checkpoint = phxpaxos::NoCheckpoint;
+            disk_checkpoint = phxpaxos::NoCheckpoint;
             QLErr("topic_id %d paxos_group_id %d not exist",
                   impl_->lock->GetTopicID(), paxos_group_id);
         } else if (comm::RetCode::RET_OK == ret) {
-            checkpoint = strtoul(vstr.c_str(), nullptr, 10);
+            disk_checkpoint = strtoul(vstr.c_str(), nullptr, 10);
             QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
-                  impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+                  impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
         } else {
-            checkpoint = phxpaxos::NoCheckpoint;
+            disk_checkpoint = phxpaxos::NoCheckpoint;
             QLErr("topic_id %d paxos_group_id %d err %d",
                   impl_->lock->GetTopicID(), paxos_group_id, ret);
         }
     } else if (comm::RetCode::RET_OK == ret) {
-        checkpoint = strtoul(vstr.c_str(), nullptr, 10);
+        disk_checkpoint = strtoul(vstr.c_str(), nullptr, 10);
         QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
-               impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+               impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
     } else {
-        checkpoint = phxpaxos::NoCheckpoint;
+        disk_checkpoint = phxpaxos::NoCheckpoint;
         QLErr("topic_id %d paxos_group_id %d err %d",
               impl_->lock->GetTopicID(), paxos_group_id, ret);
     }
 
-    impl_->groups[paxos_group_id].set_checkpoint(checkpoint);
+    impl_->groups[paxos_group_id].set_disk_checkpoint(disk_checkpoint);
+    // assign to memory checkpoint as well
+    impl_->groups[paxos_group_id].set_memory_checkpoint(disk_checkpoint);
 
     return ret;
 }
 
-comm::RetCode LockMgr::WriteCheckpoint(const GroupVector::size_type paxos_group_id,
-                                       const uint64_t checkpoint) {
+comm::RetCode LockMgr::WriteDiskCheckpoint(const GroupVector::size_type paxos_group_id,
+                                           const uint64_t disk_checkpoint) {
     comm::LockMgrBP::GetThreadInstance()->
-            OnWriteCheckpoint(impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+            OnWriteCheckpoint(impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
 
-    impl_->groups[paxos_group_id].set_checkpoint(checkpoint);
-
-    if (phxpaxos::NoCheckpoint != checkpoint) {
+    if (phxpaxos::NoCheckpoint != disk_checkpoint) {
         comm::RetCode ret{leveldb(paxos_group_id).DiskSet(KEY_IGNORE_CHECKPOINT,
-                                                          to_string(checkpoint) , true)};
+                                                          to_string(disk_checkpoint) , true)};
 
         if (comm::RetCode::RET_OK == ret) {
             QLInfo("topic_id %d paxos_group_id %d cp %llu ok",
-                   impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+                   impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
+
+            impl_->groups[paxos_group_id].set_disk_checkpoint(disk_checkpoint);
+            // assign to memory checkpoint as well
+            impl_->groups[paxos_group_id].set_memory_checkpoint(disk_checkpoint);
         } else {
             QLErr("topic_id %d paxos_group_id %d cp %llu err %d",
-                  impl_->lock->GetTopicID(), paxos_group_id, checkpoint, ret);
-        }
+                  impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint, ret);
 
-        return ret;
+            return ret;
+        }
     }
 
     return comm::RetCode::RET_OK;
@@ -252,7 +256,7 @@ comm::RetCode LockMgr::WriteCheckpoint(const GroupVector::size_type paxos_group_
 comm::RetCode LockMgr::ReadRestartCheckpoint(const GroupVector::size_type paxos_group_id,
                                              uint64_t &restart_checkpoint) {
     comm::LockMgrBP::GetThreadInstance()->
-            OnReadCheckpoint(impl_->lock->GetTopicID(), paxos_group_id);
+            OnReadRestartCheckpoint(impl_->lock->GetTopicID(), paxos_group_id);
 
     string vstr;
     comm::RetCode ret{leveldb(paxos_group_id).DiskGet(KEY_IGNORE_RESTART_CHECKPOINT, vstr)};
@@ -325,17 +329,26 @@ const LockDb &LockMgr::leveldb(const GroupVector::size_type paxos_group_id) cons
     return impl_->groups.at(paxos_group_id).leveldb;
 }
 
+uint64_t LockMgr::last_instance_id(const GroupVector::size_type paxos_group_id) const {
+    return impl_->groups.at(paxos_group_id).last_instance_id();
+}
+
 void LockMgr::set_last_instance_id(const GroupVector::size_type paxos_group_id,
                                    const uint64_t instance_id) {
     impl_->groups[paxos_group_id].set_last_instance_id(instance_id);
 }
 
-uint64_t LockMgr::last_instance_id(const GroupVector::size_type paxos_group_id) const {
-    return impl_->groups.at(paxos_group_id).last_instance_id();
+uint64_t LockMgr::memory_checkpoint(const GroupVector::size_type paxos_group_id) const {
+    return impl_->groups.at(paxos_group_id).memory_checkpoint();
 }
 
-uint64_t LockMgr::checkpoint(const GroupVector::size_type paxos_group_id) const {
-    return impl_->groups.at(paxos_group_id).checkpoint();
+void LockMgr::set_memory_checkpoint(const GroupVector::size_type paxos_group_id,
+                                    const uint64_t memory_checkpoint) {
+    impl_->groups[paxos_group_id].set_memory_checkpoint(memory_checkpoint);
+}
+
+uint64_t LockMgr::disk_checkpoint(const GroupVector::size_type paxos_group_id) const {
+    return impl_->groups.at(paxos_group_id).disk_checkpoint();
 }
 
 

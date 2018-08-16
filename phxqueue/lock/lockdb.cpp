@@ -22,6 +22,8 @@ namespace {
 
 // for system only, user cannot use key with this prefix
 constexpr char *KEY_IGNORE_PREFIX{"__ignore__"};
+// meaningless, only for trigger sync
+constexpr char *KEY_IGNORE_SYNC_TRIGGER{"__ignore__:__sync_trigger__"};
 // for user
 constexpr char *KEY_USER_STRING_PREFIX{""};
 constexpr char *KEY_USER_LOCK_PREFIX{""};
@@ -594,6 +596,25 @@ comm::RetCode LockDb::DiskDelete(const string &k, const bool sync) {
             return comm::RetCode::RET_ERR_LEVELDB;
         }
         QLVerb("key \"%s\"", k.c_str());
+    } else {
+        return comm::RetCode::RET_ERR_NO_IMPL;
+    }
+
+    return comm::RetCode::RET_OK;
+}
+
+comm::RetCode LockDb::Sync() {
+    if (StorageType::MAP == storage_type_) {
+    } else if (StorageType::LEVELDB == storage_type_) {
+        leveldb::WriteOptions write_options;
+        write_options.sync = true;
+        leveldb::Status status(leveldb_->Put(write_options, KEY_IGNORE_SYNC_TRIGGER, ""));
+        if (!status.ok()) {
+            QLErr("%s", status.ToString().c_str());
+
+            return comm::RetCode::RET_ERR_LEVELDB;
+        }
+        QLVerb("key \"%s\"", KEY_IGNORE_SYNC_TRIGGER);
     } else {
         return comm::RetCode::RET_ERR_NO_IMPL;
     }

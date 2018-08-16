@@ -225,30 +225,36 @@ void CleanThread::CleanRecord(const int paxos_group_id, const uint64_t now,
 
 void CleanThread::WriteRestartCheckpoint(const int paxos_group_id, const uint64_t now) {
     uint64_t now_instance_id{impl_->lock->GetNode()->GetNowInstanceID(paxos_group_id)};
-    uint64_t checkpoint{impl_->lock->GetLockMgr()->checkpoint(paxos_group_id)};
+    uint64_t memory_checkpoint{impl_->lock->GetLockMgr()->memory_checkpoint(paxos_group_id)};
     uint64_t last_instance_id{impl_->lock->GetLockMgr()->last_instance_id(paxos_group_id)};
 
-    if (last_instance_id == checkpoint && now_instance_id > checkpoint + 1 &&
+    if (last_instance_id == memory_checkpoint && now_instance_id > memory_checkpoint + 1 &&
         phxpaxos::NoCheckpoint != now_instance_id) {
         // now_instance_id may be not chosen, should write now_instance_id - 1
+
+        // 1. write and flush mirror
+        impl_->lock->GetLockMgr()->leveldb(paxos_group_id).Sync();
+
+        // 2. do NOT write and flush disk_checkpoint here!
+        // write and flush restart_checkpoint instead
         comm::RetCode ret{impl_->lock->GetLockMgr()->
                 WriteRestartCheckpoint(paxos_group_id, now_instance_id - 1)};
         if (comm::RetCode::RET_OK == ret) {
-            QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint ok checkpoint %llu"
+            QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint ok memory_cp %llu"
                    " last_instance_id %llu now_instance_id %llu",
                    impl_->lock->GetTopicID(), paxos_group_id,
-                   checkpoint, last_instance_id, now_instance_id);
+                   memory_checkpoint, last_instance_id, now_instance_id);
         } else {
-            QLErr("topic_id %d paxos_group_id %d WriteRestartCheckpoint err %d checkpoint %llu"
+            QLErr("topic_id %d paxos_group_id %d WriteRestartCheckpoint err %d memory_cp %llu"
                   " last_instance_id %llu now_instance_id %llu",
                   impl_->lock->GetTopicID(), paxos_group_id, comm::as_integer(ret),
-                  checkpoint, last_instance_id, now_instance_id);
+                  memory_checkpoint, last_instance_id, now_instance_id);
         }
     } else {
-        QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint skip checkpoint %llu"
+        QLInfo("topic_id %d paxos_group_id %d WriteRestartCheckpoint skip memory_cp %llu"
                " last_instance_id %llu now_instance_id %llu",
                impl_->lock->GetTopicID(), paxos_group_id,
-               checkpoint, last_instance_id, now_instance_id);
+               memory_checkpoint, last_instance_id, now_instance_id);
     }
 }
 

@@ -26,21 +26,24 @@ namespace lock {
 
 class LockMgr;
 
-class GroupData {
+struct GroupData {
   public:
     LockDb map;
     LockDb leveldb;
     uint64_t last_instance_id() { return last_instance_id_; }
-    uint64_t checkpoint() { return checkpoint_; }
+    uint64_t memory_checkpoint() { return memory_checkpoint_; }
+    uint64_t disk_checkpoint() { return disk_checkpoint_; }
 
   private:
     friend class LockMgr;
 
     void set_last_instance_id(const uint64_t instance_id) { last_instance_id_ = instance_id; }
-    void set_checkpoint(const uint64_t checkpoint) { checkpoint_ = checkpoint; }
+    void set_memory_checkpoint(const uint64_t memory_checkpoint) { memory_checkpoint_ = memory_checkpoint; }
+    void set_disk_checkpoint(const uint64_t disk_checkpoint) { disk_checkpoint_ = disk_checkpoint; }
 
     uint64_t last_instance_id_{phxpaxos::NoCheckpoint};
-    uint64_t checkpoint_{phxpaxos::NoCheckpoint};
+    uint64_t memory_checkpoint_{phxpaxos::NoCheckpoint};
+    uint64_t disk_checkpoint_{phxpaxos::NoCheckpoint};
 };
 
 typedef std::vector<GroupData> GroupVector;
@@ -54,10 +57,10 @@ class LockMgr {
     comm::RetCode Init(const std::string &mirror_dir_path);
     comm::RetCode Dispose();
 
-    comm::RetCode ReadCheckpoint(const GroupVector::size_type paxos_group_id,
-                                 uint64_t &checkpoint);
-    comm::RetCode WriteCheckpoint(const GroupVector::size_type paxos_group_id,
-                                  const uint64_t checkpoint);
+    comm::RetCode ReadDiskCheckpoint(const GroupVector::size_type paxos_group_id,
+                                     uint64_t &checkpoint);
+    comm::RetCode WriteDiskCheckpoint(const GroupVector::size_type paxos_group_id,
+                                      const uint64_t checkpoint);
 
     comm::RetCode ReadRestartCheckpoint(const GroupVector::size_type paxos_group_id,
                                         uint64_t &restart_checkpoint);
@@ -70,10 +73,13 @@ class LockMgr {
     LockDb &leveldb(const GroupVector::size_type paxos_group_id);
     const LockDb &leveldb(const GroupVector::size_type paxos_group_id) const;
 
+    uint64_t last_instance_id(const GroupVector::size_type paxos_group_id) const;
     void set_last_instance_id(const GroupVector::size_type paxos_group_id,
                               const uint64_t instance_id);
-    uint64_t last_instance_id(const GroupVector::size_type paxos_group_id) const;
-    uint64_t checkpoint(const GroupVector::size_type paxos_group_id) const;
+    uint64_t disk_checkpoint(const GroupVector::size_type paxos_group_id) const;
+    uint64_t memory_checkpoint(const GroupVector::size_type paxos_group_id) const;
+    void set_memory_checkpoint(const GroupVector::size_type paxos_group_id,
+                               const uint64_t memory_checkpoint);
 
   private:
     class LockMgrImpl;

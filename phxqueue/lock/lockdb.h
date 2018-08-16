@@ -85,6 +85,9 @@ class LockDb {
     comm::RetCode DiskSet(const std::string &k, const std::string &vstr, const bool sync = true);
     comm::RetCode DiskDelete(const std::string &k, const bool sync = true);
 
+    // write something to trigger sync
+    comm::RetCode Sync();
+
     void SeekToFirstRecord();
     void NextRecord();
     bool ValidRecord() const;

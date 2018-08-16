@@ -84,14 +84,20 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
                     AcquireLock(record_key_info, local_record_info, sync);
 
             // update checkpoint
-            if (comm::RetCode::RET_OK == ret && sync) {
-                ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
-                if (comm::RetCode::RET_OK == ret) {
-                    NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
-                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+            if (comm::RetCode::RET_OK == ret) {
+                if (sync) {
+                    ret = lock->GetLockMgr()->WriteDiskCheckpoint(paxos_group_id, instance_id);
+                    if (comm::RetCode::RET_OK == ret) {
+                        NLInfo("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu ok",
+                               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+                    } else {
+                        NLErr("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu err %d",
+                              static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+                    }
                 } else {
-                    NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
-                          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+                    lock->GetLockMgr()->set_memory_checkpoint(paxos_group_id, instance_id);
+                    NLInfo("storage %d topic_id %d paxos_group_id %d set_memory_checkpoint instance_id %llu",
+                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
                 }
             }
         } else {
@@ -141,14 +147,20 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
                     VersionSetString(record_key_info, local_record_info, sync);
 
             // update checkpoint
-            if (comm::RetCode::RET_OK == ret && sync) {
-                ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
-                if (comm::RetCode::RET_OK == ret) {
-                    NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
-                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+            if (comm::RetCode::RET_OK == ret) {
+                if (sync) {
+                    ret = lock->GetLockMgr()->WriteDiskCheckpoint(paxos_group_id, instance_id);
+                    if (comm::RetCode::RET_OK == ret) {
+                        NLInfo("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu ok",
+                               static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+                    } else {
+                        NLErr("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu err %d",
+                              static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+                    }
                 } else {
-                    NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
-                          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+                    lock->GetLockMgr()->set_memory_checkpoint(paxos_group_id, instance_id);
+                    NLInfo("storage %d topic_id %d paxos_group_id %d set_memory_checkpoint instance_id %llu",
+                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
                 }
             }
         } else {
@@ -199,14 +211,20 @@ bool DoExecute(Lock *lock, LockDb::StorageType storage_type, const int paxos_gro
     //                VersionDeleteString(record_key_info, sync);
 
     //        // update checkpoint
-    //        if (comm::RetCode::RET_OK == ret && sync) {
-    //            ret = lock->GetLockMgr()->WriteCheckpoint(paxos_group_id, instance_id);
-    //            if (comm::RetCode::RET_OK == ret) {
-    //                NLInfo("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu ok",
-    //                       static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+    //        if (comm::RetCode::RET_OK == ret) {
+    //            if (sync) {
+    //                ret = lock->GetLockMgr()->WriteDiskCheckpoint(paxos_group_id, instance_id);
+    //                if (comm::RetCode::RET_OK == ret) {
+    //                    NLInfo("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu ok",
+    //                           static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
+    //                } else {
+    //                    NLErr("storage %d topic_id %d paxos_group_id %d WriteDiskCheckpoint instance_id %llu err %d",
+    //                          static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+    //                }
     //            } else {
-    //                NLErr("storage %d topic_id %d paxos_group_id %d WriteCheckpoint cp %llu err %d",
-    //                      static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id, ret);
+    //                lock->GetLockMgr()->set_memory_checkpoint(paxos_group_id, instance_id);
+    //                NLInfo("storage %d topic_id %d paxos_group_id %d set_memory_checkpoint instance_id %llu",
+    //                       static_cast<int>(storage_type), lock->GetTopicID(), paxos_group_id, instance_id);
     //            }
     //        }
     //    } else {
@@ -265,6 +283,7 @@ LockSM::LockSM(Lock *const lock, const string &mirror_dir_path)
 
 LockSM::~LockSM() {}
 
+// execute instance and write memory sm
 bool LockSM::Execute(const int paxos_group_id, const uint64_t instance_id,
                      const string &paxos_value, phxpaxos::SMCtx *sm_ctx) {
     comm::LockSMBP::GetThreadInstance()->
@@ -314,6 +333,7 @@ bool LockSM::Execute(const int paxos_group_id, const uint64_t instance_id,
     return ret;
 }
 
+// execute instance and write disk sm
 bool LockSM::ExecuteForCheckpoint(const int paxos_group_id, const uint64_t instance_id,
                                   const string &paxos_value) {
     comm::LockSMBP::GetThreadInstance()->
@@ -323,8 +343,8 @@ bool LockSM::ExecuteForCheckpoint(const int paxos_group_id, const uint64_t insta
     if (impl_->lock->GetLockOption()->no_leveldb)
         return true;
 
-    const uint64_t checkpoint{impl_->lock->GetLockMgr()->checkpoint(paxos_group_id)};
-    bool sync{instance_id - checkpoint >= impl_->lock->GetLockOption()->checkpoint_interval};
+    const uint64_t disk_checkpoint{impl_->lock->GetLockMgr()->disk_checkpoint(paxos_group_id)};
+    bool sync{instance_id - disk_checkpoint >= impl_->lock->GetLockOption()->checkpoint_interval};
     if (!sync) {
         const uint64_t now{comm::utils::Time::GetSteadyClockMS()};
         if (now > last_sync_ms_ + 60000) {
@@ -342,8 +362,8 @@ bool LockSM::ExecuteForCheckpoint(const int paxos_group_id, const uint64_t insta
                 OnExecuteForCheckpointNoSync(impl_->lock->GetTopicID(), paxos_group_id,
                                              instance_id, paxos_value);
     }
-    QLVerb("topic_id %d paxos_group_id %d instance_id %llu cp %llu sync %d",
-           impl_->lock->GetTopicID(), paxos_group_id, instance_id, checkpoint, sync);
+    QLVerb("topic_id %d paxos_group_id %d instance_id %llu disk_cp %llu sync %d",
+           impl_->lock->GetTopicID(), paxos_group_id, instance_id, disk_checkpoint, sync);
 
     proto::LockPaxosArgs args;
     bool succ{args.ParseFromString(paxos_value)};
@@ -362,11 +382,11 @@ const uint64_t LockSM::GetCheckpointInstanceID(const int paxos_group_id) const {
     comm::LockSMBP::GetThreadInstance()->
             OnGetCheckpointInstanceID(impl_->lock->GetTopicID(), paxos_group_id);
 
-    const uint64_t checkpoint{impl_->lock->GetLockMgr()->checkpoint(paxos_group_id)};
-    QLVerb("topic_id %d paxos_group_id %d cp %llu",
-           impl_->lock->GetTopicID(), paxos_group_id, checkpoint);
+    const uint64_t disk_checkpoint{impl_->lock->GetLockMgr()->disk_checkpoint(paxos_group_id)};
+    QLVerb("topic_id %d paxos_group_id %d disk_cp %llu",
+           impl_->lock->GetTopicID(), paxos_group_id, disk_checkpoint);
 
-    return checkpoint;
+    return disk_checkpoint;
 }
 
 int LockSM::GetCheckpointState(const int paxos_group_id, string &dir_path,
