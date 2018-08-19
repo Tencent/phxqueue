@@ -262,7 +262,7 @@ int PublishThread::DestroySession(const uint64_t session_id) {
 
 PublishMgr::PublishMgr(const MqttBrokerServerConfig *const config, ServerMgr *server_mgr) {
     for (int i{0}; config->nr_publish_thread() > i; ++i) {
-        publish_threads_.emplace_back(config, server_mgr);
+        publish_threads_.emplace_back(move(unique_ptr<PublishThread>(new PublishThread(config, server_mgr))));
     }
 }
 
@@ -270,11 +270,11 @@ PublishMgr::~PublishMgr() {
 }
 
 int PublishMgr::CreateSession(const uint64_t session_id) {
-    return publish_threads_[hash<uint64_t>{}(session_id)].CreateSession(session_id);
+    return publish_threads_[hash<uint64_t>{}(session_id)]->CreateSession(session_id);
 }
 
 int PublishMgr::DestroySession(const uint64_t session_id) {
-    return publish_threads_[hash<uint64_t>{}(session_id)].DestroySession(session_id);
+    return publish_threads_[hash<uint64_t>{}(session_id)]->DestroySession(session_id);
 }
 
 

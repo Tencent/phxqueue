@@ -58,7 +58,7 @@ class PublishMgr {
     int DestroySession(const uint64_t session_id);
 
   private:
-    std::vector<PublishThread> publish_threads_;
+    std::vector<std::unique_ptr<PublishThread>> publish_threads_;
 };
 
 

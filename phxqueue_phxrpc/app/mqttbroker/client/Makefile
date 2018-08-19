@@ -16,7 +16,7 @@ libsearch_client.a: $(CLI_OBJS)
 	$(AR) $@ $^
 
 search_tool_main: phxrpc_search_tool.o search_tool_impl.o search_tool_main.o $(LIB_MQTT_OBJS)
-	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L. -lsearch_client -lphxqueue_comm $(LDFLAGS) -o $@
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L. -lphxqueue_phxrpc_logic_mqtt -lsearch_client -lphxqueue_comm $(LDFLAGS) -o $@
 
 %.pb.o: %.pb.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -I$(PROTOBUF_INCLUDE_DIR) -I$(PHXRPC_INCLUDE_DIR) \

@@ -12,6 +12,7 @@
 #include "search_client.h"
 
 
+using namespace phxqueue_phxrpc::logic::mqtt;
 using namespace phxrpc;
 using namespace std;
 
@@ -38,9 +39,9 @@ int SearchToolImpl::PHXEcho(phxrpc::OptMap &opt_map) {
     return ret;
 }
 
-int SearchToolImpl::PhxHttpPublish(phxrpc::OptMap &opt_map) {
-    phxqueue_phxrpc::mqttbroker::HttpPublishPb req;
-    phxqueue_phxrpc::mqttbroker::HttpPubackPb resp;
+int SearchToolImpl::HttpPublish(phxrpc::OptMap &opt_map) {
+    HttpPublishPb req;
+    HttpPubackPb resp;
 
     const char *pub_client_id{opt_map.Get('x')};
     const char *sub_client_id{opt_map.Get('y')};
@@ -69,19 +70,19 @@ int SearchToolImpl::PhxHttpPublish(phxrpc::OptMap &opt_map) {
     req.mutable_mqtt_publish()->set_data(opt_map.Get('s'));
 
     SearchClient client;
-    int ret{client.PhxHttpPublish(req, &resp)};
+    int ret{client.HttpPublish(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttConnect(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttConnect(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb resp;
+    MqttConnectPb req;
+    MqttConnackPb resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -90,19 +91,19 @@ int SearchToolImpl::PhxMqttConnect(phxrpc::OptMap &opt_map) {
     req.set_proto_level(4);
     req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(req, &resp);
+    ret = client.MqttConnect(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttPublish(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttPublish(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -111,11 +112,11 @@ int SearchToolImpl::PhxMqttPublish(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttPublishPb req;
+    MqttPublishPb req;
     google::protobuf::Empty resp;
 
     uint32_t dup{0u};
@@ -138,19 +139,19 @@ int SearchToolImpl::PhxMqttPublish(phxrpc::OptMap &opt_map) {
     req.set_packet_identifier(packet_identifier);
     req.set_data(opt_map.Get('s'));
 
-    ret = client.PhxMqttPublish(req, &resp);
+    ret = client.MqttPublish(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttPuback(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttPuback(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -159,11 +160,11 @@ int SearchToolImpl::PhxMqttPuback(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttPubackPb req;
+    MqttPubackPb req;
     google::protobuf::Empty resp;
 
     uint32_t packet_identifier{0u};
@@ -171,60 +172,60 @@ int SearchToolImpl::PhxMqttPuback(phxrpc::OptMap &opt_map) {
 
     req.set_packet_identifier(packet_identifier);
 
-    ret = client.PhxMqttPuback(req, &resp);
+    ret = client.MqttPuback(req, &resp);
     printf("%s return %d\n", __func__, ret);
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttPubrec(phxrpc::OptMap &opt_map) {
-    phxqueue_phxrpc::mqttbroker::MqttPubrecPb req;
+int SearchToolImpl::MqttPubrec(phxrpc::OptMap &opt_map) {
+    MqttPubrecPb req;
     google::protobuf::Empty resp;
 
     // TODO: fill req from opt_map
 
     SearchClient client;
-    int ret{client.PhxMqttPubrec(req, &resp)};
+    int ret{client.MqttPubrec(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttPubrel(phxrpc::OptMap &opt_map) {
-    phxqueue_phxrpc::mqttbroker::MqttPubrelPb req;
+int SearchToolImpl::MqttPubrel(phxrpc::OptMap &opt_map) {
+    MqttPubrelPb req;
     google::protobuf::Empty resp;
 
     // TODO: fill req from opt_map
 
     SearchClient client;
-    int ret{client.PhxMqttPubrel(req, &resp)};
+    int ret{client.MqttPubrel(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttPubcomp(phxrpc::OptMap &opt_map) {
-    phxqueue_phxrpc::mqttbroker::MqttPubcompPb req;
+int SearchToolImpl::MqttPubcomp(phxrpc::OptMap &opt_map) {
+    MqttPubcompPb req;
     google::protobuf::Empty resp;
 
     // TODO: fill req from opt_map
 
     SearchClient client;
-    int ret{client.PhxMqttPubcomp(req, &resp)};
+    int ret{client.MqttPubcomp(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return ret;
 }
 
-int SearchToolImpl::PhxMqttSubscribe(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttSubscribe(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -233,12 +234,12 @@ int SearchToolImpl::PhxMqttSubscribe(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttSubscribePb req;
-    phxqueue_phxrpc::mqttbroker::MqttSubackPb resp;
+    MqttSubscribePb req;
+    MqttSubackPb resp;
 
     uint32_t packet_identifier{0u};
     if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;
@@ -274,19 +275,19 @@ int SearchToolImpl::PhxMqttSubscribe(phxrpc::OptMap &opt_map) {
             });
     printf("\n");
 
-    ret = client.PhxMqttSubscribe(req, &resp);
+    ret = client.MqttSubscribe(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return 0;
 }
 
-int SearchToolImpl::PhxMqttUnsubscribe(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttUnsubscribe(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -295,12 +296,12 @@ int SearchToolImpl::PhxMqttUnsubscribe(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb req;
-    phxqueue_phxrpc::mqttbroker::MqttUnsubackPb resp;
+    MqttUnsubscribePb req;
+    MqttUnsubackPb resp;
 
     uint32_t packet_identifier{0u};
     if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;
@@ -314,19 +315,19 @@ int SearchToolImpl::PhxMqttUnsubscribe(phxrpc::OptMap &opt_map) {
             topic_filters.begin(), topic_filters.end());
     req.mutable_topic_filters()->Swap(&temp_topic_filters);
 
-    ret = client.PhxMqttUnsubscribe(req, &resp);
+    ret = client.MqttUnsubscribe(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return 0;
 }
 
-int SearchToolImpl::PhxMqttPing(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttPing(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -335,26 +336,26 @@ int SearchToolImpl::PhxMqttPing(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttPingreqPb req;
-    phxqueue_phxrpc::mqttbroker::MqttPingrespPb resp;
+    MqttPingreqPb req;
+    MqttPingrespPb resp;
 
-    ret = client.PhxMqttPing(req, &resp);
+    ret = client.MqttPing(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
     return 0;
 }
 
-int SearchToolImpl::PhxMqttDisconnect(phxrpc::OptMap &opt_map) {
+int SearchToolImpl::MqttDisconnect(phxrpc::OptMap &opt_map) {
     SearchClient client;
     int ret{-1};
 
-    phxqueue_phxrpc::mqttbroker::MqttConnectPb connect_req;
-    phxqueue_phxrpc::mqttbroker::MqttConnackPb connect_resp;
+    MqttConnectPb connect_req;
+    MqttConnackPb connect_resp;
 
     if (nullptr == opt_map.Get('l')) return -1;
 
@@ -363,14 +364,14 @@ int SearchToolImpl::PhxMqttDisconnect(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.PhxMqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnect(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
-    phxqueue_phxrpc::mqttbroker::MqttDisconnectPb req;
+    MqttDisconnectPb req;
     google::protobuf::Empty resp;
 
-    ret = client.PhxMqttDisconnect(req, &resp);
+    ret = client.MqttDisconnect(req, &resp);
     printf("%s return %d\n", __func__, ret);
 
     return ret;

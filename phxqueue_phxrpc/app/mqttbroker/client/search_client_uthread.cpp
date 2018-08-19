@@ -19,6 +19,7 @@
 #include "resource_pool.h"
 
 
+using namespace phxqueue_phxrpc::logic::mqtt;
 using namespace std;
 
 
@@ -92,8 +93,7 @@ int SearchClientUThread::PHXEcho(const google::protobuf::StringValue &req,
     return -1;
 }
 
-int SearchClientUThread::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &req,
-                                        phxqueue_phxrpc::mqttbroker::HttpPubackPb *resp) {
+int SearchClientUThread::HttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -118,7 +118,7 @@ int SearchClientUThread::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpP
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxHttpPublish(req, resp)};
+        int ret{stub.HttpPublish(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -129,8 +129,7 @@ int SearchClientUThread::PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpP
 
 // mqtt protocol
 
-int SearchClientUThread::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttConnectPb &req,
-                                        phxqueue_phxrpc::mqttbroker::MqttConnackPb *resp) {
+int SearchClientUThread::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -155,7 +154,7 @@ int SearchClientUThread::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttC
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttConnect(req, resp)};
+        int ret{stub.MqttConnect(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -164,8 +163,7 @@ int SearchClientUThread::PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttC
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &req,
-                                        google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttPublish(const MqttPublishPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -190,7 +188,7 @@ int SearchClientUThread::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttP
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPublish(req, resp)};
+        int ret{stub.MqttPublish(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -199,8 +197,7 @@ int SearchClientUThread::PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttP
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &req,
-                                       google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttPuback(const MqttPubackPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -225,7 +222,7 @@ int SearchClientUThread::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPu
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPuback(req, resp)};
+        int ret{stub.MqttPuback(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -234,8 +231,7 @@ int SearchClientUThread::PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPu
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPubrecPb &req,
-                                       google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttPubrec(const MqttPubrecPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -260,7 +256,7 @@ int SearchClientUThread::PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPu
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPubrec(req, resp)};
+        int ret{stub.MqttPubrec(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -269,8 +265,7 @@ int SearchClientUThread::PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPu
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPubrelPb &req,
-                                       google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttPubrel(const MqttPubrelPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -295,7 +290,7 @@ int SearchClientUThread::PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPu
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPubrel(req, resp)};
+        int ret{stub.MqttPubrel(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -304,8 +299,7 @@ int SearchClientUThread::PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPu
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttPubcompPb &req,
-                                        google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttPubcomp(const MqttPubcompPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -330,7 +324,7 @@ int SearchClientUThread::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttP
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPubcomp(req, resp)};
+        int ret{stub.MqttPubcomp(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -339,8 +333,7 @@ int SearchClientUThread::PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttP
     return -1;
 }
 
-int SearchClientUThread::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &req,
-                                          phxqueue_phxrpc::mqttbroker::MqttSubackPb *resp) {
+int SearchClientUThread::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -365,7 +358,7 @@ int SearchClientUThread::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::Mqt
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttSubscribe(req, resp)};
+        int ret{stub.MqttSubscribe(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -374,8 +367,7 @@ int SearchClientUThread::PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::Mqt
     return -1;
 }
 
-int SearchClientUThread::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &req,
-                                            phxqueue_phxrpc::mqttbroker::MqttUnsubackPb *resp) {
+int SearchClientUThread::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -400,7 +392,7 @@ int SearchClientUThread::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::M
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttUnsubscribe(req, resp)};
+        int ret{stub.MqttUnsubscribe(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -409,8 +401,7 @@ int SearchClientUThread::PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::M
     return -1;
 }
 
-int SearchClientUThread::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &req,
-                                     phxqueue_phxrpc::mqttbroker::MqttPingrespPb *resp) {
+int SearchClientUThread::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -435,7 +426,7 @@ int SearchClientUThread::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPing
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttPing(req, resp)};
+        int ret{stub.MqttPing(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;
@@ -444,8 +435,7 @@ int SearchClientUThread::PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPing
     return -1;
 }
 
-int SearchClientUThread::PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &req,
-                                           google::protobuf::Empty *resp) {
+int SearchClientUThread::MqttDisconnect(const MqttDisconnectPb &req, google::protobuf::Empty *resp) {
     const phxrpc::Endpoint_t *ep = global_searchclientuthread_config_.GetRandom();
 
     if (uthread_scheduler_ && ep) {
@@ -470,7 +460,7 @@ int SearchClientUThread::PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::Mq
 
         phxrpc::HttpMessageHandlerFactory http_msg_factory;
         SearchStub stub(*(socket.get()), *(global_searchclientuthread_monitor_.get()), http_msg_factory);
-        int ret{stub.PhxMqttDisconnect(req, resp)};
+        int ret{stub.MqttDisconnect(req, resp)};
         socket_pool->Put(key, socket);
 
         return ret;

@@ -25,19 +25,19 @@ class SearchTool {
 
     // http protocol
     virtual int PHXEcho(phxrpc::OptMap &bigmap);
-    virtual int PhxHttpPublish(phxrpc::OptMap &bigmap);
+    virtual int HttpPublish(phxrpc::OptMap &bigmap);
 
     // mqtt protocol
-    virtual int PhxMqttConnect(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPublish(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPuback(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPubrec(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPubrel(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPubcomp(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttSubscribe(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttUnsubscribe(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttPing(phxrpc::OptMap &bigmap);
-    virtual int PhxMqttDisconnect(phxrpc::OptMap &bigmap);
+    virtual int MqttConnect(phxrpc::OptMap &bigmap);
+    virtual int MqttPublish(phxrpc::OptMap &bigmap);
+    virtual int MqttPuback(phxrpc::OptMap &bigmap);
+    virtual int MqttPubrec(phxrpc::OptMap &bigmap);
+    virtual int MqttPubrel(phxrpc::OptMap &bigmap);
+    virtual int MqttPubcomp(phxrpc::OptMap &bigmap);
+    virtual int MqttSubscribe(phxrpc::OptMap &bigmap);
+    virtual int MqttUnsubscribe(phxrpc::OptMap &bigmap);
+    virtual int MqttPing(phxrpc::OptMap &bigmap);
+    virtual int MqttDisconnect(phxrpc::OptMap &bigmap);
 
     typedef int (SearchTool::*ToolFunc_t)(phxrpc::OptMap &);
 
@@ -52,21 +52,21 @@ class SearchTool {
         static Name2Func_t name2func[]{
             {"PHXEcho", &SearchTool::PHXEcho, "c:f:vs:",
                     "-s <string>"},
-            {"PhxHttpPublish", &SearchTool::PhxHttpPublish, "c:f:vx:y:d:q:r:t:p:s:",
+            {"HttpPublish", &SearchTool::HttpPublish, "c:f:vx:y:d:q:r:t:p:s:",
                     "-x <pub_client_id> -y <sub_client_id> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>"},
-            {"PhxMqttConnect", &SearchTool::PhxMqttConnect, "c:f:vl:",
+            {"MqttConnect", &SearchTool::MqttConnect, "c:f:vl:",
                     "-l <client_identifier>"},
-            {"PhxMqttPublish", &SearchTool::PhxMqttPublish, "c:f:vl:d:q:r:t:p:s:",
+            {"MqttPublish", &SearchTool::MqttPublish, "c:f:vl:d:q:r:t:p:s:",
                     "-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>"},
-            {"PhxMqttPuback", &SearchTool::PhxMqttPuback, "c:f:vl:p:",
+            {"MqttPuback", &SearchTool::MqttPuback, "c:f:vl:p:",
                     "-l <client_identifier> -p <packet_identifier>"},
-            {"PhxMqttSubscribe", &SearchTool::PhxMqttSubscribe, "c:f:vl:p:t:q:",
+            {"MqttSubscribe", &SearchTool::MqttSubscribe, "c:f:vl:p:t:q:",
                     "-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>"},
-            {"PhxMqttUnsubscribe", &SearchTool::PhxMqttUnsubscribe, "c:f:vl:p:t:",
+            {"MqttUnsubscribe", &SearchTool::MqttUnsubscribe, "c:f:vl:p:t:",
                     "-l <client_identifier> -p <packet_identifier> -t <topic_filters>"},
-            {"PhxMqttPing", &SearchTool::PhxMqttPing, "c:f:vl:",
+            {"MqttPing", &SearchTool::MqttPing, "c:f:vl:",
                     "-l <client_identifier>"},
-            {"PhxMqttDisconnect", &SearchTool::PhxMqttDisconnect, "c:f:vl:",
+            {"MqttDisconnect", &SearchTool::MqttDisconnect, "c:f:vl:",
                     "-l <client_identifier>"},
             {nullptr, nullptr}
         };

@@ -24,16 +24,16 @@ class SearchToolImpl : public SearchTool {
     virtual ~SearchToolImpl() override;
 
     virtual int PHXEcho(phxrpc::OptMap &opt_map) override;
-    virtual int PhxHttpPublish(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttConnect(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPublish(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPuback(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPubrec(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPubrel(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPubcomp(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttSubscribe(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttUnsubscribe(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttPing(phxrpc::OptMap &opt_map) override;
-    virtual int PhxMqttDisconnect(phxrpc::OptMap &opt_map) override;
+    virtual int HttpPublish(phxrpc::OptMap &opt_map) override;
+    virtual int MqttConnect(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPublish(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPuback(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPubrec(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPubrel(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPubcomp(phxrpc::OptMap &opt_map) override;
+    virtual int MqttSubscribe(phxrpc::OptMap &opt_map) override;
+    virtual int MqttUnsubscribe(phxrpc::OptMap &opt_map) override;
+    virtual int MqttPing(phxrpc::OptMap &opt_map) override;
+    virtual int MqttDisconnect(phxrpc::OptMap &opt_map) override;
 };
 

@@ -24,30 +24,30 @@ class SearchClientUThread {
     // http protocol
     int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
-    int PhxHttpPublish(const phxqueue_phxrpc::mqttbroker::HttpPublishPb &req,
-                       phxqueue_phxrpc::mqttbroker::HttpPubackPb *resp);
+    int HttpPublish(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &req,
+                    phxqueue_phxrpc::logic::mqtt::HttpPubackPb *resp);
 
     // mqtt protocol
-    int PhxMqttConnect(const phxqueue_phxrpc::mqttbroker::MqttConnectPb &req,
-                       phxqueue_phxrpc::mqttbroker::MqttConnackPb *resp);
-    int PhxMqttPublish(const phxqueue_phxrpc::mqttbroker::MqttPublishPb &req,
+    int MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &req,
+                    phxqueue_phxrpc::logic::mqtt::MqttConnackPb *resp);
+    int MqttPublish(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &req,
+                    google::protobuf::Empty *resp);
+    int MqttPuback(const phxqueue_phxrpc::logic::mqtt::MqttPubackPb &req,
+                   google::protobuf::Empty *resp);
+    int MqttPubrec(const phxqueue_phxrpc::logic::mqtt::MqttPubrecPb &req,
+                   google::protobuf::Empty *resp);
+    int MqttPubrel(const phxqueue_phxrpc::logic::mqtt::MqttPubrelPb &req,
+                   google::protobuf::Empty *resp);
+    int MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubcompPb &req,
+                    google::protobuf::Empty *resp);
+    int MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &req,
+                      phxqueue_phxrpc::logic::mqtt::MqttSubackPb *resp);
+    int MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &req,
+                        phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb *resp);
+    int MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &req,
+                 phxqueue_phxrpc::logic::mqtt::MqttPingrespPb *resp);
+    int MqttDisconnect(const phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb &req,
                        google::protobuf::Empty *resp);
-    int PhxMqttPuback(const phxqueue_phxrpc::mqttbroker::MqttPubackPb &req,
-                      google::protobuf::Empty *resp);
-    int PhxMqttPubrec(const phxqueue_phxrpc::mqttbroker::MqttPubrecPb &req,
-                      google::protobuf::Empty *resp);
-    int PhxMqttPubrel(const phxqueue_phxrpc::mqttbroker::MqttPubrelPb &req,
-                      google::protobuf::Empty *resp);
-    int PhxMqttPubcomp(const phxqueue_phxrpc::mqttbroker::MqttPubcompPb &req,
-                       google::protobuf::Empty *resp);
-    int PhxMqttSubscribe(const phxqueue_phxrpc::mqttbroker::MqttSubscribePb &req,
-                         phxqueue_phxrpc::mqttbroker::MqttSubackPb *resp);
-    int PhxMqttUnsubscribe(const phxqueue_phxrpc::mqttbroker::MqttUnsubscribePb &req,
-                           phxqueue_phxrpc::mqttbroker::MqttUnsubackPb *resp);
-    int PhxMqttPing(const phxqueue_phxrpc::mqttbroker::MqttPingreqPb &req,
-                    phxqueue_phxrpc::mqttbroker::MqttPingrespPb *resp);
-    int PhxMqttDisconnect(const phxqueue_phxrpc::mqttbroker::MqttDisconnectPb &req,
-                          google::protobuf::Empty *resp);
 
   private:
     phxrpc::UThreadEpollScheduler *uthread_scheduler_;

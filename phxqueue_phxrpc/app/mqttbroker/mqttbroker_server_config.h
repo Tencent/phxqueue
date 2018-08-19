@@ -49,8 +49,8 @@ class MqttBrokerServerConfig {
 
     int topic_id_{-1};
     char phxqueue_global_config_path_[128];
-    int max_publish_queue_size_{128 * 1024 * 1024};
-    int max_publish_lru_cache_size_{16 * 1024 * 1024};
+    int max_publish_queue_size_{128 * 1024};
+    int max_publish_lru_cache_size_{16 * 1024};
     int nr_publish_thread_{2};
     int share_stack_size_kb_{128};
     int publish_sleep_time_ms_{10};

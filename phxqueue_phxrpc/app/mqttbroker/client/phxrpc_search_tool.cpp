@@ -29,70 +29,70 @@ int SearchTool::PHXEcho(phxrpc::OptMap &/* opt_map */) {
     return -1;
 }
 
-int SearchTool::PhxHttpPublish(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxHttpPublish unimplement ***\n");
+int SearchTool::HttpPublish(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** HttpPublish unimplement ***\n");
 
     return -1;
 }
 
 // mqtt protocol
 
-int SearchTool::PhxMqttConnect(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttConnect unimplement ***\n");
+int SearchTool::MqttConnect(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttConnect unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPublish(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPublish unimplement ***\n");
+int SearchTool::MqttPublish(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPublish unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPuback(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPuback unimplement ***\n");
+int SearchTool::MqttPuback(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPuback unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPubrec(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPubrec unimplement ***\n");
+int SearchTool::MqttPubrec(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPubrec unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPubrel(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPubrel unimplement ***\n");
+int SearchTool::MqttPubrel(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPubrel unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPubcomp(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPubcomp unimplement ***\n");
+int SearchTool::MqttPubcomp(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPubcomp unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttSubscribe(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttSubscribe unimplement ***\n");
+int SearchTool::MqttSubscribe(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttSubscribe unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttUnsubscribe(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttUnsubscribe unimplement ***\n");
+int SearchTool::MqttUnsubscribe(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttUnsubscribe unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttPing(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttPing unimplement ***\n");
+int SearchTool::MqttPing(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttPing unimplement ***\n");
 
     return -1;
 }
 
-int SearchTool::PhxMqttDisconnect(phxrpc::OptMap &/* opt_map */) {
-    printf("\n    *** PhxMqttDisconnect unimplement ***\n");
+int SearchTool::MqttDisconnect(phxrpc::OptMap &/* opt_map */) {
+    printf("\n    *** MqttDisconnect unimplement ***\n");
 
     return -1;
 }
