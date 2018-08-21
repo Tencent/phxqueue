@@ -569,7 +569,10 @@ comm::RetCode Lock::CheckMaster(const int paxos_group_id, comm::proto::Addr &red
 // ret: RET_OK if set, others if not set
 comm::RetCode Lock::PaxosSetString(const comm::proto::SetStringRequest &req,
                                    comm::proto::SetStringResponse &resp) {
-    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
+    comm::LockBP::GetThreadInstance()->OnPaxosSetString(req);
+
+    auto &&string_info(req.string_info());
+    uint32_t paxos_group_id{HashUi32(string_info.key()) % impl_->opt.nr_group};
 
     // paxos
     proto::LockPaxosArgs args;
@@ -582,6 +585,8 @@ comm::RetCode Lock::PaxosSetString(const comm::proto::SetStringRequest &req,
     args.SerializeToString(&buf);
 
     // 3. send to paxos
+    comm::LockBP::GetThreadInstance()->OnSetStringPropose(req);
+
     LockContext lc;
     phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
     uint64_t instance_id{0};
@@ -592,17 +597,22 @@ comm::RetCode Lock::PaxosSetString(const comm::proto::SetStringRequest &req,
     uint64_t used_time_ms{t2 - t1};
 
     if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
+        comm::LockBP::GetThreadInstance()->OnSetStringProposeErr(req, used_time_ms);
         QLErr("paxos_group %d key \"%s\" Propose err %d buf.size %zu",
-              paxos_group_id, req.string_info().key().c_str(),
+              paxos_group_id, string_info.key().c_str(),
               paxos_ret, buf.size());
         switch (paxos_ret) {
             case phxpaxos::PaxosTryCommitRet_Timeout:
+                comm::LockBP::GetThreadInstance()->OnSetStringProposeErrTimeout(req);
                 return comm::RetCode::RET_ERR_PROPOSE_TIMEOUT;
             case phxpaxos::PaxosTryCommitRet_TooManyThreadWaiting_Reject:
+                comm::LockBP::GetThreadInstance()->OnSetStringProposeErrTooManyThreadWaitingReject(req);
                 return comm::RetCode::RET_ERR_PROPOSE_FAST_REJECT;
             case phxpaxos::PaxosTryCommitRet_Value_Size_TooLarge:
+                comm::LockBP::GetThreadInstance()->OnSetStringProposeErrValueSizeTooLarge(req);
                 return comm::RetCode::RET_ERR_SIZE_TOO_LARGE;
             default:
+                comm::LockBP::GetThreadInstance()->OnSetStringProposeErrOther(req);
                 return comm::RetCode::RET_ERR_PROPOSE;
         };
     }
@@ -610,13 +620,15 @@ comm::RetCode Lock::PaxosSetString(const comm::proto::SetStringRequest &req,
     if (comm::RetCode::RET_OK != lc.result) {
         QLErr("paxos_group %d key \"%s\" Propose err %d instance_id %" PRIu64
               " buf.size %zu", paxos_group_id,
-              req.string_info().key().c_str(), lc.result, instance_id, buf.size());
+              string_info.key().c_str(), lc.result, instance_id, buf.size());
+        comm::LockBP::GetThreadInstance()->OnSetStringProposeErrResult(req, instance_id, used_time_ms);
 
         return lc.result;
     }
+    comm::LockBP::GetThreadInstance()->OnSetStringProposeSucc(req, instance_id, used_time_ms);
     QLInfo("paxos_group %d key \"%s\" Propose ok instance_id %" PRIu64
            " buf.size %zu", paxos_group_id,
-           req.string_info().key().c_str(), instance_id, buf.size());
+           string_info.key().c_str(), instance_id, buf.size());
 
     return comm::RetCode::RET_OK;
 }
@@ -640,61 +652,6 @@ comm::RetCode Lock::PaxosDeleteString(const comm::proto::DeleteStringRequest &re
     return ret;
 }
 
-// ret: RET_OK if set, others if not set
-//comm::RetCode Lock::PaxosDeleteString(const comm::proto::DeleteStringRequest &req,
-//                                      comm::proto::DeleteStringResponse &resp) {
-//    uint32_t paxos_group_id{HashUi32(req.string_info().key()) % impl_->opt.nr_group};
-//
-//    // paxos
-//    proto::LockPaxosArgs args;
-//
-//    // 1. make args
-//    *args.mutable_delete_string_req() = req;
-//
-//    // 2. serialize args to paxos value
-//    string buf;
-//    args.SerializeToString(&buf);
-//
-//    // 3. send to paxos
-//    LockContext lc;
-//    phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
-//    uint64_t instance_id{0};
-//
-//    uint64_t t1{comm::utils::Time::GetSteadyClockMS()};
-//    int paxos_ret{impl_->node->Propose(paxos_group_id, buf, instance_id, &sm_ctx)};
-//    uint64_t t2{comm::utils::Time::GetSteadyClockMS()};
-//    uint64_t used_time_ms{t2 - t1};
-//
-//    if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
-//        QLErr("paxos_group %d key \"%s\" Propose err %d buf.size %zu",
-//              paxos_group_id, req.string_info().key().c_str(),
-//              paxos_ret, buf.size());
-//        switch (paxos_ret) {
-//            case phxpaxos::PaxosTryCommitRet_Timeout:
-//                return comm::RetCode::RET_ERR_PROPOSE_TIMEOUT;
-//            case phxpaxos::PaxosTryCommitRet_TooManyThreadWaiting_Reject:
-//                return comm::RetCode::RET_ERR_PROPOSE_FAST_REJECT;
-//            case phxpaxos::PaxosTryCommitRet_Value_Size_TooLarge:
-//                return comm::RetCode::RET_ERR_SIZE_TOO_LARGE;
-//            default:
-//                return comm::RetCode::RET_ERR_PROPOSE;
-//        };
-//    }
-//
-//    if (comm::RetCode::RET_OK != lc.result) {
-//        QLErr("paxos_group %d key \"%s\" Propose err %d instance_id %" PRIu64
-//              " buf.size %zu", paxos_group_id,
-//              req.string_info().key().c_str(), lc.result, instance_id, buf.size());
-//
-//        return lc.result;
-//    }
-//    QLInfo("paxos_group %d key \"%s\" Propose ok instance_id %" PRIu64
-//           " buf.size %zu", paxos_group_id,
-//           req.string_info().key().c_str(), instance_id, buf.size());
-//
-//    return comm::RetCode::RET_OK;
-//}
-
 // ret: RET_OK if acquired, others if not acquired
 comm::RetCode Lock::PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
                                      comm::proto::AcquireLockResponse &resp) {
@@ -714,7 +671,7 @@ comm::RetCode Lock::PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
     args.SerializeToString(&buf);
 
     // 3. send to paxos
-    comm::LockBP::GetThreadInstance()->OnPropose(req);
+    comm::LockBP::GetThreadInstance()->OnAcquireLockPropose(req);
 
     LockContext lc;
     phxpaxos::SMCtx sm_ctx(LockSM::ID, &lc);
@@ -726,22 +683,22 @@ comm::RetCode Lock::PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
     uint64_t used_time_ms{t2 - t1};
 
     if (phxpaxos::PaxosTryCommitRet_OK != paxos_ret) {
-        comm::LockBP::GetThreadInstance()->OnProposeErr(req, used_time_ms);
+        comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErr(req, used_time_ms);
         QLErr("paxos_group %d lock \"%s\" Propose err %d buf.size %zu req.client_id \"%s\"",
               paxos_group_id, lock_info.lock_key().c_str(),
               paxos_ret, buf.size(), lock_info.client_id().c_str());
         switch (paxos_ret) {
             case phxpaxos::PaxosTryCommitRet_Timeout:
-                comm::LockBP::GetThreadInstance()->OnProposeErrTimeout(req);
+                comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErrTimeout(req);
                 return comm::RetCode::RET_ERR_PROPOSE_TIMEOUT;
             case phxpaxos::PaxosTryCommitRet_TooManyThreadWaiting_Reject:
-                comm::LockBP::GetThreadInstance()->OnProposeErrTooManyThreadWaitingReject(req);
+                comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErrTooManyThreadWaitingReject(req);
                 return comm::RetCode::RET_ERR_PROPOSE_FAST_REJECT;
             case phxpaxos::PaxosTryCommitRet_Value_Size_TooLarge:
-                comm::LockBP::GetThreadInstance()->OnProposeErrValueSizeTooLarge(req);
+                comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErrValueSizeTooLarge(req);
                 return comm::RetCode::RET_ERR_SIZE_TOO_LARGE;
             default:
-                comm::LockBP::GetThreadInstance()->OnProposeErrOther(req);
+                comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErrOther(req);
                 return comm::RetCode::RET_ERR_PROPOSE;
         };
     }
@@ -751,11 +708,11 @@ comm::RetCode Lock::PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
               " buf.size %zu req.client_id \"%s\"", paxos_group_id,
               lock_info.lock_key().c_str(), lc.result, instance_id, buf.size(),
               lock_info.client_id().c_str());
-        comm::LockBP::GetThreadInstance()->OnProposeErrResult(req, instance_id, used_time_ms);
+        comm::LockBP::GetThreadInstance()->OnAcquireLockProposeErrResult(req, instance_id, used_time_ms);
 
         return lc.result;
     }
-    comm::LockBP::GetThreadInstance()->OnProposeSucc(req, instance_id, used_time_ms);
+    comm::LockBP::GetThreadInstance()->OnAcquireLockProposeSucc(req, instance_id, used_time_ms);
     QLInfo("paxos_group %d lock \"%s\" Propose ok instance_id %" PRIu64
            " buf.size %zu req.client_id \"%s\"", paxos_group_id,
            lock_info.lock_key().c_str(), instance_id, buf.size(),

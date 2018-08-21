@@ -132,6 +132,7 @@ comm::RetCode LockDb::Dispose() {
 
 comm::RetCode LockDb::VersionSetString(const proto::RecordKeyInfo &record_key_info,
                                        const proto::LocalRecordInfo &v, const bool sync) {
+    comm::LockDbBP::GetThreadInstance()->OnVersionSetString(sync);
     proto::LocalRecordInfo localv;
     comm::RetCode ret{GetString(record_key_info.key(), localv)};
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
@@ -175,6 +176,7 @@ comm::RetCode LockDb::VersionSetString(const proto::RecordKeyInfo &record_key_in
 
 comm::RetCode LockDb::VersionDeleteString(const proto::RecordKeyInfo &record_key_info,
                                           const bool sync) {
+    comm::LockDbBP::GetThreadInstance()->OnVersionDeleteString(sync);
     proto::LocalRecordInfo localv;
     comm::RetCode ret{GetString(record_key_info.key(), localv)};
     if (comm::RetCode::RET_ERR_KEY_NOT_EXIST == ret) {
