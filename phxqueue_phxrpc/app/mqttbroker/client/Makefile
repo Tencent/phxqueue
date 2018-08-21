@@ -6,17 +6,17 @@ LIB_MQTT_OBJS = ../mqtt/mqtt_msg.o ../mqtt/mqtt_msg_handler.o ../mqtt/mqtt_proto
 		../mqtt/mqtt_msg_handler_factory.o
 
 CLI_OBJS = mqttbroker.pb.o \
-		search_client.o \
-		search_client_uthread.o \
-		phxrpc_search_stub.o
+		mqttbroker_client.o \
+		mqttbroker_client_uthread.o \
+		phxrpc_mqttbroker_stub.o
 
-all: libsearch_client.a search_tool_main
+all: libmqttbroker_client.a mqttbroker_tool_main
 
-libsearch_client.a: $(CLI_OBJS)
+libmqttbroker_client.a: $(CLI_OBJS)
 	$(AR) $@ $^
 
-search_tool_main: phxrpc_search_tool.o search_tool_impl.o search_tool_main.o $(LIB_MQTT_OBJS)
-	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L. -lphxqueue_phxrpc_logic_mqtt -lsearch_client -lphxqueue_comm $(LDFLAGS) -o $@
+mqttbroker_tool_main: phxrpc_mqttbroker_tool.o mqttbroker_tool_impl.o mqttbroker_tool_main.o $(LIB_MQTT_OBJS)
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L. -lphxqueue_phxrpc_logic_mqtt -lmqttbroker_client -lphxqueue_comm $(LDFLAGS) -o $@
 
 %.pb.o: %.pb.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -I$(PROTOBUF_INCLUDE_DIR) -I$(PHXRPC_INCLUDE_DIR) \
@@ -38,21 +38,21 @@ mqttbroker.pb.h: mqttbroker.proto
 
 ########## client ##########
 
-phxrpc_search_stub.cpp: phxrpc_search_stub.h
-phxrpc_search_stub.o: phxrpc_search_stub.h
-search_client.cpp: phxrpc_search_stub.h
-search_client.o: phxrpc_search_stub.h
-search_client_uthread.cpp: phxrpc_search_stub.h
-search_client_uthread.o: phxrpc_search_stub.h
+phxrpc_mqttbroker_stub.cpp: phxrpc_mqttbroker_stub.h
+phxrpc_mqttbroker_stub.o: phxrpc_mqttbroker_stub.h
+mqttbroker_client.cpp: phxrpc_mqttbroker_stub.h
+mqttbroker_client.o: phxrpc_mqttbroker_stub.h
+mqttbroker_client_uthread.cpp: phxrpc_mqttbroker_stub.h
+mqttbroker_client_uthread.o: phxrpc_mqttbroker_stub.h
 
 ########## tool ##########
 
-phxrpc_search_tool.cpp: phxrpc_search_tool.h
-phxrpc_search_tool.o: phxrpc_search_tool.h
-search_tool_impl.cpp: phxrpc_search_tool.h
-search_tool_impl.o: phxrpc_search_tool.h
-search_tool_main.cpp: phxrpc_search_tool.h
-search_tool_main.o: phxrpc_search_tool.h
+phxrpc_mqttbroker_tool.cpp: phxrpc_mqttbroker_tool.h
+phxrpc_mqttbroker_tool.o: phxrpc_mqttbroker_tool.h
+mqttbroker_tool_impl.cpp: phxrpc_mqttbroker_tool.h
+mqttbroker_tool_impl.o: phxrpc_mqttbroker_tool.h
+mqttbroker_tool_main.cpp: phxrpc_mqttbroker_tool.h
+mqttbroker_tool_main.o: phxrpc_mqttbroker_tool.h
 
 clean:
 	@($(RM) $(TARGETS))
