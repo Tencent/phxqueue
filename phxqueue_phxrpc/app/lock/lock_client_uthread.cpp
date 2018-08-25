@@ -67,7 +67,7 @@ LockClientUThread::~LockClientUThread() {}
 
 int LockClientUThread::PHXEcho(const google::protobuf::StringValue &req,
                                google::protobuf::StringValue *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -117,7 +117,7 @@ int LockClientUThread::PHXBatchEcho(const google::protobuf::StringValue &req,
 
 int LockClientUThread::GetString(const phxqueue::comm::proto::GetStringRequest &req,
                                  phxqueue::comm::proto::GetStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -138,7 +138,7 @@ int LockClientUThread::GetString(const phxqueue::comm::proto::GetStringRequest &
 
 int LockClientUThread::SetString(const phxqueue::comm::proto::SetStringRequest &req,
                                  phxqueue::comm::proto::SetStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -159,7 +159,7 @@ int LockClientUThread::SetString(const phxqueue::comm::proto::SetStringRequest &
 
 int LockClientUThread::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                                     phxqueue::comm::proto::DeleteStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -180,7 +180,7 @@ int LockClientUThread::DeleteString(const phxqueue::comm::proto::DeleteStringReq
 
 int LockClientUThread::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                                    phxqueue::comm::proto::GetLockInfoResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -201,7 +201,7 @@ int LockClientUThread::GetLockInfo(const phxqueue::comm::proto::GetLockInfoReque
 
 int LockClientUThread::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                                    phxqueue::comm::proto::AcquireLockResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;

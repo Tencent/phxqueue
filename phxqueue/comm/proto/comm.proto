@@ -11,7 +11,7 @@ message Cookies {
     repeated Cookie cookies = 1;
 }
 
-message Meta { // 不变量
+message Meta {  // 不变量
     optional int32 topic_id = 2;
     optional int32 handle_id = 3;
     optional uint64 uin    = 5;
@@ -22,7 +22,7 @@ message Meta { // 不变量
     optional uint32 atime_ms  = 52;
     optional string client_id  = 55;
 
-    optional Cookies user_cookies = 61; // 放业务cookie/票据
+    optional Cookies user_cookies = 61;  // 放业务cookie / 票据
 }
 
 message QItem {
@@ -34,7 +34,7 @@ message QItem {
     optional uint32 atime_ms  = 52;
     optional uint32 count  = 54;
 
-    optional Cookies sys_cookies = 62; // 放队列参数
+    optional Cookies sys_cookies = 62;  // 放队列参数
 
     optional uint64 cursor_id = 101;
 
@@ -78,7 +78,7 @@ message GetRequest {
     optional int32 queue_id = 3;
     optional int32 limit = 5;
     optional uint64 atime  = 6;
-    optional int32 consumer_group_id = 7; // 如果consumer_group_id在target_consumer_group_ids中，那就拉取
+    optional int32 consumer_group_id = 7;  // 如果consumer_group_id在target_consumer_group_ids中，那就拉取
     optional uint32 atime_ms  = 8;
 
     optional uint64 prev_cursor_id = 11;

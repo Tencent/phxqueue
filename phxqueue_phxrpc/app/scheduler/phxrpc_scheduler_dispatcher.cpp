@@ -30,15 +30,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 
 SchedulerDispatcher::SchedulerDispatcher(SchedulerService &service, phxrpc::DispatcherArgs_t *dispatcher_args)
-    : service_(service), dispatcher_args_(dispatcher_args) {}
+        : service_(service), dispatcher_args_(dispatcher_args) {}
 
 SchedulerDispatcher::~SchedulerDispatcher() {}
 
 const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &
 SchedulerDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc/scheduler/PHXEcho", &SchedulerDispatcher::PHXEcho},
-        {"/phxqueue_phxrpc/scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
+            {"/phxqueue_phxrpc/scheduler/PHXEcho", &SchedulerDispatcher::PHXEcho},
+            {"/phxqueue_phxrpc/scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
     return uri_func_map;
 }
 

@@ -67,7 +67,7 @@ SchedulerClientUThread::~SchedulerClientUThread() {}
 
 int SchedulerClientUThread::PHXEcho(const google::protobuf::StringValue &req,
                                     google::protobuf::StringValue *resp) {
-    const phxrpc::Endpoint_t *ep = global_schedulerclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_schedulerclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -117,7 +117,7 @@ int SchedulerClientUThread::PHXBatchEcho(const google::protobuf::StringValue &re
 
 int SchedulerClientUThread::GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,
                                          phxqueue::comm::proto::GetAddrScaleResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_schedulerclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_schedulerclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;

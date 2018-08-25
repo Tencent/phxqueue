@@ -40,7 +40,7 @@ class TopicConfig::TopicConfigImpl {
     map<int, set<int>> pub_id2queue_info_ids;
     map<int, int> handle_id2rank;
     vector<shared_ptr<proto::FreqInfo>> freq_infos;
-    vector<unique_ptr<proto::ReplayInfo>> replay_infos; // read only once
+    vector<unique_ptr<proto::ReplayInfo>> replay_infos;  // read only once
 };
 
 TopicConfig::TopicConfig() : impl_(new TopicConfigImpl()){}
@@ -84,7 +84,7 @@ comm::RetCode TopicConfig::ReadConfig(proto::TopicConfig &proto) {
         auto queue_info = proto.add_queue_infos();
         queue_info->set_queue_info_id(4);
         queue_info->add_ranges("1010-1019");
-        queue_info->set_count(-1); //retry forever
+        queue_info->set_count(-1);  // retry forever
         queue_info->set_delay(20);
     }
 
@@ -179,7 +179,7 @@ comm::RetCode TopicConfig::Rebuild() {
         impl_->queue_info_id2queue_info.emplace(queue_info.queue_info_id(), make_shared<proto::QueueInfo>(queue_info));
 
         {
-            auto &&ranges = impl_->queue_info_id2ranges[queue_info.queue_info_id()];
+            auto &&ranges(impl_->queue_info_id2ranges[queue_info.queue_info_id()]);
 
             for (int j{0}; j < queue_info.ranges_size(); ++j) {
                 vector<string> arr;
@@ -293,7 +293,8 @@ bool TopicConfig::IsValidConsumerGroupID(const int consumer_group_id) const {
     return impl_->consumer_group_id2consumer_group.end() != it;
 }
 
-comm::RetCode TopicConfig::GetConsumerGroupByConsumerGroupID(const int consumer_group_id, shared_ptr<const proto::ConsumerGroup> &consumer_group) const {
+comm::RetCode TopicConfig::GetConsumerGroupByConsumerGroupID(const int consumer_group_id,
+        shared_ptr<const proto::ConsumerGroup> &consumer_group) const {
     consumer_group = nullptr;
 
     auto &&it = impl_->consumer_group_id2consumer_group.find(consumer_group_id);

@@ -58,10 +58,10 @@ template <typename Req, typename Resp>
 class MasterClient : public MasterClientBase {
   public:
     MasterClient() {}
-    virtual ~MasterClient() {}
+    virtual ~MasterClient() override {}
 
     RetCode ClientCall(Req &req, Resp &resp,
-                        std::function<RetCode (Req &, Resp &)> rpc_func) {
+                       std::function<RetCode (Req &, Resp &)> rpc_func) {
         RetCode ret = RetCode::RET_OK;
 
         auto &&route_key = GetRouteKeyByReq(req);
@@ -93,7 +93,7 @@ class MasterClient : public MasterClientBase {
                 // sys err, not remove cache
             } else {
                 QLErr("ClientCallByAddr ret %d addr(%s:%d) route_key(%s)", ret,
-                        master_addr.ip().c_str(), master_addr.port(), route_key.c_str());
+                      master_addr.ip().c_str(), master_addr.port(), route_key.c_str());
                 return ret;
             }
         }
