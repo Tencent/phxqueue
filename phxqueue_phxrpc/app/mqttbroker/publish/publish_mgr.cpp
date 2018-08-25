@@ -62,8 +62,8 @@ int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const int sle
 
     if (1 == mqtt_publish_pb.qos()) {
         uint16_t sub_packet_id{0};
-        if (!MqttPacketIdMgr::GetInstance()->AllocPacketId(req.pub_client_id(),
-                req.mqtt_publish().packet_identifier(), req.sub_client_id(), sub_packet_id)) {
+        if (!MqttPacketIdMgr::GetInstance()->AllocPacketId(req.cursor_id(), req.pub_client_id(),
+                req.mqtt_publish().packet_identifier(), req.sub_client_id(), &sub_packet_id)) {
             NLErr("sub_session_id %" PRIx64 " AllocPacketId err sub_client_id \"%s\"",
                   sub_mqtt_session->session_id, req.sub_client_id().c_str());
 
@@ -84,8 +84,6 @@ int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const int sle
 
                 continue;
             }
-
-            PublishStateMgr::GetInstance()->SetPublishPacketId(req.sub_client_id(), sub_packet_id);
 
             //// ack_key = sub_client_id + sub_packet_id
             //const string ack_key(req.sub_client_id() + ':' + to_string(sub_packet_id));

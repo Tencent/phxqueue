@@ -52,35 +52,35 @@ class PublishLruCache : public PublishLruCacheBase {
 };
 
 
-class PublishStateMgr {
-  public:
-    struct PublishState {
-        uint64_t publish_packet_id;
-        uint64_t puback_packet_id;
-    };
-
-    typedef std::map<std::string, PublishState> PublishStateMap;
-
-    static PublishStateMgr *GetInstance();
-
-    PublishStateMgr() = default;
-    virtual ~PublishStateMgr() = default;
-
-    std::pair<PublishStateMap::iterator, bool> CreateSubClientId(const std::string &sub_client_id);
-    void DestroySubClientId(const std::string &sub_client_id);
-
-    bool GetPublishPacketId(const std::string &sub_client_id,
-                            uint64_t *const publish_packet_id) const;
-    bool SetPublishPacketId(const std::string &sub_client_id,
-                            const uint64_t publish_packet_id);
-    bool GetPubackPacketId(const std::string &sub_client_id,
-                           uint64_t *const puback_packet_id) const;
-    bool SetPubackPacketId(const std::string &sub_client_id,
-                           const uint64_t puback_packet_id);
-
-  private:
-    PublishStateMap map_;
-};
+//class PublishStateMgr {
+//  public:
+//    struct PublishState {
+//        uint64_t publish_packet_id;
+//        uint64_t puback_packet_id;
+//    };
+//
+//    typedef std::map<std::string, PublishState> PublishStateMap;
+//
+//    static PublishStateMgr *GetInstance();
+//
+//    PublishStateMgr() = default;
+//    virtual ~PublishStateMgr() = default;
+//
+//    std::pair<PublishStateMap::iterator, bool> CreateSubClientId(const std::string &sub_client_id);
+//    void DestroySubClientId(const std::string &sub_client_id);
+//
+//    bool GetPublishPacketId(const std::string &sub_client_id,
+//                            uint64_t *const publish_packet_id) const;
+//    bool SetPublishPacketId(const std::string &sub_client_id,
+//                            const uint64_t publish_packet_id);
+//    bool GetPubackPacketId(const std::string &sub_client_id,
+//                           uint64_t *const puback_packet_id) const;
+//    bool SetPubackPacketId(const std::string &sub_client_id,
+//                           const uint64_t puback_packet_id);
+//
+//  private:
+//    PublishStateMap map_;
+//};
 
 
 }  // namespace mqttbroker

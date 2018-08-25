@@ -81,6 +81,7 @@ phxqueue::comm::HandleResult MqttHandler::Handle(const phxqueue::comm::proto::Co
         }
 
         phxqueue_phxrpc::logic::mqtt::HttpPublishPb req(message);
+        req.set_cursor_id(item.cursor_id());
         phxqueue_phxrpc::logic::mqtt::HttpPubackPb resp;
         MqttBrokerClient mqttbroker_client;
         int ret{mqttbroker_client.HttpPublish(req, &resp)};

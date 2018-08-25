@@ -46,86 +46,96 @@ MqttPacketIdMgr::MqttPacketIdMgr() {
 MqttPacketIdMgr::~MqttPacketIdMgr() {
 }
 
-bool MqttPacketIdMgr::AllocPacketId(const std::string &pub_client_id, const uint16_t pub_packet_id,
-                                    const std::string &sub_client_id, uint16_t &sub_packet_id) {
-    sub_packet_id = 0;
+bool MqttPacketIdMgr::AllocPacketId(const uint64_t cursor_id, const string &pub_client_id,
+                                    const uint16_t pub_packet_id, const string &sub_client_id,
+                                    uint16_t *const sub_packet_id) {
+    if (!sub_packet_id)
+        return false;
+
+    *sub_packet_id = 0u;
     lock_guard<mutex> lock(mutex_);
-    auto &&sub_packet_ids(sub_client_id2sub_packet_ids_map_[sub_client_id]);
 
-    size_t i{0u};
-    while (true) {
-        if (sub_packet_ids.size() > i) {
-            ++i;
-        } else {
-            return false;
-        }
+    auto &&sub_client_info(sub_client_id2sub_client_info_map_[sub_client_id]);
 
-        ++current_sub_packet_id_;
-        if (sub_packet_ids.size() <= current_sub_packet_id_) {
-            // 0 is forbidden
-            current_sub_packet_id_ = 1;
-        }
-        if (!sub_packet_ids.test(current_sub_packet_id_)) {
-            // alloc
-            sub_packet_ids.set(current_sub_packet_id_);
-            const string pub_key(phxqueue::comm::GetRouteKey(pub_client_id, pub_packet_id));
-            sub_client_id2pub_keys_map_[sub_client_id][pub_key] = current_sub_packet_id_;
-            sub_packet_id = current_sub_packet_id_;
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool MqttPacketIdMgr::ReleasePacketId(const string &pub_client_id, const uint16_t pub_packet_id,
-                                      const string &sub_client_id) {
-    lock_guard<mutex> lock(mutex_);
-    auto sub_client_id2pub_keys_map_it(sub_client_id2pub_keys_map_.find(sub_client_id));
-    if (sub_client_id2pub_keys_map_.end() == sub_client_id2pub_keys_map_it) {
+    // no available packet id to alloc
+    if (sub_client_info.max_size() <= sub_client_info.size()) {
         return false;
     }
 
-    auto &&pub_keys_map(sub_client_id2pub_keys_map_it->second);
-    const string pub_key(phxqueue::comm::GetRouteKey(pub_client_id, pub_packet_id));
-    auto pub_keys_map_it(pub_keys_map.find(pub_key));
-    if (pub_keys_map.end() == pub_keys_map_it) {
-        return false;
+    // alloc
+    PubInfo pub_info(cursor_id, pub_client_id, pub_packet_id);
+    *sub_packet_id = sub_client_info.ModPos(sub_client_info.in_pos());
+    sub_client_info.set_in_pos(sub_client_info.in_pos() + 1);
+    if (sub_client_info.max_size() <= sub_client_info.in_pos()) {
+        // 0 is forbidden
+        sub_client_info.set_in_pos(1);
     }
-
-    auto sub_client_id2packet_ids_map_it(sub_client_id2sub_packet_ids_map_.find(sub_client_id));
-    if (sub_client_id2sub_packet_ids_map_.end() == sub_client_id2packet_ids_map_it) {
-        return false;
-    }
-
-    sub_client_id2packet_ids_map_it->second.reset(pub_keys_map_it->second);
-    pub_keys_map.erase(pub_keys_map_it);
+    (*sub_client_info.mutable_map()).emplace(*sub_packet_id, move(pub_info));
 
     return true;
 }
 
-bool MqttPacketIdMgr::TestPacketId(const string &pub_client_id, const uint16_t pub_packet_id,
-                                   const string &sub_client_id) {
+bool MqttPacketIdMgr::ReleasePacketId(const string &sub_client_id, const uint16_t sub_packet_id) {
     lock_guard<mutex> lock(mutex_);
-    auto sub_client_id2pub_keys_map_it(sub_client_id2pub_keys_map_.find(sub_client_id));
-    if (sub_client_id2pub_keys_map_.end() == sub_client_id2pub_keys_map_it) {
+
+    auto &&sub_client_info(sub_client_id2sub_client_info_map_[sub_client_id]);
+
+    uint16_t erase_size(sub_packet_id + 1 - sub_client_info.ModPos(sub_client_info.out_pos()));
+    if (sub_client_info.size() < erase_size) {
+        // range overflow
         return false;
     }
 
-    auto &&pub_keys_map(sub_client_id2pub_keys_map_it->second);
-    const string pub_key(phxqueue::comm::GetRouteKey(pub_client_id, pub_packet_id));
-    auto pub_keys_map_it(pub_keys_map.find(pub_key));
-    if (pub_keys_map.end() == pub_keys_map_it) {
+    for (size_t i{sub_client_info.out_pos()}; sub_client_info.out_pos() + erase_size > i; ++i) {
+        auto it(sub_client_info.map().find(i));
+        if (sub_client_info.map().end() !=it) {
+            sub_client_info.set_prev_cursor_id(it->second.cursor_id);
+            sub_client_info.mutable_map()->erase(it);
+        }
+    }
+    sub_client_info.set_out_pos(sub_packet_id + 1);
+
+    return true;
+}
+
+bool MqttPacketIdMgr::GetCursorId(const string &sub_client_id, const uint16_t sub_packet_id,
+                                  uint64_t *const cursor_id) const {
+    if (!cursor_id)
+        return false;
+
+    *cursor_id = static_cast<uint64_t>(-1);
+    lock_guard<mutex> lock(mutex_);
+
+    auto it(sub_client_id2sub_client_info_map_.find(sub_client_id));
+    if (sub_client_id2sub_client_info_map_.end() == it) {
         return false;
     }
 
-    auto sub_client_id2packet_ids_map_it(sub_client_id2sub_packet_ids_map_.find(sub_client_id));
-    if (sub_client_id2sub_packet_ids_map_.end() == sub_client_id2packet_ids_map_it) {
+    auto it2(it->second.map().find(sub_packet_id));
+    if (it->second.map().end() == it2) {
         return false;
     }
 
-    return sub_client_id2packet_ids_map_it->second.test(pub_keys_map_it->second);
+    *cursor_id = it2->second.cursor_id;
+
+    return true;
+}
+
+bool MqttPacketIdMgr::GetPrevCursorId(uint64_t *const prev_cursor_id) const {
+    if (!prev_cursor_id)
+        return false;
+
+    *prev_cursor_id = static_cast<uint64_t>(-1);
+    lock_guard<mutex> lock(mutex_);
+    for (const auto &kv : sub_client_id2sub_client_info_map_) {
+        if (static_cast<uint64_t>(-1) == *prev_cursor_id ||
+            (static_cast<uint64_t>(-1) != kv.second.prev_cursor_id() &&
+             kv.second.prev_cursor_id() > *prev_cursor_id)) {
+            *prev_cursor_id = kv.second.prev_cursor_id();
+        }
+    }
+
+    return true;
 }
 
 unique_ptr<MqttPacketIdMgr> MqttPacketIdMgr::s_instance;

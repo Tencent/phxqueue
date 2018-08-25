@@ -57,8 +57,8 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
 
     if (1 == mqtt_publish_pb.qos()) {
         uint16_t sub_packet_id{0};
-        if (!MqttPacketIdMgr::GetInstance()->AllocPacketId(req.pub_client_id(),
-                req.mqtt_publish().packet_identifier(), req.sub_client_id(), sub_packet_id)) {
+        if (!MqttPacketIdMgr::GetInstance()->AllocPacketId(0uLL, req.pub_client_id(),
+                req.mqtt_publish().packet_identifier(), req.sub_client_id(), &sub_packet_id)) {
             phxrpc::log(LOG_ERR, "%s sub_session_id %" PRIx64 " AllocPacketId err sub_client_id \"%s\"",
                         __func__, sub_mqtt_session->session_id, req.sub_client_id().c_str());
 
@@ -93,8 +93,7 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
 
         delete puback;
 
-        MqttPacketIdMgr::GetInstance()->ReleasePacketId(req.pub_client_id(),
-                req.mqtt_publish().packet_identifier(), req.sub_client_id());
+        MqttPacketIdMgr::GetInstance()->ReleasePacketId(req.sub_client_id(), sub_packet_id);
 
         if (0 != ret) {
             phxrpc::log(LOG_ERR, "%s ToPb err %d", __func__, ret);

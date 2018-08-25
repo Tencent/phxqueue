@@ -49,80 +49,80 @@ PublishLruCache::PublishLruCache(const size_t max_size) : PublishLruCacheBase(ma
 }
 
 
-PublishStateMgr *PublishStateMgr::GetInstance() {
-    static thread_local std::unique_ptr<PublishStateMgr> instance;
-    if (!instance) {
-        instance.reset(new PublishStateMgr);
-    }
-
-    return instance.get();
-}
-
-pair<PublishStateMgr::PublishStateMap::iterator, bool> PublishStateMgr::CreateSubClientId(const string &sub_client_id) {
-    return map_.emplace(sub_client_id, PublishState());
-}
-
-void PublishStateMgr::DestroySubClientId(const string &sub_client_id) {
-    map_.erase(sub_client_id);
-}
-
-bool PublishStateMgr::GetPublishPacketId(const string &sub_client_id,
-                                         uint64_t *const publish_packet_id) const {
-    auto it(map_.find(sub_client_id));
-    if (map_.end() == it) {
-        return false;
-    }
-
-    *publish_packet_id = it->second.publish_packet_id;
-
-    return true;
-}
-
-bool PublishStateMgr::SetPublishPacketId(const string &sub_client_id,
-                                         const uint64_t publish_packet_id) {
-    auto it(map_.find(sub_client_id));
-    if (map_.end() == it) {
-        auto kv(CreateSubClientId(sub_client_id));
-        if (!kv.second) {
-            return false;
-        }
-
-        it = kv.first;
-    }
-
-    it->second.publish_packet_id = publish_packet_id;
-
-    return true;
-}
-
-bool PublishStateMgr::GetPubackPacketId(const string &sub_client_id,
-                                        uint64_t *const puback_packet_id) const {
-    auto it(map_.find(sub_client_id));
-    if (map_.end() == it) {
-        return false;
-    }
-
-    *puback_packet_id = it->second.puback_packet_id;
-
-    return true;
-}
-
-bool PublishStateMgr::SetPubackPacketId(const string &sub_client_id,
-                                        const uint64_t puback_packet_id) {
-    auto it(map_.find(sub_client_id));
-    if (map_.end() == it) {
-        auto kv(CreateSubClientId(sub_client_id));
-        if (!kv.second) {
-            return false;
-        }
-
-        it = kv.first;
-    }
-
-    it->second.puback_packet_id = puback_packet_id;
-
-    return true;
-}
+//PublishStateMgr *PublishStateMgr::GetInstance() {
+//    static thread_local std::unique_ptr<PublishStateMgr> instance;
+//    if (!instance) {
+//        instance.reset(new PublishStateMgr);
+//    }
+//
+//    return instance.get();
+//}
+//
+//pair<PublishStateMgr::PublishStateMap::iterator, bool> PublishStateMgr::CreateSubClientId(const string &sub_client_id) {
+//    return map_.emplace(sub_client_id, PublishState());
+//}
+//
+//void PublishStateMgr::DestroySubClientId(const string &sub_client_id) {
+//    map_.erase(sub_client_id);
+//}
+//
+//bool PublishStateMgr::GetPublishPacketId(const string &sub_client_id,
+//                                         uint64_t *const publish_packet_id) const {
+//    auto it(map_.find(sub_client_id));
+//    if (map_.end() == it) {
+//        return false;
+//    }
+//
+//    *publish_packet_id = it->second.publish_packet_id;
+//
+//    return true;
+//}
+//
+//bool PublishStateMgr::SetPublishPacketId(const string &sub_client_id,
+//                                         const uint64_t publish_packet_id) {
+//    auto it(map_.find(sub_client_id));
+//    if (map_.end() == it) {
+//        auto kv(CreateSubClientId(sub_client_id));
+//        if (!kv.second) {
+//            return false;
+//        }
+//
+//        it = kv.first;
+//    }
+//
+//    it->second.publish_packet_id = publish_packet_id;
+//
+//    return true;
+//}
+//
+//bool PublishStateMgr::GetPubackPacketId(const string &sub_client_id,
+//                                        uint64_t *const puback_packet_id) const {
+//    auto it(map_.find(sub_client_id));
+//    if (map_.end() == it) {
+//        return false;
+//    }
+//
+//    *puback_packet_id = it->second.puback_packet_id;
+//
+//    return true;
+//}
+//
+//bool PublishStateMgr::SetPubackPacketId(const string &sub_client_id,
+//                                        const uint64_t puback_packet_id) {
+//    auto it(map_.find(sub_client_id));
+//    if (map_.end() == it) {
+//        auto kv(CreateSubClientId(sub_client_id));
+//        if (!kv.second) {
+//            return false;
+//        }
+//
+//        it = kv.first;
+//    }
+//
+//    it->second.puback_packet_id = puback_packet_id;
+//
+//    return true;
+//}
 
 
 }  // namespace mqttbroker
