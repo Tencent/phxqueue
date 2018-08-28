@@ -66,11 +66,12 @@ bool MqttPacketIdMgr::AllocPacketId(const uint64_t cursor_id, const string &pub_
     PubInfo pub_info(cursor_id, pub_client_id, pub_packet_id);
     *sub_packet_id = sub_client_info.ModPos(sub_client_info.in_pos());
     sub_client_info.set_in_pos(sub_client_info.in_pos() + 1);
-    if (sub_client_info.max_size() <= sub_client_info.in_pos()) {
+    if (0u == sub_client_info.ModPos(sub_client_info.in_pos())) {
         // 0 is forbidden
-        sub_client_info.set_in_pos(1);
+        sub_client_info.set_in_pos(1u);
     }
     (*sub_client_info.mutable_map()).emplace(*sub_packet_id, move(pub_info));
+    printf("sub_packet_id %u map.size %zu\n", *sub_packet_id, (*sub_client_info.mutable_map()).size());
 
     return true;
 }
@@ -94,6 +95,10 @@ bool MqttPacketIdMgr::ReleasePacketId(const string &sub_client_id, const uint16_
         }
     }
     sub_client_info.set_out_pos(sub_packet_id + 1);
+    if (0u == sub_client_info.ModPos(sub_client_info.out_pos())) {
+        // 0 is forbidden
+        sub_client_info.set_out_pos(1u);
+    }
 
     return true;
 }
@@ -119,6 +124,32 @@ bool MqttPacketIdMgr::GetCursorId(const string &sub_client_id, const uint16_t su
     *cursor_id = it2->second.cursor_id;
 
     return true;
+}
+
+string MqttPacketIdMgr::ToString(const string &sub_client_id) const {
+    lock_guard<mutex> lock(mutex_);
+
+    auto it(sub_client_id2sub_client_info_map_.find(sub_client_id));
+    if (sub_client_id2sub_client_info_map_.end() == it) {
+        return "";
+    }
+
+    string s("sub_client_id:");
+    s += sub_client_id + ",in_pos:" + to_string(it->second.in_pos()) +
+            ",out_pos:" + to_string(it->second.out_pos()) + ",map:{";
+    for (const auto &kv : it->second.map()) {
+        s += "sub_packet_id:";
+        s += to_string(kv.first) + ",info:{";
+        s += "cursor_id:";
+        s += to_string(kv.second.cursor_id) + ",";
+        s += "pub_client_id:";
+        s += kv.second.pub_client_id + ",";
+        s += "pub_packet_id:";
+        s += to_string(kv.second.pub_packet_id) + "},";
+    }
+    s += "}";
+
+    return s;
 }
 
 bool MqttPacketIdMgr::GetPrevCursorId(uint64_t *const prev_cursor_id) const {

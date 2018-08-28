@@ -42,7 +42,7 @@ class PublishThread {
 
   private:
     const MqttBrokerServerConfig *config_{nullptr};
-    ServerMgr *server_mgr_;
+    ServerMgr *server_mgr_{nullptr};
 
     std::thread thread_;
     // add member should also change move constructor

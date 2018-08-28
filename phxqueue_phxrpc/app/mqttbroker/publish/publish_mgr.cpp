@@ -15,6 +15,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <functional>
 
 #include "phxqueue/comm.h"
+#include "phxqueue_phxrpc/app/logic/mqtt.h"
 
 #include "../mqtt/mqtt_msg.h"
 #include "../mqtt/mqtt_packet_id.h"
@@ -44,7 +45,7 @@ void CoSleep(const int sleep_time_ms) {
     poll(nullptr, 0, sleep_time_ms);
 }
 
-int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const int sleep_time_ms) {
+int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const MqttBrokerServerConfig *const config) {
     // 1. check local session
     const auto sub_mqtt_session(MqttSessionMgr::GetInstance()->
                                 GetByClientId(req.sub_client_id()));
@@ -80,7 +81,7 @@ int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const int sle
                 NLErr("sub_session_id %" PRIx64 " server_mgr.Send err %d sub_client_id \"%s\" qos %u",
                       sub_mqtt_session->session_id, ret, req.sub_client_id().c_str(),
                       req.mqtt_publish().qos());
-                CoSleep(sleep_time_ms);
+                CoSleep(config->publish_sleep_time_ms());
 
                 continue;
             }
@@ -132,13 +133,18 @@ int Publish(ServerMgr *const server_mgr, const HttpPublishPb &req, const int sle
                 NLErr("sub_session_id %" PRIx64 " server_mgr.Send err %d sub_client_id \"%s\" qos %u",
                       sub_mqtt_session->session_id, ret, req.sub_client_id().c_str(),
                       req.mqtt_publish().qos());
-                CoSleep(sleep_time_ms);
+                CoSleep(config->publish_sleep_time_ms());
 
                 continue;
             }
 
             break;  // finish send
         }
+
+        TableMgr table_mgr(config->topic_id());
+        uint64_t version{0uLL};
+        SessionPb session_pb;
+        table_mgr.GetSessionByClientIdRemote(req.sub_client_id(), &version, &session_pb);
 
         NLInfo("sub_session_id %" PRIx64 " server_mgr.Send sub_client_id \"%s\" qos %u",
                sub_mqtt_session->session_id, req.sub_client_id().c_str(),
@@ -192,7 +198,7 @@ void *PublishRoutineRun(void *arg) {
 
         auto &&kv(*it);
         // 3. add to el out queue
-        int ret{Publish(ctx->server_mgr, kv.second, ctx->config->publish_sleep_time_ms())};
+        int ret{Publish(ctx->server_mgr, kv.second, ctx->config)};
         // 3.1. if session die
         return nullptr;
         // 4. rpc set prev to lock

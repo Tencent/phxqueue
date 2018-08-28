@@ -265,7 +265,7 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
     // 2. get retmote session
     uint64_t version{0uLL};
     SessionPb session_pb;
-    ret = table_mgr_->GetSessionByClientIdRemote(mqtt_session->client_id, version, session_pb);
+    ret = table_mgr_->GetSessionByClientIdRemote(mqtt_session->client_id, &version, &session_pb);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         FinishSession();
         QLErr("session_id %" PRIx64 " GetSessionByClientIdRemote err %d packet_id %d",
@@ -354,7 +354,7 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
     // 2. get remote session
     uint64_t version{0uLL};
     SessionPb session_pb;
-    ret = table_mgr_->GetSessionByClientIdRemote(mqtt_session->client_id, version, session_pb);
+    ret = table_mgr_->GetSessionByClientIdRemote(mqtt_session->client_id, &version, &session_pb);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         FinishSession();
         QLErr("session_id %" PRIx64 " GetSessionByClientIdRemote err %d packet_id %d",
@@ -482,7 +482,7 @@ phxqueue::comm::RetCode MqttBrokerServiceImpl::FinishSession() {
     uint64_t version{0uLL};
     SessionPb session_pb;
     phxqueue::comm::RetCode ret{table_mgr_->
-            GetSessionByClientIdRemote(client_id, version, session_pb)};
+            GetSessionByClientIdRemote(client_id, &version, &session_pb)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " client_id \"%s\" GetSessionByClientIdRemote err %d",
               session_id_, client_id.c_str(), phxqueue::comm::as_integer(ret));

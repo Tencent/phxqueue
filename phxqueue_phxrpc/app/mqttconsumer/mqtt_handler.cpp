@@ -69,7 +69,7 @@ phxqueue::comm::HandleResult MqttHandler::Handle(const phxqueue::comm::proto::Co
         // 3.1. get remote session
         uint64_t version{0uLL};
         SessionPb session_pb;
-        ret = table_mgr.GetSessionByClientIdRemote(subscribe_pb.client_identifier(), version, session_pb);
+        ret = table_mgr.GetSessionByClientIdRemote(subscribe_pb.client_identifier(), &version, &session_pb);
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             QLErr("consumer_group_id %d store_id %d queue_id %d item_uin %" PRIu64
                   " GetSessionByClientIdRemote err %d",

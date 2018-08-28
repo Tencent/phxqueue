@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
     int log_level{-1};
     extern char *optarg;
     int c;
-    while (EOF != (c = getopt( argc, argv, "c:vl:d"))) {
+    while (EOF != (c = getopt(argc, argv, "c:vl:d"))) {
         switch (c) {
             case 'c': config_file = optarg; break;
             case 'd': daemonize = true; break;

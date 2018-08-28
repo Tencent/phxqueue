@@ -34,7 +34,7 @@ class TableMgr {
                         const phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
 
     phxqueue::comm::RetCode GetStringRemote(const std::string &prefix, const std::string &key,
-                                            uint64_t &version, std::string &value);
+                                            uint64_t *const version, std::string *const value);
     phxqueue::comm::RetCode SetStringRemote(const std::string &prefix, const std::string &key,
                                             const uint64_t version, const std::string &value);
     phxqueue::comm::RetCode DeleteStringRemote(const std::string &prefix, const std::string &key,
@@ -45,7 +45,7 @@ class TableMgr {
     phxqueue::comm::RetCode GetSessionAndClientIdBySessionIdRemote(const uint64_t session_id,
             std::string &client_id, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
     phxqueue::comm::RetCode GetSessionByClientIdRemote(const std::string &client_id,
-            uint64_t &version, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb);
+            uint64_t *const version, phxqueue_phxrpc::logic::mqtt::SessionPb *const session_pb);
     phxqueue::comm::RetCode SetSessionByClientIdRemote(const std::string &client_id,
             const uint64_t version, phxqueue_phxrpc::logic::mqtt::SessionPb const &session_pb);
     phxqueue::comm::RetCode DeleteSessionByClientIdRemote(const std::string &client_id,

@@ -27,16 +27,17 @@ See the AUTHORS file for names of contributors.
 #include <memory>
 #include <sstream>
 
-#include "mqtt_msg.h"
-#include "mqtt_msg_handler.h"
-
+#include "phxqueue_phxrpc/app/logic/mqtt.h"
 #include "phxrpc/file/file_utils.h"
 #include "phxrpc/file/opt_map.h"
 #include "phxrpc/network/socket_stream_block.h"
 
+#include "mqtt_msg.h"
+#include "mqtt_msg_handler.h"
 
+
+using namespace phxqueue_phxrpc::logic::mqtt;
 using namespace phxqueue_phxrpc::mqttbroker;
-using namespace phxrpc;
 using namespace std;
 
 
@@ -72,41 +73,44 @@ void TraceMsg(const MqttMessage &msg) {
 int main(int argc, char *argv[]) {
     assert(sigset(SIGPIPE, SIG_IGN) != SIG_ERR);
 
-    OptMap optMap("r:f:v");
+    phxrpc::OptMap opt_map("r:f:v");
 
-    if ((!optMap.Parse(argc, argv)) || optMap.Has('v'))
+    if ((!opt_map.Parse(argc, argv)) || opt_map.Has('v'))
         ShowUsage(argv[0]);
 
-    const char *method{optMap.Get('r')};
-    const char *file{optMap.Get('f')};
+    const char *method{opt_map.Get('r')};
+    const char *file{opt_map.Get('f')};
 
     if (nullptr == method) {
         printf("\nPlease specify method!\n");
         ShowUsage(argv[0]);
     }
 
-    int ret{0};
-
     if (0 == strcasecmp(method, "CONNECT")) {
         cout << "Req:" << endl;
+        MqttConnectPb connect_pb;
+        connect_pb.set_client_identifier("test_client_1");
         MqttConnect connect;
-        connect.set_client_identifier("test_client_1");
+        connect.FromPb(connect_pb);
         TraceMsg(connect);
 
         cout << "Resp:" << endl;
         TraceMsg(MqttConnack());
     } else if (0 == strcasecmp(method, "PUBLISH")) {
         cout << "Req:" << endl;
+        MqttPublishPb publish_pb;
+        publish_pb.set_topic_name("test_topic_1");
+        publish_pb.set_data("test_msg_1");
+        publish_pb.set_packet_identifier(11);
         MqttPublish publish;
-        publish.set_topic_name("test_topic_1");
-        string content{"test_msg_1"};
-        publish.SetContent(content.c_str(), content.length());
-        publish.set_packet_identifier(11);
+        publish.FromPb(publish_pb);
         TraceMsg(publish);
 
         cout << "Resp:" << endl;
+        MqttPubackPb puback_pb;
+        puback_pb.set_packet_identifier(11);
         MqttPuback puback;
-        puback.set_packet_identifier(11);
+        puback.FromPb(puback_pb);
         TraceMsg(puback);
     } else if (0 == strcasecmp(method, "SUBSCRIBE")) {
         cout << "Req:" << endl;
@@ -129,27 +133,6 @@ int main(int argc, char *argv[]) {
     } else {
         printf("unsupport method %s\n", method);
     }
-
-    //if (0 == ret) {
-    //    printf("response:\n");
-
-    //    printf("%s %d %s\n", response.GetVersion(), response.GetStatusCode(),
-    //           response.GetReasonPhrase());
-
-    //    printf("%zu headers\n", response.GetHeaderCount());
-    //    for (size_t i{0}; i < response.GetHeaderCount(); ++i) {
-    //        const char *name{response.GetHeaderName(i)};
-    //        const char *val{response.GetHeaderValue(i)};
-    //        printf("%s: %s\r\n", name, val);
-    //    }
-
-    //    printf("%zu bytes body\n", response.GetContent().size());
-    //    if (response.GetContent().size() > 0) {
-    //        //printf("%s\n", (char*)response.getContent());
-    //    }
-    //} else {
-    //    printf("mqtt request fail\n");
-    //}
 
     return 0;
 }

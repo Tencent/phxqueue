@@ -60,7 +60,7 @@ class MqttPacketIdMgr final {
 
         inline size_t max_size() const { return max_size_; }
 
-        inline size_t in_pos() { return in_pos_; }
+        inline size_t in_pos() const { return in_pos_; }
         inline void set_in_pos(size_t pos) { in_pos_ = pos; }
 
         inline size_t out_pos() const { return out_pos_; }
@@ -79,8 +79,8 @@ class MqttPacketIdMgr final {
 
       private:
         const size_t max_size_{65536u};
-        size_t in_pos_{0u};
-        size_t out_pos_{0u};
+        size_t in_pos_{1u};
+        size_t out_pos_{1u};
         uint64_t prev_cursor_id_{static_cast<uint64_t>(-1)};
         SubPacketId2PubInfoMap map_;
     };
@@ -96,6 +96,8 @@ class MqttPacketIdMgr final {
     bool ReleasePacketId(const std::string &sub_client_id, const uint16_t sub_packet_id);
     bool GetCursorId(const std::string &sub_client_id, const uint16_t sub_packet_id,
                      uint64_t *const cursor_id) const;
+    std::string ToString(const std::string &sub_client_id) const;
+
     bool GetPrevCursorId(uint64_t *const prev_cursor_id) const;
 
   private:

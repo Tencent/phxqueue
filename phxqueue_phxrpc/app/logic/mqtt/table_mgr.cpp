@@ -91,7 +91,13 @@ TableMgr::FinishRemoteSession(const string &client_id,
 }
 
 phxqueue::comm::RetCode TableMgr::GetStringRemote(const string &prefix,
-        const string &key, uint64_t &version, string &value) {
+        const string &key, uint64_t *const version, string *const value) {
+    if (!version || !value) {
+        QLErr("out args nullptr prefix+key \"%s%s\"", prefix.c_str(), key.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
     int lock_id{-1};
     phxqueue::comm::RetCode ret{GetLockId(lock_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -117,8 +123,8 @@ phxqueue::comm::RetCode TableMgr::GetStringRemote(const string &prefix,
         return ret;
     }
 
-    version = get_string_resp.string_info().version();
-    value = get_string_resp.string_info().value();
+    *version = get_string_resp.string_info().version();
+    *value = get_string_resp.string_info().value();
 
     QLInfo("key \"%s%s\"", prefix.c_str(), key.c_str());
 
@@ -254,11 +260,17 @@ phxqueue::comm::RetCode TableMgr::LockRemote(const string &lock_key,
 }
 
 phxqueue::comm::RetCode TableMgr::GetSessionByClientIdRemote(const string &client_id,
-        uint64_t &version, phxqueue_phxrpc::logic::mqtt::SessionPb &session_pb) {
+        uint64_t *const version, phxqueue_phxrpc::logic::mqtt::SessionPb *const session_pb) {
+    if (!version || !session_pb) {
+        QLErr("out args nullptr client_id \"%s\"", client_id.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
     // 1. get client_id -> session from lock
     string session_pb_string;
     phxqueue::comm::RetCode ret{GetStringRemote(string(KEY_BROKER_CLIENT2SESSION_PREFIX),
-                                                client_id, version, session_pb_string)};
+                                                client_id, version, &session_pb_string)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("client_id \"%s\" GetStringRemote err %d",
               client_id.c_str(), phxqueue::comm::as_integer(ret));
@@ -267,7 +279,7 @@ phxqueue::comm::RetCode TableMgr::GetSessionByClientIdRemote(const string &clien
     }
 
     // 2. parse
-    if (!session_pb.ParseFromString(session_pb_string)) {
+    if (!session_pb->ParseFromString(session_pb_string)) {
         QLErr("client_id \"%s\" ParseFromString err", client_id.c_str());
 
         return phxqueue::comm::RetCode::RET_ERR_PROTOBUF_PARSE;
@@ -299,7 +311,7 @@ phxqueue::comm::RetCode TableMgr::SetSessionByClientIdRemote(const string &clien
     session_pb_string.clear();
     uint64_t version2;
     ret = GetStringRemote(string(KEY_BROKER_CLIENT2SESSION_PREFIX),
-                          client_id, version2, session_pb_string);
+                          client_id, &version2, &session_pb_string);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("client_id \"%s\" GetStringRemote err %d",
               client_id.c_str(), phxqueue::comm::as_integer(ret));
@@ -353,7 +365,7 @@ TableMgr::GetTopicSubscribeRemote(const string &topic_filter, uint64_t *const ve
 
     string topic_pb_string;
     phxqueue::comm::RetCode ret{GetStringRemote(string(KEY_BROKER_TOPIC2CLIENT_PREFIX),
-            topic_filter, *version, topic_pb_string)};
+            topic_filter, version, &topic_pb_string)};
     if (phxqueue::comm::RetCode::RET_ERR_KEY_NOT_EXIST != ret) {
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             QLErr("GetStringRemote err %d topic \"%s\"", phxqueue::comm::as_integer(ret),

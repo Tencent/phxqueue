@@ -10,7 +10,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 
 
+#include <cassert>
+#include <csignal>
 #include <iostream>
+
+#include "phxrpc/file/opt_map.h"
 
 #include "circular_queue.hpp"
 
@@ -18,7 +22,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 using namespace std;
 
 
+void ShowUsage(const char *program) {
+    printf("\n%s\n", program);
+
+    printf("\t-v show this usage\n");
+    printf("\n");
+
+    exit(0);
+}
+
 int main(int argc, char **argv) {
+    assert(sigset(SIGPIPE, SIG_IGN) != SIG_ERR);
+
+    phxrpc::OptMap opt_map("v");
+
+    if ((!opt_map.Parse(argc, argv)) || opt_map.Has('v'))
+        ShowUsage(argv[0]);
+
     typedef phxqueue_phxrpc::mqttbroker::CircularQueue<int, int> TestQueue;
     typedef phxqueue_phxrpc::mqttbroker::LruCache<int, int> TestLruCache;
 
