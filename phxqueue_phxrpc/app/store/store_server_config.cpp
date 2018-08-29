@@ -42,7 +42,7 @@ bool StoreServerConfig::Read(const char *config_file) {
     ret &= config.ReadItem("Store", "PhxQueueGlobalConfigPath",
                            phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
     ret &= config.ReadItem("Store", "PaxosPort", &paxos_port_);
-    ret &= config.ReadItem("Store", "NPaxosIOThread", &npaxos_iothread_);
+    ret &= config.ReadItem("Store", "NPaxosIOThread", &npaxos_iothread_, 3);
     config.ReadItem("Store", "NGroup", &ngroup_, 100);
 
     return ret;
@@ -75,3 +75,4 @@ int StoreServerConfig::GetNPaxosIOThread() const {
 int StoreServerConfig::GetNGroup() const {
     return ngroup_;
 }
+

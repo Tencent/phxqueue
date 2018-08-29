@@ -506,6 +506,7 @@ comm::RetCode Lock::PaxosInit(const string &mirror_dir_path) {
     opts.bUseCheckpointReplayer = true;
     opts.iSyncInterval = topic_config->GetProto().topic().lock_paxos_fsync_interval();
     opts.bUseBatchPropose = false;
+    opts.iIOThreadCount = impl_->opt.nr_paxos_io_thread;
 
 
     // 4. other init on opts

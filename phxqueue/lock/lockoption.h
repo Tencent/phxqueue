@@ -23,8 +23,8 @@ namespace lock {
 
 class LockOption {
   public:
-    LockOption() {}
-    virtual ~LockOption() {}
+    LockOption() = default;
+    virtual ~LockOption() = default;
 
     std::string topic;
     std::string data_dir_path;
@@ -33,6 +33,7 @@ class LockOption {
     int port{0};
     int paxos_port{0};
     int nr_group{100};
+    int nr_paxos_io_thread{3};
 
     int clean_interval_s{1};
     int idle_write_checkpoint_interval_s{60};

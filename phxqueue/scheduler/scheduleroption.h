@@ -23,8 +23,8 @@ namespace scheduler {
 
 class SchedulerOption {
   public:
-    SchedulerOption() {}
-    virtual ~SchedulerOption() {}
+    SchedulerOption() = default;
+    virtual ~SchedulerOption() = default;
 
     std::string topic;
 
