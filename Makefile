@@ -28,6 +28,7 @@ BIN_TARGETS := phxqueue/test/test_config_main phxqueue/test/test_consumer_main p
 SUB_MAKE_LIB_TARGETS := phxqueue_phxrpc/app/store/libstore_client.a \
 						phxqueue_phxrpc/app/lock/liblock_client.a \
 						phxqueue_phxrpc/app/scheduler/libscheduler_client.a \
+						phxqueue_phxrpc/app/mqttbroker/libmqttbroker_client.a \
 						phxqueue_phxrpc/app/logic/mqtt/libphxqueue_phxrpc_logic_mqtt.a
 
 SUB_MAKE_BIN_TARGETS := phxqueue_phxrpc/app/store/store_main phxqueue_phxrpc/app/store/store_tool_main \

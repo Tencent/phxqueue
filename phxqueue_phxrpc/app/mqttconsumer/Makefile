@@ -6,8 +6,6 @@
 
 include ../../../makefile.mk
 
-LDFLAGS := -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS)
-
 SVR_OBJS = mqtt_handler.o \
 		mqttconsumer_main.o
 

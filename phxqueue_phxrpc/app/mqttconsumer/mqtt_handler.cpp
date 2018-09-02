@@ -17,7 +17,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/comm.h"
 #include "phxqueue_phxrpc/app/logic/mqtt.h"
-#include "phxqueue_phxrpc/app/mqttbroker/client/mqttbroker_client.h"
+#include "phxqueue_phxrpc/app/mqttbroker/mqttbroker_client.h"
 
 
 namespace phxqueue_phxrpc {
