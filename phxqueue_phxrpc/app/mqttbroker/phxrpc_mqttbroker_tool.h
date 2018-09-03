@@ -38,6 +38,7 @@ class MqttBrokerTool {
     virtual int MqttUnsubscribe(phxrpc::OptMap &bigmap);
     virtual int MqttPing(phxrpc::OptMap &bigmap);
     virtual int MqttDisconnect(phxrpc::OptMap &bigmap);
+    virtual int ProtoHttpPublish(phxrpc::OptMap &opt_map);
 
     typedef int (MqttBrokerTool::*ToolFunc_t)(phxrpc::OptMap &);
 
@@ -68,6 +69,8 @@ class MqttBrokerTool {
                     "-l <client_identifier>"},
             {"MqttDisconnect", &MqttBrokerTool::MqttDisconnect, "c:f:vl:",
                     "-l <client_identifier>"},
+            {"ProtoHttpPublish", &MqttBrokerTool::ProtoHttpPublish, "i:o:c:f:vx:y:d:q:r:t:p:s:",
+                    "-i <ip> -o <port> -x <pub_client_id> -y <sub_client_id> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>"},
             {nullptr, nullptr}
         };
 

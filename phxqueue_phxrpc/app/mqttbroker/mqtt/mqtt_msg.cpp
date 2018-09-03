@@ -182,17 +182,6 @@ int MqttMessage::SendRemaining(ostringstream &out_stream) const {
 
         return ret;
     }
-        // TODO: remove
-        //string remaining_buffer(out_stream.str());
-        //printf("remaining_buffer %zu\n", remaining_buffer.size());
-        //for (int i{0}; remaining_buffer.size() > i; ++i) {
-        //printf("%d\t", remaining_buffer.at(i));
-        //}
-        //printf("\n");
-        //for (int i{0}; remaining_buffer.size() > i; ++i) {
-        //printf("%c\t", remaining_buffer.at(i));
-        //}
-        //printf("\n");
 
     ret = SendPayload(out_stream);
     if (0 != ret) {
@@ -200,17 +189,6 @@ int MqttMessage::SendRemaining(ostringstream &out_stream) const {
 
         return ret;
     }
-        // TODO: remove
-        //remaining_buffer = out_stream.str();
-        //printf("remaining_buffer %zu\n", remaining_buffer.size());
-        //for (int i{0}; remaining_buffer.size() > i; ++i) {
-        //printf("%d\t", remaining_buffer.at(i));
-        //}
-        //printf("\n");
-        //for (int i{0}; remaining_buffer.size() > i; ++i) {
-        //printf("%c\t", remaining_buffer.at(i));
-        //}
-        //printf("\n");
 
     return ret;
 }
@@ -262,7 +240,7 @@ MqttConnect::MqttConnect() : MqttMessage(pb_), MqttRequest(pb_) {
     pb_.set_proto_level(4);
 }
 
-phxrpc::BaseResponse *MqttConnect::GenResponse() const { return new MqttConnack; }
+phxrpc::BaseResponse *MqttConnect::GenResponse() const { return new MqttFakeResponse; }
 
 int MqttConnect::SendVariableHeader(ostringstream &out_stream) const {
     int ret{MqttProtocol::SendUnicode(out_stream, pb_.proto_name())};
@@ -698,7 +676,7 @@ MqttSubscribe::MqttSubscribe() : MqttMessage(pb_), MqttRequest(pb_) {
     set_control_packet_type(MqttProtocol::ControlPacketType::SUBSCRIBE);
 }
 
-phxrpc::BaseResponse *MqttSubscribe::GenResponse() const { return new MqttSuback; }
+phxrpc::BaseResponse *MqttSubscribe::GenResponse() const { return new MqttFakeResponse; }
 
 int MqttSubscribe::SendVariableHeader(ostringstream &out_stream) const {
     return MqttProtocol::SendUint16(out_stream, pb_.packet_identifier());
@@ -848,7 +826,7 @@ MqttUnsubscribe::MqttUnsubscribe() : MqttMessage(pb_), MqttRequest(pb_) {
     set_control_packet_type(MqttProtocol::ControlPacketType::UNSUBSCRIBE);
 }
 
-phxrpc::BaseResponse *MqttUnsubscribe::GenResponse() const { return new MqttUnsuback; }
+phxrpc::BaseResponse *MqttUnsubscribe::GenResponse() const { return new MqttFakeResponse; }
 
 int
 MqttUnsubscribe::SendVariableHeader(ostringstream &out_stream) const {
@@ -942,7 +920,7 @@ MqttPingreq::MqttPingreq() : MqttMessage(pb_), MqttRequest(pb_) {
     set_control_packet_type(MqttProtocol::ControlPacketType::PINGREQ);
 }
 
-phxrpc::BaseResponse *MqttPingreq::GenResponse() const { return new MqttPingresp; }
+phxrpc::BaseResponse *MqttPingreq::GenResponse() const { return new MqttFakeResponse; }
 
 const MqttPingreqPb &MqttPingreq::pb() const { return pb_; }
 

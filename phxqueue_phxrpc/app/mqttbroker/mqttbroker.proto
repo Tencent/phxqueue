@@ -10,8 +10,9 @@ import "phxqueue_phxrpc/app/logic/mqtt/mqtt.proto";
 
 
 service MqttBroker {
+    // IMPORTANT: modify response type must modify MqttRequest::GenResponse() at the same time
 
-    rpc MqttConnect(phxqueue_phxrpc.logic.mqtt.MqttConnectPb) returns (phxqueue_phxrpc.logic.mqtt.MqttConnackPb) {
+    rpc MqttConnect(phxqueue_phxrpc.logic.mqtt.MqttConnectPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000011;
         option(phxrpc.OptString) = "l:";
         option(phxrpc.Usage) = "-l <client_identifier>";
@@ -47,19 +48,19 @@ service MqttBroker {
         option(phxrpc.Usage) = "";
     }
 
-    rpc MqttSubscribe(phxqueue_phxrpc.logic.mqtt.MqttSubscribePb) returns (phxqueue_phxrpc.logic.mqtt.MqttSubackPb) {
+    rpc MqttSubscribe(phxqueue_phxrpc.logic.mqtt.MqttSubscribePb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000017;
         option(phxrpc.OptString) = "l:p:t:q:";
         option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>";
     }
 
-    rpc MqttUnsubscribe(phxqueue_phxrpc.logic.mqtt.MqttUnsubscribePb) returns (phxqueue_phxrpc.logic.mqtt.MqttUnsubackPb) {
+    rpc MqttUnsubscribe(phxqueue_phxrpc.logic.mqtt.MqttUnsubscribePb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000018;
         option(phxrpc.OptString) = "l:p:t:";
         option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters>";
     }
 
-    rpc MqttPing(phxqueue_phxrpc.logic.mqtt.MqttPingreqPb) returns (phxqueue_phxrpc.logic.mqtt.MqttPingrespPb) {
+    rpc MqttPing(phxqueue_phxrpc.logic.mqtt.MqttPingreqPb) returns (google.protobuf.Empty) {
         option(phxrpc.CmdID) = 2000019;
         option(phxrpc.OptString) = "l:";
         option(phxrpc.Usage) = "-l <client_identifier>";
@@ -73,8 +74,14 @@ service MqttBroker {
 
     rpc HttpPublish(phxqueue_phxrpc.logic.mqtt.HttpPublishPb) returns (phxqueue_phxrpc.logic.mqtt.HttpPubackPb) {
         option(phxrpc.CmdID) = 2000031;
-        option(phxrpc.OptString) = "e:d:q:r:t:p:s:";
-        option(phxrpc.Usage) = "-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+        option(phxrpc.OptString) = "c:f:vx:y:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-x <pub_client_id> -y <sub_client_id> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+    }
+
+    rpc ProtoHttpPublish(phxqueue_phxrpc.logic.mqtt.HttpPublishPb) returns (phxqueue_phxrpc.logic.mqtt.HttpPubackPb) {
+        option(phxrpc.CmdID) = 2000032;
+        option(phxrpc.OptString) = "i:o:c:f:vx:y:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-i <ip> -o <port> -x <pub_client_id> -y <sub_client_id> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
     }
 
 }

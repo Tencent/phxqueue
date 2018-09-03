@@ -15,6 +15,7 @@
 #include "phxrpc/http.h"
 #include "phxrpc/rpc.h"
 
+#include "mqtt/mqtt_msg_handler_factory.h"
 #include "phxrpc_mqttbroker_stub.h"
 #include "resource_pool.h"
 
@@ -59,7 +60,7 @@ MqttBrokerClient::~MqttBrokerClient() {
 
 int MqttBrokerClient::PHXEcho(const google::protobuf::StringValue &req,
                               google::protobuf::StringValue *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -93,7 +94,7 @@ int MqttBrokerClient::PHXEcho(const google::protobuf::StringValue &req,
 }
 
 int MqttBrokerClient::HttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -128,8 +129,8 @@ int MqttBrokerClient::HttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) 
 
 // mqtt protocol
 
-int MqttBrokerClient::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttConnect(const MqttConnectPb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -151,8 +152,8 @@ int MqttBrokerClient::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp)
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttConnect(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -162,8 +163,8 @@ int MqttBrokerClient::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp)
     return -1;
 }
 
-int MqttBrokerClient::MqttPublish(const MqttPublishPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttConnectWithConnack(const MqttConnectPb &req, MqttConnackPb *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -185,8 +186,42 @@ int MqttBrokerClient::MqttPublish(const MqttPublishPb &req, google::protobuf::Em
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
+        int ret{stub.MqttConnectWithConnack(req, resp)};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+
+int MqttBrokerClient::MqttPublish(const MqttPublishPb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
+
+    if (ep) {
+        auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_mqttbrokerclient_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+        }
+
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPublish(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -196,8 +231,8 @@ int MqttBrokerClient::MqttPublish(const MqttPublishPb &req, google::protobuf::Em
     return -1;
 }
 
-int MqttBrokerClient::MqttPuback(const MqttPubackPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttPublishWithPuback(const MqttPublishPb &req, MqttPubackPb *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -219,8 +254,42 @@ int MqttBrokerClient::MqttPuback(const MqttPubackPb &req, google::protobuf::Empt
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
+        int ret{stub.MqttPublishWithPuback(req, resp)};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+
+int MqttBrokerClient::MqttPuback(const MqttPubackPb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
+
+    if (ep) {
+        auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_mqttbrokerclient_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+        }
+
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPuback(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -231,7 +300,7 @@ int MqttBrokerClient::MqttPuback(const MqttPubackPb &req, google::protobuf::Empt
 }
 
 int MqttBrokerClient::MqttPubrec(const MqttPubrecPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -253,8 +322,8 @@ int MqttBrokerClient::MqttPubrec(const MqttPubrecPb &req, google::protobuf::Empt
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPubrec(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -265,7 +334,7 @@ int MqttBrokerClient::MqttPubrec(const MqttPubrecPb &req, google::protobuf::Empt
 }
 
 int MqttBrokerClient::MqttPubrel(const MqttPubrelPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -287,8 +356,8 @@ int MqttBrokerClient::MqttPubrel(const MqttPubrelPb &req, google::protobuf::Empt
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPubrel(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -299,7 +368,7 @@ int MqttBrokerClient::MqttPubrel(const MqttPubrelPb &req, google::protobuf::Empt
 }
 
 int MqttBrokerClient::MqttPubcomp(const MqttPubcompPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -321,8 +390,8 @@ int MqttBrokerClient::MqttPubcomp(const MqttPubcompPb &req, google::protobuf::Em
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPubcomp(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -332,8 +401,8 @@ int MqttBrokerClient::MqttPubcomp(const MqttPubcompPb &req, google::protobuf::Em
     return -1;
 }
 
-int MqttBrokerClient::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttSubscribe(const MqttSubscribePb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -355,8 +424,8 @@ int MqttBrokerClient::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *re
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttSubscribe(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -366,8 +435,8 @@ int MqttBrokerClient::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *re
     return -1;
 }
 
-int MqttBrokerClient::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttSubscribeWithSuback(const MqttSubscribePb &req, MqttSubackPb *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -389,8 +458,42 @@ int MqttBrokerClient::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsuback
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
+        int ret{stub.MqttSubscribeWithSuback(req, resp)};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+
+int MqttBrokerClient::MqttUnsubscribe(const MqttUnsubscribePb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
+
+    if (ep) {
+        auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_mqttbrokerclient_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+        }
+
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttUnsubscribe(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -400,8 +503,8 @@ int MqttBrokerClient::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsuback
     return -1;
 }
 
-int MqttBrokerClient::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttUnsubscribeWithUnsuback(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -423,8 +526,42 @@ int MqttBrokerClient::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
+        int ret{stub.MqttUnsubscribeWithUnsuback(req, resp)};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+
+int MqttBrokerClient::MqttPing(const MqttPingreqPb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
+
+    if (ep) {
+        auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_mqttbrokerclient_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+        }
+
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttPing(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -434,8 +571,8 @@ int MqttBrokerClient::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
     return -1;
 }
 
-int MqttBrokerClient::MqttDisconnect(const MqttDisconnectPb &req, google::protobuf::Empty *resp) {
-    const phxrpc::Endpoint_t *ep = global_mqttbrokerclient_config_.GetRandom();
+int MqttBrokerClient::MqttPingWithPingresp(const MqttPingreqPb &req, MqttPingrespPb *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
 
     if (ep) {
         auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
@@ -457,8 +594,42 @@ int MqttBrokerClient::MqttDisconnect(const MqttDisconnectPb &req, google::protob
             socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
         }
 
-        phxrpc::HttpMessageHandlerFactory http_msg_factory;
-        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
+        int ret{stub.MqttPingWithPingresp(req, resp)};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+
+int MqttBrokerClient::MqttDisconnect(const MqttDisconnectPb &req, google::protobuf::Empty *resp) {
+    const phxrpc::Endpoint_t *ep{global_mqttbrokerclient_config_.GetRandom()};
+
+    if (ep) {
+        auto &&socket_pool(ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_mqttbrokerclient_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+        }
+
+        phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory mqtt_msg_factory;
+        MqttBrokerStub stub(*(socket.get()), *(global_mqttbrokerclient_monitor_.get()), mqtt_msg_factory);
         int ret{stub.MqttDisconnect(req, resp)};
         socket_pool->Put(key, socket);
 
@@ -466,5 +637,32 @@ int MqttBrokerClient::MqttDisconnect(const MqttDisconnectPb &req, google::protob
     }
 
     return -1;
+}
+
+// proto
+
+phxqueue::comm::RetCode
+MqttBrokerClient::ProtoHttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) {
+    const char *ip{req.addr().ip().c_str()};
+    const int port{req.addr().port()};
+
+    phxrpc::BlockTcpStream socket;
+    bool open_ret{phxrpc::PhxrpcTcpUtils::Open(&socket, ip, port,
+            global_mqttbrokerclient_config_.GetConnectTimeoutMS(), nullptr, 0,
+            *(global_mqttbrokerclient_monitor_.get()))};
+    if (!open_ret) {
+        QLErr("Open %s:%d err %d", ip, port, open_ret);
+
+        return phxqueue::comm::RetCode::RET_ERR_SYS;
+    }
+    socket.SetTimeout(global_mqttbrokerclient_config_.GetSocketTimeoutMS());
+
+    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+    MqttBrokerStub stub(socket, *(global_mqttbrokerclient_monitor_.get()), http_msg_factory);
+    int ret{stub.HttpPublish(req, resp)};
+    if (0 > ret) {
+        QLErr("HttpPublish err %d", ret);
+    }
+    return static_cast<phxqueue::comm::RetCode>(ret);
 }
 

@@ -52,10 +52,8 @@ using namespace std;
 static phxqueue::comm::LogFunc g_log_func = nullptr;
 
 
-static int MakeArgs(ServiceArgs_t &args, const MqttBrokerServerConfig &config,
-                    phxqueue_phxrpc::mqttbroker::ServerMgr &server_mgr) {
+static int MakeArgs(ServiceArgs_t &args, const MqttBrokerServerConfig &config) {
     args.config = &config;
-    args.server_mgr = &server_mgr;
 
     phxqueue::comm::Logger::GetInstance()->SetLogFunc(g_log_func);
 
@@ -133,20 +131,20 @@ int main(int argc, char **argv) {
                                               config.GetHshaServerConfig().GetLogDir(),
                                               config.GetHshaServerConfig().GetLogLevel(), g_log_func);  // glog
 
-    // init
-    phxqueue_phxrpc::mqttbroker::ServerMgr server_mgr(&(config.GetHshaServerConfig()));
-    phxqueue_phxrpc::mqttbroker::PublishMgr publish_mgr(&config, &server_mgr);
-
-    // init default
+    // init instance
+    phxqueue_phxrpc::mqttbroker::ServerMgr::SetInstance(
+            new phxqueue_phxrpc::mqttbroker::ServerMgr(&(config.GetHshaServerConfig())));
     phxqueue_phxrpc::mqttbroker::MqttSessionMgr::GetInstance();
     phxqueue_phxrpc::mqttbroker::MqttPacketIdMgr::GetInstance();
     phxqueue_phxrpc::mqttbroker::PublishQueue::SetInstance(
             new phxqueue_phxrpc::mqttbroker::PublishQueue(config.max_publish_queue_size()));
     phxqueue_phxrpc::mqttbroker::PublishLruCache::SetInstance(
             new phxqueue_phxrpc::mqttbroker::PublishLruCache(config.max_publish_lru_cache_size()));
+    phxqueue_phxrpc::mqttbroker::PublishMgr::SetInstance(
+            new phxqueue_phxrpc::mqttbroker::PublishMgr(&config));
 
     ServiceArgs_t service_args;
-    int ret{MakeArgs(service_args, config, server_mgr)};
+    int ret{MakeArgs(service_args, config)};
     if (0 != ret) {
         printf("ERR: MakeArgs ret %d\n", ret);
 
@@ -160,8 +158,8 @@ int main(int argc, char **argv) {
         return unique_ptr<phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory>(
                 new phxqueue_phxrpc::mqttbroker::MqttMessageHandlerFactory);
     });
-    server_mgr.set_hsha_server(&hsha_server);
-    server_mgr.set_event_loop_server(&event_loop_server);
+    phxqueue_phxrpc::mqttbroker::ServerMgr::GetInstance()->set_hsha_server(&hsha_server);
+    phxqueue_phxrpc::mqttbroker::ServerMgr::GetInstance()->set_event_loop_server(&event_loop_server);
 
     thread hsha_thread([](phxrpc::HshaServer *const server) {
         server->RunForever();

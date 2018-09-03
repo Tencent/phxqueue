@@ -12,10 +12,12 @@
 
 #include "event_loop_server.h"
 #include "mqtt/mqtt_msg.h"
+#include "mqtt/mqtt_packet_id.h"
 #include "mqtt/mqtt_session.h"
 #include "mqttbroker_logic.h"
 #include "mqttbroker_server_config.h"
 #include "publish/publish_memory.h"
+#include "publish/publish_mgr.h"
 #include "server_mgr.h"
 
 
@@ -43,8 +45,8 @@ int MqttBrokerServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
 }
 
 int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) {
-    int ret{PublishQueue::GetInstance()->
-            push_back(req.cursor_id(), req)};
+    // 1. enqueue
+    int ret{PublishQueue::GetInstance()->push_back(req.cursor_id(), req)};
     if (0 != ret) {
         QLErr("err %d pub_client_id \"%s\" packet_id %u", ret,
               req.pub_client_id().c_str(), req.mqtt_publish().packet_identifier());
@@ -52,13 +54,24 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
         return ret;
     }
 
-    auto mqtt_puback(resp->mutable_mqtt_puback());
-    mqtt_puback->set_packet_identifier(req.mqtt_publish().packet_identifier());
+    // 2. ack
+    if (1 == req.mqtt_publish().qos()) {
+        auto mqtt_puback(resp->mutable_mqtt_puback());
+        mqtt_puback->set_packet_identifier(req.mqtt_publish().packet_identifier());
+    }
+
+    QLInfo("pub_client_id \"%s\" sub_client_id \"%s\" cursor_id %" PRIu64 " dup %d qos %u retain %d "
+           "packet_identifier %u topic \"%s\" data.size %zu",
+           req.pub_client_id().c_str(), req.sub_client_id().c_str(), req.cursor_id(),
+           req.mqtt_publish().dup(), req.mqtt_publish().qos(),
+           req.mqtt_publish().retain(), req.mqtt_publish().packet_identifier(),
+           req.mqtt_publish().topic_name().c_str(), req.mqtt_publish().data().size());
 
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp) {
+int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req,
+                                       google::protobuf::Empty *resp) {
     // 1. init local session
     const auto old_mqtt_session(MqttSessionMgr::GetInstance()->
                                 GetByClientId(req.client_identifier()));
@@ -67,16 +80,16 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
             // mqtt-3.1.0-2: disconnect current connection
 
             MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-            args_.server_mgr->DestroySession(session_id_);
+            ServerMgr::GetInstance()->DestroySession(session_id_);
 
             QLErr("err session_id %" PRIx64 " client_id \"%s\"",
                   session_id_, req.client_identifier().c_str());
 
-            return -1;
+            return 0;
         } else {
             // mqtt-3.1.4-2: disconnect other connection with same client_id
             MqttSessionMgr::GetInstance()->DestroyBySessionId(old_mqtt_session->session_id);
-            args_.server_mgr->DestroySession(old_mqtt_session->session_id);
+            ServerMgr::GetInstance()->DestroySession(old_mqtt_session->session_id);
 
             QLInfo("disconnect session_id old %" PRIx64 " new %" PRIx64 " client_id \"%s\"",
                    old_mqtt_session->session_id, session_id_, req.client_identifier().c_str());
@@ -91,9 +104,10 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
 
     // 2. init remote session
     SessionPb session_pb;
-    // TODO:
-    //session_pb.set_session_ip();
+    session_pb.mutable_addr()->set_ip("127.0.0.1");
+    session_pb.mutable_addr()->set_port(9100);
     session_pb.set_session_id(session_id_);
+    session_pb.set_prev_cursor_id(-1);
 
     const auto &session_attribute(session_pb.mutable_session_attribute());
     session_attribute->set_clean_session(req.clean_session());
@@ -111,18 +125,29 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         // destroy local session
         MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-        args_.server_mgr->DestroySession(session_id_);
+        ServerMgr::GetInstance()->DestroySession(session_id_);
 
         QLErr("session_id %" PRIx64 " client_id \"%s\" SetSessionByClientIdRemote err %d",
               session_id_, req.client_identifier().c_str(),
               phxqueue::comm::as_integer(ret));
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
-    // 3. response
-    resp->set_session_present(!req.clean_session());
-    resp->set_connect_return_code(0u);
+    // 4. create publish coroutine
+    PublishMgr::GetInstance()->CreateSession(session_id_);
+
+    // 5. response
+    MqttConnackPb connack_pb;
+    connack_pb.set_session_present(!req.clean_session());
+    connack_pb.set_connect_return_code(0u);
+
+    auto *connack(new phxqueue_phxrpc::mqttbroker::MqttConnack);
+    connack->FromPb(connack_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)connack)};
+    if (0 != ret2) {
+        QLErr("session_id %" PRIx64 " Send err %d", session_id_, ret2);
+    }
 
     QLInfo("session_id %" PRIx64 " client_id \"%s\" keep_alive %u expire_time_ms %llu now %llu",
            session_id_, req.client_identifier().c_str(),
@@ -134,15 +159,22 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
 
 int MqttBrokerServiceImpl::MqttPublish(const MqttPublishPb &req,
                                        google::protobuf::Empty *resp) {
-    // 1. check local session
+    // 1. keep alive local session
     MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d qos %u packet_id %d",
               session_id_, phxqueue::comm::as_integer(ret), req.qos(), req.packet_identifier());
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
+
+    mqtt_session->Heartbeat();
+
+    QLInfo("session_id %" PRIx64 " client_id \"%s\" keep_alive %u expire_time_ms %llu now %llu",
+           session_id_, mqtt_session->client_id.c_str(),
+           mqtt_session->keep_alive, mqtt_session->expire_time_ms(),
+           phxrpc::Timer::GetSteadyClockMS());
 
     // 2. get remote session
     //uint64_t version{0uLL};
@@ -168,7 +200,7 @@ int MqttBrokerServiceImpl::MqttPublish(const MqttPublishPb &req,
               session_id_, phxqueue::comm::as_integer(ret),
               req.qos(), req.packet_identifier());
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
     // 3. ack
@@ -177,19 +209,10 @@ int MqttBrokerServiceImpl::MqttPublish(const MqttPublishPb &req,
         puback_pb.set_packet_identifier(req.packet_identifier());
         auto *puback(new phxqueue_phxrpc::mqttbroker::MqttPuback);
         puback->FromPb(puback_pb);
-        int ret{args_.server_mgr->Send(session_id_, (phxrpc::BaseResponse *)puback)};
-        // TODO: check ret
-    }
-
-    // TODO: remove
-    if (isprint(req.data().at(req.data().size() - 1)) && isprint(req.data().at(0))) {
-        QLInfo("session_id %" PRIx64 " client_id \"%s\" qos %u packet_id %d topic \"%s\" data \"%s\"",
-               session_id_, mqtt_session->client_id.c_str(), req.qos(),
-               req.packet_identifier(), req.topic_name().c_str(), req.data().c_str());
-    } else {
-        QLInfo("session_id %" PRIx64 " client_id \"%s\" qos %u packet_id %d topic \"%s\" data.size %zu",
-               session_id_, mqtt_session->client_id.c_str(), req.qos(),
-               req.packet_identifier(), req.topic_name().c_str(), req.data().size());
+        int ret{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)puback)};
+        if (0 != ret) {
+            QLErr("session_id %" PRIx64 " Send err %d", session_id_, ret);
+        }
     }
 
     return 0;
@@ -205,7 +228,7 @@ int MqttBrokerServiceImpl::MqttPuback(const MqttPubackPb &req,
               session_id_, phxqueue::comm::as_integer(ret),
               req.packet_identifier());
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
     // 2. puback to hsha_server
@@ -213,27 +236,39 @@ int MqttBrokerServiceImpl::MqttPuback(const MqttPubackPb &req,
     int ret2{puback->FromPb(req)};
     if (0 != ret2) {
         delete puback;
+        puback = nullptr;
         QLErr("session_id %" PRIx64 " FromPb err %d packet_id %d",
               session_id_, ret2, req.packet_identifier());
 
-        return ret2;
+        return 0;
     }
 
-    // ack_key = sub_client_id + sub_packet_id
-    const string ack_key(mqtt_session->client_id + ':' + to_string(req.packet_identifier()));
-    // forward puback and do not delete here
-    ret2 = args_.server_mgr->Ack(ack_key, (void *)puback);
-    if (0 != ret2) {
-        QLErr("session_id %" PRIx64 " server_mgr.Ack err %d ack_key \"%s\"",
-              session_id_, ret2, ack_key.c_str());
+    // 3. get retmote session
+    uint64_t version{0uLL};
+    SessionPb session_pb;
+    ret = table_mgr_->GetSessionByClientIdRemote(mqtt_session->client_id, &version, &session_pb);
+    if (phxqueue::comm::RetCode::RET_OK != ret) {
+        FinishSession();
+        QLErr("session_id %" PRIx64 " GetSessionByClientIdRemote err %d packet_id %d",
+              session_id_, phxqueue::comm::as_integer(ret), req.packet_identifier());
 
-        return ret2;
+        return 0;
     }
 
-    QLInfo("session_id %" PRIx64 " packet_id %d",
-           session_id_, req.packet_identifier());
+    // 4. release packet_id and set local prev_cursor_id
+    MqttPacketIdMgr::GetInstance()->ReleasePacketId(mqtt_session->client_id,
+                                                    req.packet_identifier());
 
-    return ret2;
+    // 5. set remote prev_cursor_id
+    uint64_t prev_cursor_id(-1);
+    MqttPacketIdMgr::GetInstance()->GetPrevCursorId(mqtt_session->client_id, &prev_cursor_id);
+    session_pb.set_prev_cursor_id(prev_cursor_id);
+    TableMgr table_mgr(args_.config->topic_id());
+    table_mgr.SetSessionByClientIdRemote(mqtt_session->client_id, version, session_pb);
+
+    QLInfo("session_id %" PRIx64 " packet_id %d", session_id_, req.packet_identifier());
+
+    return 0;
 }
 
 int MqttBrokerServiceImpl::MqttPubrec(const MqttPubrecPb &req,
@@ -251,16 +286,24 @@ int MqttBrokerServiceImpl::MqttPubcomp(const MqttPubcompPb &req,
     return -1;
 }
 
-int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *resp) {
-    // 1. check local session
+int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req,
+                                         google::protobuf::Empty *resp) {
+    // 1. keep alive local session
     MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
               session_id_, phxqueue::comm::as_integer(ret));
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
+
+    mqtt_session->Heartbeat();
+
+    QLInfo("session_id %" PRIx64 " client_id \"%s\" keep_alive %u expire_time_ms %llu now %llu",
+           session_id_, mqtt_session->client_id.c_str(),
+           mqtt_session->keep_alive, mqtt_session->expire_time_ms(),
+           phxrpc::Timer::GetSteadyClockMS());
 
     // 2. get retmote session
     uint64_t version{0uLL};
@@ -271,7 +314,7 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
         QLErr("session_id %" PRIx64 " GetSessionByClientIdRemote err %d packet_id %d",
               session_id_, phxqueue::comm::as_integer(ret), req.packet_identifier());
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
     // 3. set topic_name -> client_id to lock
@@ -298,20 +341,36 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
         }
 
         // 3.2. modify subscribe
-        const auto &subscribe_pb(topic_pb.add_subscribes());
-        subscribe_pb->set_client_identifier(mqtt_session->client_id);
+        uint32_t qos{0x00};
         if (req.qoss().size() > i) {
-            if (1 >= req.qoss(i)) {
-                subscribe_pb->set_qos(req.qoss(i));
-                return_codes.at(i) = req.qoss(i);
+            if (1 >= qos) {
+              qos = req.qoss(i);
             } else {
-                subscribe_pb->set_qos(1);
-                return_codes.at(i) = 0x01;
+              qos = 0x01;
             }
-        } else {
-            subscribe_pb->set_qos(0);
-            return_codes.at(i) = 0x00;
         }
+
+        ret = RemoveSubscribe(mqtt_session->client_id, &topic_pb);
+        if (phxqueue::comm::RetCode::RET_OK != ret) {
+            return_codes.at(i) = 0x80;
+            QLErr("session_id %" PRIx64 " RemoveSubscribe err %d "
+                  "packet_id %d topic \"%s\"", session_id_, ret,
+                  req.packet_identifier(), req.topic_filters(i).c_str());
+
+            continue;
+        }
+
+        ret = AddSubscribe(mqtt_session->client_id, qos, &topic_pb);
+        if (phxqueue::comm::RetCode::RET_OK != ret) {
+            return_codes.at(i) = 0x80;
+            QLErr("session_id %" PRIx64 " AddSubscribe err %d "
+                  "packet_id %d topic \"%s\"", session_id_, ret,
+                  req.packet_identifier(), req.topic_filters(i).c_str());
+
+            continue;
+        }
+
+        return_codes.at(i) = qos;
 
         // 3.3. set topic_name -> session_ids to lock
         ret = table_mgr_->SetTopicSubscribeRemote(req.topic_filters(i), version, topic_pb);
@@ -328,11 +387,18 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
     }  // foreach req.topic_filters()
 
     // 4. response
-    resp->set_packet_identifier(req.packet_identifier());
-    resp->clear_return_codes();
+    MqttSubackPb suback_pb;
+    suback_pb.set_packet_identifier(req.packet_identifier());
     for (int i{0}; req.topic_filters().size() > i; ++i) {
-        resp->add_return_codes(return_codes.at(i));
+        suback_pb.add_return_codes(return_codes.at(i));
         QLVerb("topic \"%s\" return_code %x", req.topic_filters(i).c_str(), return_codes.at(i));
+    }
+
+    auto *suback(new phxqueue_phxrpc::mqttbroker::MqttSuback);
+    suback->FromPb(suback_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)suback)};
+    if (0 != ret2) {
+        QLErr("session_id %" PRIx64 " Send err %d", session_id_, ret2);
     }
 
     QLInfo("session_id %" PRIx64 " packet_id %d", session_id_, req.packet_identifier());
@@ -340,16 +406,24 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
-    // 1. check local session
+int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req,
+                                           google::protobuf::Empty *resp) {
+    // 1. keep alive local session
     MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
               session_id_, phxqueue::comm::as_integer(ret));
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
+
+    mqtt_session->Heartbeat();
+
+    QLInfo("session_id %" PRIx64 " client_id \"%s\" keep_alive %u expire_time_ms %llu now %llu",
+           session_id_, mqtt_session->client_id.c_str(),
+           mqtt_session->keep_alive, mqtt_session->expire_time_ms(),
+           phxrpc::Timer::GetSteadyClockMS());
 
     // 2. get remote session
     uint64_t version{0uLL};
@@ -361,7 +435,7 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
               session_id_, phxqueue::comm::as_integer(ret),
               req.packet_identifier());
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
     // 3. remove topic_name -> client_id from lock
@@ -369,9 +443,9 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
 
         // 3.1. get topic_name -> session_ids from lock
         uint64_t version{0uLL};
-        TopicPb topic_pb_old;
+        TopicPb topic_pb;
         phxqueue::comm::RetCode ret{table_mgr_->GetTopicSubscribeRemote(req.topic_filters(i),
-                                                                        &version, &topic_pb_old)};
+                                                                        &version, &topic_pb)};
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             // mqtt-3.10.4-1
             QLErr("session_id %" PRIx64 " GetTopicSubscribeRemote err %d "
@@ -382,17 +456,17 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
         }
 
         // 3.2. modify subscribe
-        TopicPb topic_pb_new;
-        for_each (topic_pb_old.subscribes().cbegin(), topic_pb_old.subscribes().cend(),
-                [&](const SubscribePb &subscribe_pb) {
-            if (subscribe_pb.client_identifier() != mqtt_session->client_id) {
-                const auto &new_subscribe(topic_pb_new.add_subscribes());
-                new_subscribe->CopyFrom(subscribe_pb);
-            }
-        });
+        ret = RemoveSubscribe(mqtt_session->client_id, &topic_pb);
+        if (phxqueue::comm::RetCode::RET_OK != ret) {
+            QLErr("session_id %" PRIx64 " RemoveSubscribe err %d "
+                  "packet_id %d topic \"%s\"", session_id_, ret,
+                  req.packet_identifier(), req.topic_filters(i).c_str());
+
+            continue;
+        }
 
         // 3.3. set topic_name -> session_ids to lock
-        ret = table_mgr_->SetTopicSubscribeRemote(req.topic_filters(i), version, topic_pb_new);
+        ret = table_mgr_->SetTopicSubscribeRemote(req.topic_filters(i), version, topic_pb);
         if (phxqueue::comm::RetCode::RET_OK != ret) {
             // mqtt-3.10.4-1
             QLErr("session_id %" PRIx64 " SetTopicSubscribeRemote err %d "
@@ -405,9 +479,17 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
     }  // foreach req.topic_filters()
 
     // 4. response
-    resp->set_packet_identifier(req.packet_identifier());
+    MqttUnsubackPb unsuback_pb;
+    unsuback_pb.set_packet_identifier(req.packet_identifier());
     for (int i{0}; req.topic_filters().size() > i; ++i) {
         QLVerb("topic \"%s\"", req.topic_filters(i).c_str());
+    }
+
+    auto *unsuback(new phxqueue_phxrpc::mqttbroker::MqttUnsuback);
+    unsuback->FromPb(unsuback_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)unsuback)};
+    if (0 != ret2) {
+        QLErr("session_id %" PRIx64 " Send err %d", session_id_, ret2);
     }
 
     QLInfo("session_id %" PRIx64 " packet_id %d", session_id_, req.packet_identifier());
@@ -415,19 +497,31 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
+int MqttBrokerServiceImpl::MqttPing(const MqttPingreqPb &req,
+                                    google::protobuf::Empty *resp) {
     MqttSession *mqtt_session{nullptr};
     phxqueue::comm::RetCode ret{CheckSession(mqtt_session)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
         QLErr("session_id %" PRIx64 " CheckSession err %d",
               session_id_, phxqueue::comm::as_integer(ret));
 
-        return phxqueue::comm::as_integer(ret);
+        return 0;
     }
 
     mqtt_session->Heartbeat();
 
-    QLInfo("session_id %" PRIx64, session_id_);
+    MqttPingrespPb pingresp_pb;
+    auto *pingresp(new phxqueue_phxrpc::mqttbroker::MqttPingresp);
+    pingresp->FromPb(pingresp_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)pingresp)};
+    if (0 != ret2) {
+        QLErr("session_id %" PRIx64 " Send err %d", session_id_, ret2);
+    }
+
+    QLInfo("session_id %" PRIx64 " client_id \"%s\" keep_alive %u expire_time_ms %llu now %llu",
+           session_id_, mqtt_session->client_id.c_str(),
+           mqtt_session->keep_alive, mqtt_session->expire_time_ms(),
+           phxrpc::Timer::GetSteadyClockMS());
 
     return 0;
 }
@@ -445,10 +539,8 @@ phxqueue::comm::RetCode
 MqttBrokerServiceImpl::CheckSession(MqttSession *&mqtt_session) {
     const auto tmp_mqtt_session(MqttSessionMgr::GetInstance()->
                                 GetBySessionId(session_id_));
-    if (!tmp_mqtt_session || tmp_mqtt_session->IsExpired()) {
-        QLErr("session_id %" PRIx64 " session %p mqtt_session %p", session_id_, tmp_mqtt_session);
-        // ignore return
-        FinishSession();
+    if (!tmp_mqtt_session) {
+        QLErr("session_id %" PRIx64 " mqtt_session %p", session_id_, tmp_mqtt_session);
 
         return phxqueue::comm::RetCode::RET_ERR_LOGIC;
     }
@@ -472,11 +564,17 @@ phxqueue::comm::RetCode MqttBrokerServiceImpl::FinishSession() {
     // get client_id
     const auto mqtt_session(MqttSessionMgr::GetInstance()->
                             GetBySessionId(session_id_));
+    if (!mqtt_session) {
+        QLErr("session_id %" PRIx64 " session nullptr", session_id_);
+
+        return phxqueue::comm::RetCode::RET_ERR_LOGIC;
+    }
+
     string client_id(mqtt_session->client_id);
 
     // destroy local session
     MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-    args_.server_mgr->DestroySession(session_id_);
+    ServerMgr::GetInstance()->DestroySession(session_id_);
 
     // get remote session
     uint64_t version{0uLL};

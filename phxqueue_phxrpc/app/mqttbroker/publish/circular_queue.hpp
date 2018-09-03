@@ -181,7 +181,9 @@ class CircularQueue {
         return 0;
     }
 
-    std::string ToString() {
+    std::string ToString() const {
+        std::lock_guard<std::mutex> guard(data_.mutex);
+
         std::string s("out_pos: " + std::to_string(data_.out_pos) +
                       ", in_pos: " + std::to_string(data_.in_pos) +
                       ", max_size: " + std::to_string(data_.vec.size()) +
@@ -244,7 +246,9 @@ class LruCache {
         return 0;
     }
 
-    std::string ToString() {
+    std::string ToString() const {
+        std::lock_guard<std::mutex> guard(mutex_);
+
         std::string s("max_size: " + std::to_string(MAX_SIZE) + ", size: " + std::to_string(vec_.size()) + ", items: ");
         for (auto item : vec_) {
             s += "(" + std::to_string(item.first) + ", " + std::to_string(item.second) + "), ";
@@ -274,7 +278,7 @@ class LruCache {
 
     std::vector<Item> vec_;
     std::map<Key, size_t> map_;
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
 };
 
 

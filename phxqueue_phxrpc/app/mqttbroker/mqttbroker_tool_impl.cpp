@@ -6,6 +6,9 @@
 
 #include "mqttbroker_tool_impl.h"
 
+#include <algorithm>
+
+#include "phxqueue/comm.h"
 #include "phxrpc/file.h"
 
 #include "mqttbroker.pb.h"
@@ -91,7 +94,7 @@ int MqttBrokerToolImpl::MqttConnect(phxrpc::OptMap &opt_map) {
     req.set_proto_level(4);
     req.set_keep_alive(0);
 
-    ret = client.MqttConnect(req, &resp);
+    ret = client.MqttConnectWithConnack(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -112,12 +115,11 @@ int MqttBrokerToolImpl::MqttPublish(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
     MqttPublishPb req;
-    google::protobuf::Empty resp;
 
     uint32_t dup{0u};
     if (!opt_map.GetUInt('d', &dup)) dup = 0;
@@ -139,9 +141,17 @@ int MqttBrokerToolImpl::MqttPublish(phxrpc::OptMap &opt_map) {
     req.set_packet_identifier(packet_identifier);
     req.set_data(opt_map.Get('s'));
 
-    ret = client.MqttPublish(req, &resp);
-    printf("%s return %d\n", __func__, ret);
-    printf("resp: {\n%s}\n", resp.DebugString().c_str());
+    if (1 == qos) {
+        MqttPubackPb resp;
+        ret = client.MqttPublishWithPuback(req, &resp);
+        printf("%s return %d\n", __func__, ret);
+        printf("resp: {\n%s}\n", resp.DebugString().c_str());
+    } else {
+        google::protobuf::Empty resp;
+        ret = client.MqttPublish(req, &resp);
+        printf("%s return %d\n", __func__, ret);
+        printf("resp: {\n%s}\n", resp.DebugString().c_str());
+    }
 
     return ret;
 }
@@ -160,7 +170,7 @@ int MqttBrokerToolImpl::MqttPuback(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
@@ -234,7 +244,7 @@ int MqttBrokerToolImpl::MqttSubscribe(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
@@ -275,7 +285,7 @@ int MqttBrokerToolImpl::MqttSubscribe(phxrpc::OptMap &opt_map) {
             });
     printf("\n");
 
-    ret = client.MqttSubscribe(req, &resp);
+    ret = client.MqttSubscribeWithSuback(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -296,7 +306,7 @@ int MqttBrokerToolImpl::MqttUnsubscribe(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
@@ -315,7 +325,7 @@ int MqttBrokerToolImpl::MqttUnsubscribe(phxrpc::OptMap &opt_map) {
             topic_filters.begin(), topic_filters.end());
     req.mutable_topic_filters()->Swap(&temp_topic_filters);
 
-    ret = client.MqttUnsubscribe(req, &resp);
+    ret = client.MqttUnsubscribeWithUnsuback(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -336,14 +346,14 @@ int MqttBrokerToolImpl::MqttPing(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
     MqttPingreqPb req;
     MqttPingrespPb resp;
 
-    ret = client.MqttPing(req, &resp);
+    ret = client.MqttPingWithPingresp(req, &resp);
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 
@@ -364,7 +374,7 @@ int MqttBrokerToolImpl::MqttDisconnect(phxrpc::OptMap &opt_map) {
     connect_req.set_proto_level(4);
     connect_req.set_keep_alive(0);
 
-    ret = client.MqttConnect(connect_req, &connect_resp);
+    ret = client.MqttConnectWithConnack(connect_req, &connect_resp);
     printf("%s connect return %d\n", __func__, ret);
     printf("connect resp: {\n%s}\n", connect_resp.DebugString().c_str());
 
@@ -375,5 +385,53 @@ int MqttBrokerToolImpl::MqttDisconnect(phxrpc::OptMap &opt_map) {
     printf("%s return %d\n", __func__, ret);
 
     return ret;
+}
+
+int MqttBrokerToolImpl::ProtoHttpPublish(phxrpc::OptMap &opt_map) {
+    HttpPublishPb req;
+    HttpPubackPb resp;
+
+    const char *ip{opt_map.Get('i')};
+    int port{9100};
+    if (!opt_map.GetInt('o', &port)) port = 9100;
+
+    const char *pub_client_id{opt_map.Get('x')};
+    const char *sub_client_id{opt_map.Get('y')};
+
+    uint32_t dup{0u};
+    if (!opt_map.GetUInt('d', &dup)) dup = 0;
+    uint32_t qos{0u};
+    if (!opt_map.GetUInt('q', &qos)) qos = 0;
+    uint32_t retain{0u};
+    if (!opt_map.GetUInt('r', &retain)) retain = 0;
+
+    if (nullptr == opt_map.Get('t')) return -1;
+    uint32_t packet_identifier{0u};
+    if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;
+    if (nullptr == opt_map.Get('s')) return -1;
+
+    if (0 < strlen(ip)) {
+        req.mutable_addr()->set_ip(ip);
+    } else {
+        req.mutable_addr()->set_ip("127.0.0.1");
+    }
+    req.mutable_addr()->set_port(port);
+    req.set_pub_client_id(pub_client_id);
+    req.set_sub_client_id(sub_client_id);
+
+    req.mutable_mqtt_publish()->set_dup(0 != dup);
+    req.mutable_mqtt_publish()->set_qos(qos);
+    req.mutable_mqtt_publish()->set_retain(0 != retain);
+
+    req.mutable_mqtt_publish()->set_topic_name(opt_map.Get('t'));
+    req.mutable_mqtt_publish()->set_packet_identifier(packet_identifier);
+    req.mutable_mqtt_publish()->set_data(opt_map.Get('s'));
+
+    MqttBrokerClient client;
+    phxqueue::comm::RetCode ret{client.ProtoHttpPublish(req, &resp)};
+    printf("%s return %d\n", __func__, phxqueue::comm::as_integer(ret));
+    printf("resp: {\n%s}\n", resp.DebugString().c_str());
+
+    return phxqueue::comm::as_integer(ret);
 }
 

@@ -13,6 +13,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #pragma once
 
 #include <memory>
+#include <queue>
 
 #include "co_routine.h"
 
@@ -26,12 +27,38 @@ namespace phxqueue_phxrpc {
 namespace mqttbroker {
 
 
-class ServerMgr;
+enum class SessionOpType {
+    NOP = 0,
+    CREATE = 1,
+    DESTROY = 2,
+    MAX = 3,
+};
 
+
+class SessionOpQueue {
+  public:
+    struct SessionOpItem {
+        SessionOpItem(const uint64_t session_id_value, const SessionOpType op_value)
+                : session_id(session_id_value), op(op_value) {}
+        uint64_t session_id{0uLL};
+        SessionOpType op{SessionOpType::NOP};
+    };
+
+    int Push(const uint64_t session_id, const SessionOpType op);
+    int Pop(uint64_t *const session_id, SessionOpType *const op);
+
+  private:
+    std::queue<SessionOpItem> queue_;
+
+    std::mutex mutex_;
+};
+
+
+class ServerMgr;
 
 class PublishThread {
   public:
-    PublishThread(const MqttBrokerServerConfig *const config, ServerMgr *const server_mgr);
+    PublishThread(const MqttBrokerServerConfig *const config);
     PublishThread(PublishThread &&publish_thread);
     virtual ~PublishThread();
 
@@ -39,10 +66,13 @@ class PublishThread {
 
     int CreateSession(const uint64_t session_id);
     int DestroySession(const uint64_t session_id);
+    int PopSessionOp(uint64_t *const session_id, SessionOpType *const op);
+
+    const MqttBrokerServerConfig *config() { return config_; }
 
   private:
     const MqttBrokerServerConfig *config_{nullptr};
-    ServerMgr *server_mgr_{nullptr};
+    SessionOpQueue session_op_queue_;
 
     std::thread thread_;
     // add member should also change move constructor
@@ -51,13 +81,20 @@ class PublishThread {
 
 class PublishMgr {
   public:
-    PublishMgr(const MqttBrokerServerConfig *const config, ServerMgr *const server_mgr);
+    static PublishMgr *GetInstance();
+    static void SetInstance(PublishMgr *const instance);
+
+    PublishMgr(const MqttBrokerServerConfig *const config);
     virtual ~PublishMgr();
 
     int CreateSession(const uint64_t session_id);
     int DestroySession(const uint64_t session_id);
 
   private:
+    static std::unique_ptr<PublishMgr> s_instance;
+
+    const MqttBrokerServerConfig *config_{nullptr};
+    size_t nr_publish_threads_{0u};
     std::vector<std::unique_ptr<PublishThread>> publish_threads_;
 };
 

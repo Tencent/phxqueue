@@ -23,6 +23,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxrpc/rpc.h"
 
+#include "mqttconsumer.h"
 #include "mqtt_handler.h"
 
 
@@ -97,8 +98,8 @@ int main(int argc, char **argv) {
                         new phxqueue_phxrpc::plugin::ConfigFactory(phxqueue_global_config_path));
             };
 
-    const int mqtt_handle_id{11};
-    phxqueue_phxrpc::consumer::Consumer consumer(opt);
+    const int mqtt_handle_id{1};
+    phxqueue_phxrpc::mqttconsumer::MqttConsumer consumer(opt);
     consumer.AddHandlerFactory(mqtt_handle_id,
             new phxqueue::comm::DefaultHandlerFactory<phxqueue_phxrpc::mqttconsumer::MqttHandler>());
     consumer.Run();

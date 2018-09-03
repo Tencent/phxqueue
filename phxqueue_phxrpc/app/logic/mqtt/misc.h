@@ -31,6 +31,16 @@ MqttTopicName2PhxQueueTopicPubId(const std::string &mqtt_topic_name,
                                  int *const phxqueue_pub_id);
 
 phxqueue::comm::RetCode
+PhxQueueTopicPubId2MqttTopicName(const int phxqueue_topic_id,
+                                 const int phxqueue_pub_id,
+                                 std::string *const mqtt_topic_name);
+
+phxqueue::comm::RetCode
+PhxQueueTopicNamePubId2MqttTopicName(const std::string &phxqueue_topic_name,
+                                     const int phxqueue_pub_id,
+                                     std::string *const mqtt_topic_name);
+
+phxqueue::comm::RetCode
 EnqueueMessage(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &message);
 
 

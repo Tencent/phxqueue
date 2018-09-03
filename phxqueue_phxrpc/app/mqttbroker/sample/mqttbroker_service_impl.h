@@ -46,7 +46,7 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
     virtual int HttpPublish(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &req,
                             phxqueue_phxrpc::logic::mqtt::HttpPubackPb *resp) override;
     virtual int MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &req,
-                            phxqueue_phxrpc::logic::mqtt::MqttConnackPb *resp) override;
+                            google::protobuf::Empty *resp) override;
     virtual int MqttPublish(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &req,
                             google::protobuf::Empty *resp) override;
     virtual int MqttPuback(const phxqueue_phxrpc::logic::mqtt::MqttPubackPb &req,
@@ -58,11 +58,11 @@ class MqttBrokerServiceImpl : public MqttBrokerService {
     virtual int MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubcompPb &req,
                             google::protobuf::Empty *resp) override;
     virtual int MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &req,
-                              phxqueue_phxrpc::logic::mqtt::MqttSubackPb *resp) override;
+                              google::protobuf::Empty *resp) override;
     virtual int MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &req,
-                                phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb *resp) override;
+                                google::protobuf::Empty *resp) override;
     virtual int MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &req,
-                         phxqueue_phxrpc::logic::mqtt::MqttPingrespPb *resp) override;
+                         google::protobuf::Empty *resp) override;
     virtual int MqttDisconnect(const phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb &req,
                                google::protobuf::Empty *resp) override;
 

@@ -103,7 +103,7 @@ void SessionMgr::DestroySession(const uint64_t session_id) {
     }
 }
 
-atomic_uint32_t SessionMgr::s_seq{0};
+atomic<uint32_t> SessionMgr::s_seq{0};
 
 
 EventLoopServerIO::EventLoopServerIO(const int idx, phxrpc::UThreadEpollScheduler *const scheduler,
@@ -145,7 +145,7 @@ void EventLoopServerIO::HandlerAcceptedFd() {
         int accepted_fd = accepted_fd_list_.front();
         accepted_fd_list_.pop();
 
-        const auto &session{session_mgr_.CreateSession(accepted_fd)};
+        const auto &session(session_mgr_.CreateSession(accepted_fd));
         if (!session) {
             phxrpc::log(LOG_ERR, "%s CreateSession err fd %d", __func__, accepted_fd);
 
@@ -487,12 +487,18 @@ void EventLoopServer::RunForever() {
 int EventLoopServer::SendResponse(const uint64_t session_id, phxrpc::BaseResponse *resp) {
     // push to server unit outqueue
     int server_unit_idx{Session::GetServerUnitIdx(session_id)};
+    if (0 > server_unit_idx || server_unit_list_.size() <= server_unit_idx)
+        return -1;
+
     // forward req and do not delete here
     return server_unit_list_[server_unit_idx]->SendResponse(session_id, resp);
 }
 
 void EventLoopServer::DestroySession(const uint64_t session_id) {
     int server_unit_idx{Session::GetServerUnitIdx(session_id)};
+    if (0 > server_unit_idx || server_unit_list_.size() <= server_unit_idx)
+        return;
+
     server_unit_list_[server_unit_idx]->DestroySession(session_id);
 }
 

@@ -128,7 +128,7 @@ int MqttBrokerDispatcher::MqttConnect(const phxrpc::BaseRequest &req,
     int ret{-1};
 
     phxqueue_phxrpc::logic::mqtt::MqttConnectPb req_pb;
-    phxqueue_phxrpc::logic::mqtt::MqttConnackPb resp_pb;
+    google::protobuf::Empty resp_pb;
 
     // unpack request
     {
@@ -144,15 +144,6 @@ int MqttBrokerDispatcher::MqttConnect(const phxrpc::BaseRequest &req,
     {
         if (0 == ret) {
             ret = service_.MqttConnect(req_pb, &resp_pb);
-        }
-    }
-
-    // pack response
-    {
-        if (0 != resp->FromPb(resp_pb)) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
         }
     }
 
@@ -323,7 +314,7 @@ int MqttBrokerDispatcher::MqttSubscribe(const phxrpc::BaseRequest &req,
     int ret{-1};
 
     phxqueue_phxrpc::logic::mqtt::MqttSubscribePb req_pb;
-    phxqueue_phxrpc::logic::mqtt::MqttSubackPb resp_pb;
+    google::protobuf::Empty resp_pb;
 
     // unpack request
     {
@@ -342,15 +333,6 @@ int MqttBrokerDispatcher::MqttSubscribe(const phxrpc::BaseRequest &req,
         }
     }
 
-    // pack response
-    {
-        if (0 != resp->FromPb(resp_pb)) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
-        }
-    }
-
     phxrpc::log(LOG_DEBUG, "RETN: MqttSubscribe = %d", ret);
 
     return ret;
@@ -363,7 +345,7 @@ int MqttBrokerDispatcher::MqttUnsubscribe(const phxrpc::BaseRequest &req,
     int ret{-1};
 
     phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb req_pb;
-    phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb resp_pb;
+    google::protobuf::Empty resp_pb;
 
     // unpack request
     {
@@ -382,15 +364,6 @@ int MqttBrokerDispatcher::MqttUnsubscribe(const phxrpc::BaseRequest &req,
         }
     }
 
-    // pack response
-    {
-        if (0 != resp->FromPb(resp_pb)) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
-        }
-    }
-
     phxrpc::log(LOG_DEBUG, "RETN: MqttUnsubscribe = %d", ret);
 
     return ret;
@@ -403,7 +376,7 @@ int MqttBrokerDispatcher::MqttPing(const phxrpc::BaseRequest &req,
     int ret{-1};
 
     phxqueue_phxrpc::logic::mqtt::MqttPingreqPb req_pb;
-    phxqueue_phxrpc::logic::mqtt::MqttPingrespPb resp_pb;
+    google::protobuf::Empty resp_pb;
 
     // unpack request
     {
@@ -419,15 +392,6 @@ int MqttBrokerDispatcher::MqttPing(const phxrpc::BaseRequest &req,
     {
         if (0 == ret) {
             ret = service_.MqttPing(req_pb, &resp_pb);
-        }
-    }
-
-    // pack response
-    {
-        if (0 != resp->FromPb(resp_pb)) {
-            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
-
-            return -ENOMEM;
         }
     }
 

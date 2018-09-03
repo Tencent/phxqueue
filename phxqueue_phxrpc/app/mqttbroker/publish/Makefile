@@ -3,7 +3,7 @@ include ../../../../makefile.mk
 all: test_publish_memory
 
 test_publish_memory: test_publish_memory.o
-	g++ $^ $(LDFLAGS) -o $@
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -I$(GLOG_INCLUDE_DIR) -I$(PROTOBUF_INCLUDE_DIR) \

@@ -35,5 +35,6 @@ class MqttBrokerToolImpl : public MqttBrokerTool {
     virtual int MqttUnsubscribe(phxrpc::OptMap &opt_map) override;
     virtual int MqttPing(phxrpc::OptMap &opt_map) override;
     virtual int MqttDisconnect(phxrpc::OptMap &opt_map) override;
+    virtual int ProtoHttpPublish(phxrpc::OptMap &opt_map) override;
 };
 

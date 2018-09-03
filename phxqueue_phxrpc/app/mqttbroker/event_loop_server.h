@@ -60,7 +60,7 @@ class SessionMgr final {
     void DestroySession(const uint64_t session_id);
 
   private:
-    static std::atomic_uint32_t s_seq;
+    static std::atomic<uint32_t> s_seq;
 
     int idx_{-1};
     phxrpc::UThreadEpollScheduler *scheduler_{nullptr};

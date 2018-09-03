@@ -39,7 +39,9 @@ CLI_OBJS = mqttbroker.pb.o \
 		mqttbroker_client_uthread.o \
 		phxrpc_mqttbroker_stub.o
 
-all: libmqttbroker_client.a mqttbroker_main mqttbroker_tool_main
+TARGETS = libmqttbroker_client.a mqttbroker_main mqttbroker_tool_main
+
+all: $(TARGETS)
 
 mqttbroker_main: $(SVR_OBJS) $(LIB_MQTT_OBJS)
 	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L../../../lib/ \
@@ -55,11 +57,19 @@ sample_mqttbroker_main: $(SAMPLE_SVR_OBJS) $(LIB_MQTT_OBJS)
 			-lphxqueue_producer -lphxqueue_config \
 			-lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
 
-libmqttbroker_client.a: $(CLI_OBJS)
+libmqttbroker_client.a: $(CLI_OBJS) $(LIB_MQTT_OBJS)
 	$(AR) $@ $^
 
 mqttbroker_tool_main: phxrpc_mqttbroker_tool.o mqttbroker_tool_impl.o mqttbroker_tool_main.o $(LIB_MQTT_OBJS)
 	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L. -lphxqueue_phxrpc_logic_mqtt -lmqttbroker_client -lphxqueue_comm $(LDFLAGS) -o $@
+
+test_publish_mgr: test_publish_mgr.o publish/publish_mgr.o publish/publish_memory.o server_mgr.o \
+		mqttbroker_server_config.o event_loop_server_config.o event_loop_server.o $(LIB_MQTT_OBJS)
+	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L../../../lib/ \
+			-lphxqueue_phxrpc_logic_mqtt -lphxqueue_phxrpc_producer -lstore_client -llock_client \
+			-lphxqueue_phxrpc_plugin -lphxqueue_phxrpc_comm \
+			-lphxqueue_producer -lphxqueue_config \
+			-lphxqueue_comm -lphxqueue_plugin $(LDFLAGS) -o $@
 
 %.pb.o: %.pb.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $< -I$(PROTOBUF_INCLUDE_DIR) -I$(PHXRPC_INCLUDE_DIR) \

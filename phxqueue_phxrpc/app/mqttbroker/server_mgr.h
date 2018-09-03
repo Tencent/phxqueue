@@ -36,6 +36,9 @@ class ServerMgr {
     ServerMgr(const phxrpc::HshaServerConfig *const config);
     virtual ~ServerMgr();
 
+    static ServerMgr *GetInstance();
+    static void SetInstance(ServerMgr *const instance);
+
     phxrpc::HshaServer *hsha_server() const;
     void set_hsha_server(phxrpc::HshaServer *const hsha_server);
     EventLoopServer *event_loop_server() const;
@@ -49,6 +52,8 @@ class ServerMgr {
     void DestroySession(const uint64_t session_id);
 
   private:
+    static std::unique_ptr<ServerMgr> s_instance;
+
     phxrpc::HshaServer *hsha_server_{nullptr};
     EventLoopServer *event_loop_server_{nullptr};
     const phxrpc::HshaServerConfig *config_{nullptr};

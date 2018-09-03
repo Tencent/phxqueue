@@ -27,7 +27,7 @@ typedef CircularQueue<uint64_t, logic::mqtt::HttpPublishPb> PublishQueueBase;
 class PublishQueue : public PublishQueueBase {
   public:
     static PublishQueue *GetInstance();
-    static void SetInstance(PublishQueue *const default_instance);
+    static void SetInstance(PublishQueue *const instance);
 
     PublishQueue(const size_t max_size);
     virtual ~PublishQueue() override = default;
@@ -42,7 +42,7 @@ typedef LruCache<uint64_t, logic::mqtt::HttpPublishPb> PublishLruCacheBase;
 class PublishLruCache : public PublishLruCacheBase {
   public:
     static PublishLruCache *GetInstance();
-    static void SetInstance(PublishLruCache *const default_instance);
+    static void SetInstance(PublishLruCache *const instance);
 
     PublishLruCache(const size_t max_size);
     virtual ~PublishLruCache() override = default;

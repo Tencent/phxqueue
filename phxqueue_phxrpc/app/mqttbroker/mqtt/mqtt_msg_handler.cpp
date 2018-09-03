@@ -79,7 +79,7 @@ int MqttMessageHandler::RecvRequest(phxrpc::BaseTcpStream &socket, phxrpc::BaseR
         // the system considers EOF to be a state in which the file descriptor is 'readable'.
         // read returns 0 bytes read.
         // should close fd to prevent from being epolled again.
-        phxrpc::log(LOG_ERR, "stream err %d %s", e.code().value(), e.what());
+        phxrpc::log(LOG_ERR, "stream err %s", e.what());
 
         return -103;
     }
@@ -103,11 +103,11 @@ int MqttMessageHandler::RecvResponse(phxrpc::BaseTcpStream &socket, phxrpc::Base
             return GenPublish(remaining_buffer, resp);
         } else if (MqttProtocol::ControlPacketType::PUBACK == control_packet_type_) {
             return GenPuback(remaining_buffer, resp);
-        } else if (MqttProtocol::ControlPacketType::SUBSCRIBE == control_packet_type_) {
+        } else if (MqttProtocol::ControlPacketType::SUBACK == control_packet_type_) {
             return GenSuback(remaining_buffer, resp);
-        } else if (MqttProtocol::ControlPacketType::UNSUBSCRIBE == control_packet_type_) {
+        } else if (MqttProtocol::ControlPacketType::UNSUBACK == control_packet_type_) {
             return GenUnsuback(remaining_buffer, resp);
-        } else if (MqttProtocol::ControlPacketType::PINGREQ == control_packet_type_) {
+        } else if (MqttProtocol::ControlPacketType::PINGRESP == control_packet_type_) {
             return GenPingresp(remaining_buffer, resp);
         }
         phxrpc::log(LOG_ERR, "type %d not supported",
@@ -119,7 +119,7 @@ int MqttMessageHandler::RecvResponse(phxrpc::BaseTcpStream &socket, phxrpc::Base
         // the system considers EOF to be a state in which the file descriptor is 'readable'.
         // read returns 0 bytes read.
         // should close fd to prevent from being epolled again.
-        phxrpc::log(LOG_ERR, "stream err %d %s", e.code().value(), e.what());
+        phxrpc::log(LOG_ERR, "stream err %s", e.what());
 
         return -103;
     }

@@ -70,9 +70,9 @@ TableMgr::FinishRemoteSession(const string &client_id,
             return ret;
         }
     } else {
-        // 2.1. clear remote session_ip
+        // 2.1. only clear remote session_ip
         auto session_pb2(session_pb);
-        session_pb2.set_session_ip(0);
+        session_pb2.mutable_addr()->clear_ip();
 
         // 2.2. set remote session
         phxqueue::comm::RetCode ret{SetSessionByClientIdRemote(client_id, -1, session_pb2)};
@@ -326,14 +326,14 @@ phxqueue::comm::RetCode TableMgr::SetSessionByClientIdRemote(const string &clien
 
         return phxqueue::comm::RetCode::RET_ERR_PROTOBUF_PARSE;
     }
-    QLInfo("client_id \"%s\" ok ip %u session %" PRIx64, client_id.c_str(),
-           session_pb2.session_ip(), session_pb2.session_id());
+    QLInfo("client_id \"%s\" ok addr %s session %" PRIx64, client_id.c_str(),
+           phxqueue::comm::utils::AddrToString(session_pb2.addr()).c_str(), session_pb2.session_id());
 
     return phxqueue::comm::RetCode::RET_OK;
 }
 
 phxqueue::comm::RetCode TableMgr::DeleteSessionByClientIdRemote(const string &client_id,
-                                                                     const uint64_t version) {
+                                                                const uint64_t version) {
     phxqueue::comm::RetCode ret{DeleteStringRemote(string(KEY_BROKER_CLIENT2SESSION_PREFIX),
                                                    client_id, version)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -416,7 +416,7 @@ TableMgr::SetTopicSubscribeRemote(const string &topic_filter, const uint64_t ver
 
 phxqueue::comm::RetCode
 TableMgr::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
-                           phxqueue::comm::proto::GetLockInfoResponse &resp) {
+                      phxqueue::comm::proto::GetLockInfoResponse &resp) {
     thread_local LockClient lock_client;
     auto ret = lock_client.ProtoGetLockInfo(req, resp);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -431,7 +431,7 @@ TableMgr::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
 
 phxqueue::comm::RetCode
 TableMgr::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
-                           phxqueue::comm::proto::AcquireLockResponse &resp) {
+                      phxqueue::comm::proto::AcquireLockResponse &resp) {
     thread_local LockClient lock_client;
     auto ret = lock_client.ProtoAcquireLock(req, resp);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -446,7 +446,7 @@ TableMgr::AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
 
 phxqueue::comm::RetCode
 TableMgr::GetString(const phxqueue::comm::proto::GetStringRequest &req,
-                         phxqueue::comm::proto::GetStringResponse &resp) {
+                    phxqueue::comm::proto::GetStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoGetString(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -461,7 +461,7 @@ TableMgr::GetString(const phxqueue::comm::proto::GetStringRequest &req,
 
 phxqueue::comm::RetCode
 TableMgr::SetString(const phxqueue::comm::proto::SetStringRequest &req,
-                         phxqueue::comm::proto::SetStringResponse &resp) {
+                    phxqueue::comm::proto::SetStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoSetString(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {
@@ -476,7 +476,7 @@ TableMgr::SetString(const phxqueue::comm::proto::SetStringRequest &req,
 
 phxqueue::comm::RetCode
 TableMgr::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
-                            phxqueue::comm::proto::DeleteStringResponse &resp) {
+                       phxqueue::comm::proto::DeleteStringResponse &resp) {
     thread_local LockClient lock_client;
     const auto ret(lock_client.ProtoDeleteString(req, resp));
     if (phxqueue::comm::RetCode::RET_OK != ret) {

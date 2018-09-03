@@ -71,8 +71,8 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
         void *data{nullptr};
         auto *mqtt_publish(new phxqueue_phxrpc::mqttbroker::MqttPublish);
         mqtt_publish->FromPb(mqtt_publish_pb);
-        args_.server_mgr->SendAndWaitAck(sub_mqtt_session->session_id, mqtt_publish,
-                                         worker_uthread_scheduler_, ack_key, data);
+        ServerMgr::GetInstance()->SendAndWaitAck(sub_mqtt_session->session_id, mqtt_publish,
+                                                 worker_uthread_scheduler_, ack_key, data);
 
         phxqueue_phxrpc::mqttbroker::MqttPuback *puback{
                 (phxqueue_phxrpc::mqttbroker::MqttPuback *)data};
@@ -92,6 +92,7 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
         int ret{puback->ToPb(resp->mutable_mqtt_puback())};
 
         delete puback;
+        puback = nullptr;
 
         MqttPacketIdMgr::GetInstance()->ReleasePacketId(req.sub_client_id(), sub_packet_id);
 
@@ -103,7 +104,7 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
     } else {
         auto *mqtt_publish(new phxqueue_phxrpc::mqttbroker::MqttPublish);
         mqtt_publish->FromPb(mqtt_publish_pb);
-        args_.server_mgr->Send(sub_mqtt_session->session_id, mqtt_publish);
+        ServerMgr::GetInstance()->Send(sub_mqtt_session->session_id, mqtt_publish);
         phxrpc::log(LOG_NOTICE, "%s sub_session_id %" PRIx64
                     " server_mgr.Send sub_client_id \"%s\" qos %u",
                     __func__, sub_mqtt_session->session_id, req.sub_client_id().c_str(),
@@ -113,7 +114,8 @@ int MqttBrokerServiceImpl::HttpPublish(const HttpPublishPb &req, HttpPubackPb *r
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp) {
+int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req,
+                                       google::protobuf::Empty *resp) {
     const auto old_mqtt_session(MqttSessionMgr::GetInstance()->
                                 GetByClientId(req.client_identifier()));
     if (old_mqtt_session) {
@@ -121,16 +123,16 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
             // mqtt-3.1.0-2: disconnect current connection
 
             MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-            args_.server_mgr->DestroySession(session_id_);
+            ServerMgr::GetInstance()->DestroySession(session_id_);
 
             phxrpc::log(LOG_ERR, "%s err session_id %" PRIx64 " client_id \"%s\"", __func__,
                         session_id_, req.client_identifier().c_str());
 
-            return -1;
+            return 0;
         } else {
             // mqtt-3.1.4-2: disconnect other connection with same client_id
             MqttSessionMgr::GetInstance()->DestroyBySessionId(old_mqtt_session->session_id);
-            args_.server_mgr->DestroySession(old_mqtt_session->session_id);
+            ServerMgr::GetInstance()->DestroySession(old_mqtt_session->session_id);
 
             phxrpc::log(LOG_NOTICE, "%s disconnect session_id old %" PRIx64 " new %" PRIx64
                         " client_id \"%s\"", __func__, old_mqtt_session->session_id,
@@ -144,8 +146,17 @@ int MqttBrokerServiceImpl::MqttConnect(const MqttConnectPb &req, MqttConnackPb *
     mqtt_session->keep_alive = req.keep_alive();
     mqtt_session->Heartbeat();
 
-    resp->set_session_present(!req.clean_session());
-    resp->set_connect_return_code(0u);
+    MqttConnackPb connack_pb;
+    connack_pb.set_session_present(!req.clean_session());
+    connack_pb.set_connect_return_code(0u);
+
+    auto *connack(new phxqueue_phxrpc::mqttbroker::MqttConnack);
+    connack->FromPb(connack_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)connack)};
+    if (0 != ret2) {
+        phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " Send err %d",
+                    __func__, session_id_, ret2);
+    }
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " client_id \"%s\"", __func__,
                 session_id_, req.client_identifier().c_str());
@@ -162,7 +173,7 @@ int MqttBrokerServiceImpl::MqttPublish(const MqttPublishPb &req,
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " CheckSession err %d qos %u packet_id %d",
                     __func__, session_id_, ret, req.qos(), req.packet_identifier());
 
-        return ret;
+        return 0;
     }
 
     // 2. ack
@@ -171,20 +182,7 @@ int MqttBrokerServiceImpl::MqttPublish(const MqttPublishPb &req,
         puback_pb.set_packet_identifier(req.packet_identifier());
         auto *puback(new phxqueue_phxrpc::mqttbroker::MqttPuback);
         puback->FromPb(puback_pb);
-        args_.server_mgr->Send(session_id_, (phxrpc::BaseResponse *)puback);
-    }
-
-    // TODO: remove
-    if (isprint(req.data().at(req.data().size() - 1)) && isprint(req.data().at(0))) {
-        phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " client_id \"%s\" qos %u "
-                    "packet_id %d topic \"%s\" data \"%s\"",
-                    __func__, session_id_, mqtt_session->client_id.c_str(), req.qos(),
-                    req.packet_identifier(), req.topic_name().c_str(), req.data().c_str());
-    } else {
-        phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " client_id \"%s\" qos %u "
-                    "packet_id %d topic \"%s\" data.size %zu",
-                    __func__, session_id_, mqtt_session->client_id.c_str(), req.qos(),
-                    req.packet_identifier(), req.topic_name().c_str(), req.data().size());
+        ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)puback);
     }
 
     return 0;
@@ -199,7 +197,7 @@ int MqttBrokerServiceImpl::MqttPuback(const MqttPubackPb &req,
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " CheckSession err %d packet_id %d",
                     __func__, session_id_, ret, req.packet_identifier());
 
-        return ret;
+        return 0;
     }
 
     // 2. puback to hsha_server
@@ -207,28 +205,29 @@ int MqttBrokerServiceImpl::MqttPuback(const MqttPubackPb &req,
     ret = puback->FromPb(req);
     if (0 != ret) {
         delete puback;
+        puback = nullptr;
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " FromPb err %d packet_id %d",
                     __func__, session_id_, ret, req.packet_identifier());
 
-        return ret;
+        return 0;
     }
 
     // ack_key = sub_client_id + sub_packet_id
     const string ack_key(mqtt_session->client_id + ':' + to_string(req.packet_identifier()));
     // forward puback and do not delete here
-    int ret2{args_.server_mgr->Ack(ack_key, (void *)puback)};
+    int ret2{ServerMgr::GetInstance()->Ack(ack_key, (void *)puback)};
     if (0 != ret2) {
         phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " server_mgr.Ack err %d "
                     "ack_key \"%s\"", __func__, session_id_,
                     ret2, ack_key.c_str());
 
-        return ret2;
+        return 0;
     }
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " packet_id %d",
                 __func__, session_id_, req.packet_identifier());
 
-    return ret2;
+    return 0;
 }
 
 int MqttBrokerServiceImpl::MqttPubrec(const MqttPubrecPb &req,
@@ -246,12 +245,24 @@ int MqttBrokerServiceImpl::MqttPubcomp(const MqttPubcompPb &req,
     return -1;
 }
 
-int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *resp) {
-    resp->set_packet_identifier(req.packet_identifier());
-    resp->clear_return_codes();
+int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req,
+                                         google::protobuf::Empty *resp) {
+    const auto mqtt_session(MqttSessionMgr::GetInstance()->GetBySessionId(session_id_));
+    mqtt_session->Heartbeat();
+
+    MqttSubackPb suback_pb;
+    suback_pb.set_packet_identifier(req.packet_identifier());
     for (int i{0}; req.topic_filters().size() > i; ++i) {
-        resp->add_return_codes(0x00);
+        suback_pb.add_return_codes(0x00);
         phxrpc::log(LOG_DEBUG, "topic \"%s\"", req.topic_filters(i).c_str());
+    }
+
+    auto *suback(new phxqueue_phxrpc::mqttbroker::MqttSuback);
+    suback->FromPb(suback_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)suback)};
+    if (0 != ret2) {
+        phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " Send err %d",
+                    __func__, session_id_, ret2);
     }
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " packet_id %d", __func__,
@@ -260,10 +271,23 @@ int MqttBrokerServiceImpl::MqttSubscribe(const MqttSubscribePb &req, MqttSubackP
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
-    resp->set_packet_identifier(req.packet_identifier());
+int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req,
+                                           google::protobuf::Empty *resp) {
+    const auto mqtt_session(MqttSessionMgr::GetInstance()->GetBySessionId(session_id_));
+    mqtt_session->Heartbeat();
+
+    MqttUnsubackPb unsuback_pb;
+    unsuback_pb.set_packet_identifier(req.packet_identifier());
     for (int i{0}; req.topic_filters().size() > i; ++i) {
         phxrpc::log(LOG_DEBUG, "topic \"%s\"", req.topic_filters(i).c_str());
+    }
+
+    auto *unsuback(new phxqueue_phxrpc::mqttbroker::MqttUnsuback);
+    unsuback->FromPb(unsuback_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)unsuback)};
+    if (0 != ret2) {
+        phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " Send err %d",
+                    __func__, session_id_, ret2);
     }
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64 " packet_id %d",
@@ -272,9 +296,19 @@ int MqttBrokerServiceImpl::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUns
     return 0;
 }
 
-int MqttBrokerServiceImpl::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
+int MqttBrokerServiceImpl::MqttPing(const MqttPingreqPb &req,
+                                    google::protobuf::Empty *resp) {
     const auto mqtt_session(MqttSessionMgr::GetInstance()->GetBySessionId(session_id_));
     mqtt_session->Heartbeat();
+
+    MqttPingrespPb pingresp_pb;
+    auto *pingresp(new phxqueue_phxrpc::mqttbroker::MqttPingresp);
+    pingresp->FromPb(pingresp_pb);
+    int ret2{ServerMgr::GetInstance()->Send(session_id_, (phxrpc::BaseResponse *)pingresp)};
+    if (0 != ret2) {
+        phxrpc::log(LOG_ERR, "%s session_id %" PRIx64 " Send err %d",
+                    __func__, session_id_, ret2);
+    }
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64, __func__, session_id_);
 
@@ -282,9 +316,9 @@ int MqttBrokerServiceImpl::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *re
 }
 
 int MqttBrokerServiceImpl::MqttDisconnect(const MqttDisconnectPb &req,
-                                             google::protobuf::Empty *resp) {
+                                          google::protobuf::Empty *resp) {
     MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-    args_.server_mgr->DestroySession(session_id_);
+    ServerMgr::GetInstance()->DestroySession(session_id_);
 
     phxrpc::log(LOG_NOTICE, "%s session_id %" PRIx64, __func__, session_id_);
 
@@ -298,7 +332,7 @@ int MqttBrokerServiceImpl::CheckSession(MqttSession *&mqtt_session) {
 
         // destroy local session
         MqttSessionMgr::GetInstance()->DestroyBySessionId(session_id_);
-        args_.server_mgr->DestroySession(session_id_);
+        ServerMgr::GetInstance()->DestroySession(session_id_);
 
         return -1;
     }

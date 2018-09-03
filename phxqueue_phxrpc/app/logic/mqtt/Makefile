@@ -33,7 +33,7 @@ pb: mqtt.pb.cc mqtt.pb.h
 mqtt.pb.cc: mqtt.pb.h
 
 mqtt.pb.h: mqtt.proto
-	(cd $(PHXQUEUE_BASE_DIR); $(PROTOBUF_BIN_DIR)/protoc $(addprefix phxqueue_phxrpc/app/logic/mqtt/,$^) --proto_path=$(PHXRPC_INCLUDE_DIR) --proto_path=$(PHXQUEUE_INCLUDE_DIR) --proto_path=$(PROTOBUF_INCLUDE_DIR) --cpp_out=.)
+	(cd $(PHXQUEUE_BASE_DIR); $(PROTOBUF_BIN_DIR)/protoc $(addprefix phxqueue_phxrpc/app/logic/mqtt/,$^) --proto_path=. --proto_path=$(PHXRPC_INCLUDE_DIR) --proto_path=$(PHXQUEUE_INCLUDE_DIR) --proto_path=$(PROTOBUF_INCLUDE_DIR) --cpp_out=.)
 
 clean:
 	@($(RM) $(TARGETS))

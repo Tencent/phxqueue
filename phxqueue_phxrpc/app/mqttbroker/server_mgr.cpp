@@ -32,6 +32,17 @@ namespace mqttbroker {
 using namespace std;
 
 
+unique_ptr<ServerMgr> ServerMgr::s_instance;
+
+ServerMgr *ServerMgr::GetInstance() {
+    return s_instance.get();
+}
+
+void ServerMgr::SetInstance(ServerMgr *const instance) {
+    s_instance.reset(instance);
+}
+
+
 ServerMgr::ServerMgr(const phxrpc::HshaServerConfig *const config) : config_(config) {
 }
 

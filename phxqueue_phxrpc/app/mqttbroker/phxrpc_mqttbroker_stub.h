@@ -9,6 +9,7 @@
 #pragma once
 
 #include "phxqueue_phxrpc/app/logic/mqtt.h"
+#include "phxrpc/rpc.h"
 
 #include "mqttbroker.pb.h"
 
@@ -22,6 +23,71 @@ class ClientMonitor;
 
 
 }
+
+
+class MqttCaller : public phxrpc::Caller {
+  public:
+    MqttCaller(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+               phxrpc::BaseMessageHandlerFactory &msg_handler_factory);
+
+    template <typename Request, typename RequestPb, typename ResponsePb>
+    int Call(const RequestPb &req, ResponsePb *resp) {
+        auto msg_handler(msg_handler_factory_.Create());
+        req_.reset(new Request);
+
+        int ret{dynamic_cast<Request *>(req_.get())->FromPb(req)};
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return ret;
+        }
+
+        req_->set_uri(uri_.c_str());
+        req_->set_keep_alive(keep_alive_);
+
+        bool send_error{false}, recv_error{false};
+        uint64_t call_begin{phxrpc::Timer::GetSteadyClockMS()};
+        ret = req_->Send(socket_);
+        if (0 != ret && phxrpc::SocketStreamError_Normal_Closed != ret) {
+            send_error = true;
+            phxrpc::log(LOG_ERR, "Send err %d", ret);
+        }
+
+        if (0 == ret) {
+            phxrpc::BaseResponse *tmp_resp{nullptr};
+            ret = msg_handler->RecvResponse(socket_, tmp_resp);
+            if ((0 != ret && phxrpc::SocketStreamError_Normal_Closed != ret) || !tmp_resp) {
+                recv_error = true;
+                phxrpc::log(LOG_ERR, "RecvResponse err %d", ret);
+            }
+            resp_.reset(tmp_resp);
+        }
+        MonitorReport(client_monitor_, send_error,
+                      recv_error, req_->size(),
+                      resp_ ? resp_->size() : 0, call_begin,
+                      phxrpc::Timer::GetSteadyClockMS());
+
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "call err %d", ret);
+
+            return ret;
+        }
+
+        ret = resp_->ToPb(resp);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return ret;
+        }
+
+        ret = resp_->result();
+        if (0 > ret) {
+            phxrpc::log(LOG_ERR, "call %s err %d", req_->uri(), ret);
+        }
+
+        return ret;
+    }
+};
 
 
 class MqttBrokerStub {
@@ -40,9 +106,13 @@ class MqttBrokerStub {
 
     // mqtt protocol
     int MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &req,
-                    phxqueue_phxrpc::logic::mqtt::MqttConnackPb *resp);
+                    google::protobuf::Empty *resp);
+    int MqttConnectWithConnack(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &req,
+                               phxqueue_phxrpc::logic::mqtt::MqttConnackPb *resp);
     int MqttPublish(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &req,
                     google::protobuf::Empty *resp);
+    int MqttPublishWithPuback(const phxqueue_phxrpc::logic::mqtt::MqttPublishPb &req,
+                              phxqueue_phxrpc::logic::mqtt::MqttPubackPb *resp);
     int MqttPuback(const phxqueue_phxrpc::logic::mqtt::MqttPubackPb &req,
                    google::protobuf::Empty *resp);
     int MqttPubrec(const phxqueue_phxrpc::logic::mqtt::MqttPubrecPb &req,
@@ -52,11 +122,17 @@ class MqttBrokerStub {
     int MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubcompPb &req,
                     google::protobuf::Empty *resp);
     int MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &req,
-                      phxqueue_phxrpc::logic::mqtt::MqttSubackPb *resp);
+                      google::protobuf::Empty *resp);
+    int MqttSubscribeWithSuback(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &req,
+                                phxqueue_phxrpc::logic::mqtt::MqttSubackPb *resp);
     int MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &req,
-                        phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb *resp);
+                        google::protobuf::Empty *resp);
+    int MqttUnsubscribeWithUnsuback(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &req,
+                                    phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb *resp);
     int MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &req,
-                 phxqueue_phxrpc::logic::mqtt::MqttPingrespPb *resp);
+                 google::protobuf::Empty *resp);
+    int MqttPingWithPingresp(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &req,
+                             phxqueue_phxrpc::logic::mqtt::MqttPingrespPb *resp);
     int MqttDisconnect(const phxqueue_phxrpc::logic::mqtt::MqttDisconnectPb &req,
                        google::protobuf::Empty *resp);
 

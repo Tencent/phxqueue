@@ -12,21 +12,54 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "mqttbroker_logic.h"
 
-#include "phxqueue_phxrpc/app/logic/mqtt.h"
-#include "phxqueue_phxrpc/producer.h"
+#include <algorithm>
 
 
 namespace phxqueue_phxrpc {
 
-
 namespace mqttbroker {
 
 
+using namespace phxqueue_phxrpc::logic::mqtt;
 using namespace std;
 
 
-}  // namespace mqttbroker
+phxqueue::comm::RetCode
+AddSubscribe(const string &client_id, const uint32_t qos, TopicPb *const topic_pb) {
+    if (!topic_pb) {
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
 
+    const auto &subscribe_pb(topic_pb->add_subscribes());
+    subscribe_pb->set_client_identifier(client_id);
+    subscribe_pb->set_qos(qos);
+
+    return phxqueue::comm::RetCode::RET_OK;
+}
+
+phxqueue::comm::RetCode
+RemoveSubscribe(const string &client_id, TopicPb *const topic_pb) {
+    if (!topic_pb) {
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    TopicPb tmp_topic_pb;
+
+    for_each(topic_pb->subscribes().cbegin(), topic_pb->subscribes().cend(),
+            [&](const SubscribePb &subscribe_pb) {
+        if (subscribe_pb.client_identifier() != client_id) {
+            const auto &new_subscribe(tmp_topic_pb.add_subscribes());
+            new_subscribe->CopyFrom(subscribe_pb);
+        }
+    });
+
+    *topic_pb = tmp_topic_pb;
+
+    return phxqueue::comm::RetCode::RET_OK;
+}
+
+
+}  // namespace mqttbroker
 
 }  // namespace phxqueue_phxrpc
 

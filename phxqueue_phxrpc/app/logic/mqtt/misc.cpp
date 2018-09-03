@@ -40,6 +40,12 @@ MqttTopicName2PhxQueueTopicPubId(const string &mqtt_topic_name,
     *phxqueue_topic_id = -1;
     *phxqueue_pub_id = -1;
 
+    if (mqtt_topic_name.empty() || '/' != mqtt_topic_name[0]) {
+        NLErr("topic \"%s\" invalid", mqtt_topic_name.c_str());
+
+        return phxqueue::comm::RetCode::RET_ERR_RANGE_TOPIC;
+    }
+
     vector<string> arr;
     phxqueue::comm::utils::StrSplitList(mqtt_topic_name, "/", arr);
     if (2 != arr.size()) {
@@ -62,14 +68,68 @@ MqttTopicName2PhxQueueTopicPubId(const string &mqtt_topic_name,
     phxqueue::comm::RetCode ret{phxqueue::config::GlobalConfig::GetThreadInstance()->
             GetTopicIDByTopicName(*phxqueue_topic_name, *phxqueue_topic_id)};
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        NLErr("GetTopicIDByTopicName ret %d topic \"%s\"",
+        NLErr("GetTopicIDByTopicName err %d topic \"%s\"",
               phxqueue::comm::as_integer(ret), phxqueue_topic_name->c_str());
 
         return ret;
     }
 
     return phxqueue::comm::RetCode::RET_OK;
+}
 
+phxqueue::comm::RetCode
+PhxQueueTopicPubId2MqttTopicName(const int phxqueue_topic_id,
+                                 const int phxqueue_pub_id,
+                                 string *const mqtt_topic_name) {
+    if (!mqtt_topic_name) {
+        NLErr("out args nullptr topic %d pub %d", phxqueue_topic_id, phxqueue_pub_id);
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    auto &&topic_infos(phxqueue::config::GlobalConfig::GetThreadInstance()->
+                       GetProto().topic_infos());
+    string phxqueue_topic_name;
+    for (const auto &topic_info : topic_infos) {
+        if (topic_info.topic_id() == phxqueue_topic_id) {
+            phxqueue_topic_name = topic_info.topic_name();
+            break;
+        }
+    }
+    if (phxqueue_topic_name.empty()) {
+        NLErr("topic %d empty", phxqueue_topic_id);
+
+        return phxqueue::comm::RetCode::RET_ERR_RANGE_TOPIC;
+    }
+
+    (*mqtt_topic_name) = "/";
+    (*mqtt_topic_name) += phxqueue_topic_name + "/";
+    (*mqtt_topic_name) += to_string(phxqueue_pub_id) + "/";
+
+    return phxqueue::comm::RetCode::RET_OK;
+}
+
+phxqueue::comm::RetCode
+PhxQueueTopicNamePubId2MqttTopicName(const string &phxqueue_topic_name,
+                                     const int phxqueue_pub_id,
+                                     string *const mqtt_topic_name) {
+    if (!mqtt_topic_name) {
+        NLErr("out args nullptr topic \"%s\" pub %d", phxqueue_topic_name.c_str(), phxqueue_pub_id);
+
+        return phxqueue::comm::RetCode::RET_ERR_ARG;
+    }
+
+    if (phxqueue_topic_name.empty()) {
+        NLErr("topic empty");
+
+        return phxqueue::comm::RetCode::RET_ERR_RANGE_TOPIC;
+    }
+
+    (*mqtt_topic_name) = "/";
+    (*mqtt_topic_name) += phxqueue_topic_name + "/";
+    (*mqtt_topic_name) += to_string(phxqueue_pub_id) + "/";
+
+    return phxqueue::comm::RetCode::RET_OK;
 }
 
 phxqueue::comm::RetCode
@@ -105,15 +165,15 @@ EnqueueMessage(const phxqueue_phxrpc::logic::mqtt::HttpPublishPb &message) {
     ret = producer->Enqueue(phxqueue_topic_id, uin, handle_id,
                             message_string, phxqueue_pub_id);
     if (phxqueue::comm::RetCode::RET_OK != ret) {
-        NLErr("Enqueue err %d pub_client_id \"%s\" topic %d \"%s\"",
+        NLErr("Enqueue err %d pub_client_id \"%s\" topic %d \"%s\" pub %d",
               phxqueue::comm::as_integer(ret), message.pub_client_id().c_str(),
-              phxqueue_topic_id, phxqueue_topic_name.c_str());
+              phxqueue_topic_id, phxqueue_topic_name.c_str(), phxqueue_pub_id);
 
         return ret;
     }
 
-    NLInfo("pub_client_id \"%s\" topic %d \"%s\"", message.pub_client_id().c_str(),
-           phxqueue_topic_id, phxqueue_topic_name.c_str());
+    NLInfo("pub_client_id \"%s\" topic %d \"%s\" pub %d", message.pub_client_id().c_str(),
+           phxqueue_topic_id, phxqueue_topic_name.c_str(), phxqueue_pub_id);
 
     return phxqueue::comm::RetCode::RET_OK;
 }

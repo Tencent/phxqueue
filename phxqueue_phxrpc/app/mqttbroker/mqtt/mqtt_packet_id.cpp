@@ -90,7 +90,9 @@ bool MqttPacketIdMgr::ReleasePacketId(const string &sub_client_id, const uint16_
     for (size_t i{sub_client_info.out_pos()}; sub_client_info.out_pos() + erase_size > i; ++i) {
         auto it(sub_client_info.map().find(i));
         if (sub_client_info.map().end() !=it) {
-            sub_client_info.set_prev_cursor_id(it->second.cursor_id);
+            if (sub_client_info.prev_cursor_id() < it->second.cursor_id) {
+                sub_client_info.set_prev_cursor_id(it->second.cursor_id);
+            }
             sub_client_info.mutable_map()->erase(it);
         }
     }
@@ -103,12 +105,12 @@ bool MqttPacketIdMgr::ReleasePacketId(const string &sub_client_id, const uint16_
     return true;
 }
 
-bool MqttPacketIdMgr::GetCursorId(const string &sub_client_id, const uint16_t sub_packet_id,
-                                  uint64_t *const cursor_id) const {
-    if (!cursor_id)
+bool MqttPacketIdMgr::GetPrevCursorId(const string &sub_client_id,
+                                      uint64_t *const prev_cursor_id) {
+    if (!prev_cursor_id)
         return false;
 
-    *cursor_id = static_cast<uint64_t>(-1);
+    *prev_cursor_id = static_cast<uint64_t>(-1);
     lock_guard<mutex> lock(mutex_);
 
     auto it(sub_client_id2sub_client_info_map_.find(sub_client_id));
@@ -116,15 +118,48 @@ bool MqttPacketIdMgr::GetCursorId(const string &sub_client_id, const uint16_t su
         return false;
     }
 
-    auto it2(it->second.map().find(sub_packet_id));
-    if (it->second.map().end() == it2) {
-        return false;
-    }
-
-    *cursor_id = it2->second.cursor_id;
+    *prev_cursor_id = it->second.prev_cursor_id();
 
     return true;
 }
+
+bool MqttPacketIdMgr::SetPrevCursorId(const string &sub_client_id,
+                                      const uint64_t prev_cursor_id) {
+    lock_guard<mutex> lock(mutex_);
+
+    auto it(sub_client_id2sub_client_info_map_.find(sub_client_id));
+    if (sub_client_id2sub_client_info_map_.end() == it) {
+        return false;
+    }
+
+    it->second.set_prev_cursor_id(prev_cursor_id);
+
+    return true;
+}
+
+//bool MqttPacketIdMgr::GetCursorIdByPacketId(const string &sub_client_id,
+//                                            const uint16_t sub_packet_id,
+//                                            uint64_t *const cursor_id) const {
+//    if (!cursor_id)
+//        return false;
+//
+//    *cursor_id = static_cast<uint64_t>(-1);
+//    lock_guard<mutex> lock(mutex_);
+//
+//    auto it(sub_client_id2sub_client_info_map_.find(sub_client_id));
+//    if (sub_client_id2sub_client_info_map_.end() == it) {
+//        return false;
+//    }
+//
+//    auto it2(it->second.map().find(sub_packet_id));
+//    if (it->second.map().end() == it2) {
+//        return false;
+//    }
+//
+//    *cursor_id = it2->second.cursor_id;
+//
+//    return true;
+//}
 
 string MqttPacketIdMgr::ToString(const string &sub_client_id) const {
     lock_guard<mutex> lock(mutex_);

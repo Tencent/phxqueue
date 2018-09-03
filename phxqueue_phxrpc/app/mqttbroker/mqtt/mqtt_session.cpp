@@ -34,7 +34,7 @@ using namespace std;
 
 void MqttSession::Heartbeat() {
     if (0 >= keep_alive) {
-        expire_time_ms_ = -1;
+        expire_time_ms_ = static_cast<uint64_t>(-1);
     } else {
         // mqtt-3.1.2-24: keep_alive * 1.5
         expire_time_ms_ = keep_alive * 1500 + phxrpc::Timer::GetSteadyClockMS();

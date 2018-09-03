@@ -23,7 +23,7 @@ int MqttBrokerService::PHXEcho(const google::protobuf::StringValue &/* req */, g
     return -1;
 }
 
-int MqttBrokerService::MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttConnackPb */* resp */) {
+int MqttBrokerService::MqttConnect(const phxqueue_phxrpc::logic::mqtt::MqttConnectPb &/* req */, google::protobuf::Empty */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: MqttConnect unimplemented");
     return -1;
 }
@@ -53,17 +53,17 @@ int MqttBrokerService::MqttPubcomp(const phxqueue_phxrpc::logic::mqtt::MqttPubco
     return -1;
 }
 
-int MqttBrokerService::MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttSubackPb */* resp */) {
+int MqttBrokerService::MqttSubscribe(const phxqueue_phxrpc::logic::mqtt::MqttSubscribePb &/* req */, google::protobuf::Empty */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: MqttSubscribe unimplemented");
     return -1;
 }
 
-int MqttBrokerService::MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttUnsubackPb */* resp */) {
+int MqttBrokerService::MqttUnsubscribe(const phxqueue_phxrpc::logic::mqtt::MqttUnsubscribePb &/* req */, google::protobuf::Empty */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: MqttUnsubscribe unimplemented");
     return -1;
 }
 
-int MqttBrokerService::MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &/* req */, phxqueue_phxrpc::logic::mqtt::MqttPingrespPb */* resp */) {
+int MqttBrokerService::MqttPing(const phxqueue_phxrpc::logic::mqtt::MqttPingreqPb &/* req */, google::protobuf::Empty */* resp */) {
     phxrpc::log(LOG_ERR, "ERROR: MqttPing unimplemented");
     return -1;
 }

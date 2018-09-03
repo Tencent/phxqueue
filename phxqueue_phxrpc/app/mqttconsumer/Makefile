@@ -7,9 +7,12 @@
 include ../../../makefile.mk
 
 SVR_OBJS = mqtt_handler.o \
+		mqttconsumer.o \
 		mqttconsumer_main.o
 
-all: mqttconsumer_main
+TARGETS = mqttconsumer_main
+
+all: $(TARGETS)
 
 mqttconsumer_main: $(SVR_OBJS)
 	$(LINKER) $^ -L$(PHXQUEUE_LIB_DIR) -L$(PHXRPC_LIB_DIR) -lphxrpc  -L../../../lib/ \

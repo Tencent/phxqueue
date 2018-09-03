@@ -81,9 +81,14 @@ message MqttDisconnectPb {
 
 message HttpPublishPb {
     uint64 cursor_id = 1;
-    string pub_client_id = 2;
-    string sub_client_id = 3;
+    string pub_client_id = 2;  // for mqttbroker gen sub packet id
+    string sub_client_id = 3;  // for mqttbroker gen sub packet id
+    int32 store_id = 4;  // for mqttbroker random get
+    int32 queue_id = 5;  // for mqttbroker random get
+
     MqttPublishPb mqtt_publish = 11;
+
+    phxqueue.comm.proto.Addr addr = 100;
 }
 
 message HttpPubackPb {
@@ -102,9 +107,9 @@ message SessionAttributePb {
 }
 
 message SessionPb {
-    uint32 session_ip = 1;
+    phxqueue.comm.proto.Addr addr = 1;
     uint64 session_id = 2;
-    uint64 cursor_id = 3;
+    uint64 prev_cursor_id = 3;
     SessionAttributePb session_attribute = 101;
 }
 

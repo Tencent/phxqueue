@@ -8,11 +8,18 @@
 
 #include "phxrpc_mqttbroker_stub.h"
 
-#include "phxrpc/rpc.h"
 #include "phxrpc/network.h"
+
+#include "mqtt/mqtt_msg.h"
 
 
 using namespace phxqueue_phxrpc::logic::mqtt;
+
+
+MqttCaller::MqttCaller(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
+                       phxrpc::BaseMessageHandlerFactory &msg_handler_factory)
+        : Caller(socket, client_monitor, msg_handler_factory) {
+}
 
 
 MqttBrokerStub::MqttBrokerStub(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,
@@ -47,73 +54,123 @@ int MqttBrokerStub::HttpPublish(const HttpPublishPb &req, HttpPubackPb *resp) {
 
 // mqtt protocol
 
-int MqttBrokerStub::MqttConnect(const MqttConnectPb &req, MqttConnackPb *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+int MqttBrokerStub::MqttConnect(const MqttConnectPb &req, google::protobuf::Empty *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttConnect", 2000011);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttConnect, MqttConnectPb,
+           google::protobuf::Empty>(req, resp);
+}
+
+int MqttBrokerStub::MqttConnectWithConnack(const MqttConnectPb &req, MqttConnackPb *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttConnect", 2000011);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttConnect, MqttConnectPb,
+           MqttConnackPb>(req, resp);
 }
 
 int MqttBrokerStub::MqttPublish(const MqttPublishPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPublish", 2000012);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPublish, MqttPublishPb,
+           google::protobuf::Empty>(req, resp);
+}
+
+int MqttBrokerStub::MqttPublishWithPuback(const MqttPublishPb &req, MqttPubackPb *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPublish", 2000012);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPublish, MqttPublishPb,
+           MqttPubackPb>(req, resp);
 }
 
 int MqttBrokerStub::MqttPuback(const MqttPubackPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPuback", 2000013);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPuback, MqttPubackPb,
+           google::protobuf::Empty>(req, resp);
 }
 
 int MqttBrokerStub::MqttPubrec(const MqttPubrecPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPubrec", 2000014);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPubrec, MqttPubrecPb,
+           google::protobuf::Empty>(req, resp);
 }
 
 int MqttBrokerStub::MqttPubrel(const MqttPubrelPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPubrel", 2000015);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPubrel, MqttPubrelPb,
+           google::protobuf::Empty>(req, resp);
 }
 
 int MqttBrokerStub::MqttPubcomp(const MqttPubcompPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPubcomp", 2000016);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPubcomp, MqttPubcompPb,
+           google::protobuf::Empty>(req, resp);
 }
 
-int MqttBrokerStub::MqttSubscribe(const MqttSubscribePb &req, MqttSubackPb *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+int MqttBrokerStub::MqttSubscribe(const MqttSubscribePb &req, google::protobuf::Empty *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttSubscribe", 2000017);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttSubscribe, MqttSubscribePb,
+           google::protobuf::Empty>(req, resp);
 }
 
-int MqttBrokerStub::MqttUnsubscribe(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+int MqttBrokerStub::MqttSubscribeWithSuback(const MqttSubscribePb &req, MqttSubackPb *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttSubscribe", 2000017);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttSubscribe, MqttSubscribePb,
+           MqttSubackPb>(req, resp);
+}
+
+int MqttBrokerStub::MqttUnsubscribe(const MqttUnsubscribePb &req, google::protobuf::Empty *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttUnsubscribe", 2000018);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttUnsubscribe, MqttUnsubscribePb,
+           google::protobuf::Empty>(req, resp);
 }
 
-int MqttBrokerStub::MqttPing(const MqttPingreqPb &req, MqttPingrespPb *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+int MqttBrokerStub::MqttUnsubscribeWithUnsuback(const MqttUnsubscribePb &req, MqttUnsubackPb *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttUnsubscribe", 2000018);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttUnsubscribe, MqttUnsubscribePb,
+           MqttUnsubackPb>(req, resp);
+}
+
+int MqttBrokerStub::MqttPing(const MqttPingreqPb &req, google::protobuf::Empty *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPing", 2000019);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPingreq, MqttPingreqPb,
+           google::protobuf::Empty>(req, resp);
+}
+
+int MqttBrokerStub::MqttPingWithPingresp(const MqttPingreqPb &req, MqttPingrespPb *resp) {
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
+    caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttPing", 2000019);
+    caller.set_keep_alive(keep_alive_);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttPingreq, MqttPingreqPb,
+           MqttPingrespPb>(req, resp);
 }
 
 int MqttBrokerStub::MqttDisconnect(const MqttDisconnectPb &req, google::protobuf::Empty *resp) {
-    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);
+    MqttCaller caller(socket_, client_monitor_, msg_handler_factory_);
     caller.set_uri("/phxqueue_phxrpc/mqttbroker/MqttDisconnect", 2000020);
     caller.set_keep_alive(keep_alive_);
-    return caller.Call(req, resp);
+    return caller.Call<phxqueue_phxrpc::mqttbroker::MqttDisconnect, MqttDisconnectPb,
+           google::protobuf::Empty>(req, resp);
 }
 

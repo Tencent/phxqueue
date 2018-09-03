@@ -12,25 +12,28 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "phxqueue/comm.h"
-#include "phxqueue_phxrpc/app/logic/mqtt.h"
+#include "phxqueue_phxrpc/consumer.h"
 
 
 namespace phxqueue_phxrpc {
 
-namespace mqttbroker {
+namespace mqttconsumer {
 
 
-phxqueue::comm::RetCode
-AddSubscribe(const std::string &client_id, const uint32_t qos,
-             phxqueue_phxrpc::logic::mqtt::TopicPb *const topic_pb);
+class MqttConsumer : public phxqueue_phxrpc::consumer::Consumer {
+  public:
+    MqttConsumer(const phxqueue::consumer::ConsumerOption &opt);
+    virtual ~MqttConsumer() override;
 
-phxqueue::comm::RetCode
-RemoveSubscribe(const std::string &remove_client_id,
-                phxqueue_phxrpc::logic::mqtt::TopicPb *const topic_pb);
+  protected:
+    virtual void CustomGetRequest(const phxqueue::comm::proto::ConsumerContext &cc,
+                                  const phxqueue::comm::proto::GetRequest &req,
+                                  uint64_t &pre_cursor_id, uint64_t &next_cursor_id,
+                                  int &limit) override;
+};
 
 
-}  // namespace mqttbroker
+}  // namespace mqttconsumer
 
 }  // namespace phxqueue_phxrpc
 

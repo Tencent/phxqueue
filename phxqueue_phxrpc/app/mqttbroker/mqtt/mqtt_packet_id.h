@@ -94,8 +94,10 @@ class MqttPacketIdMgr final {
                        const uint16_t pub_packet_id, const std::string &sub_client_id,
                        uint16_t *const sub_packet_id);
     bool ReleasePacketId(const std::string &sub_client_id, const uint16_t sub_packet_id);
-    bool GetCursorId(const std::string &sub_client_id, const uint16_t sub_packet_id,
-                     uint64_t *const cursor_id) const;
+    bool GetPrevCursorId(const std::string &sub_client_id, uint64_t *const prev_cursor_id);
+    bool SetPrevCursorId(const std::string &sub_client_id, const uint64_t prev_cursor_id);
+    //bool GetCursorIdByPacketId(const std::string &sub_client_id, const uint16_t sub_packet_id,
+    //                           uint64_t *const cursor_id) const;
     std::string ToString(const std::string &sub_client_id) const;
 
     bool GetPrevCursorId(uint64_t *const prev_cursor_id) const;

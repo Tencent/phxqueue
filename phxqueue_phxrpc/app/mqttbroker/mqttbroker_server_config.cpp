@@ -47,14 +47,14 @@ bool MqttBrokerServerConfig::Read(const char *config_file) {
     if (!config.InitConfig(config_file)) {
         return false;
     }
-    ret &= config.ReadItem("MqttBroker", "TopicID", &topic_id_);
+    ret &= config.ReadItem("MqttBroker", "TopicID", &topic_id_, -1);
     ret &= config.ReadItem("MqttBroker", "PhxQueueGlobalConfigPath",
                            phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
-    config.ReadItem("MqttBroker", "MaxPublishQueueSize", &max_publish_queue_size_);
-    config.ReadItem("MqttBroker", "MaxPublishLruCacheSize", &max_publish_lru_cache_size_);
-    config.ReadItem("MqttBroker", "NrPublishThread", &nr_publish_thread_);
-    config.ReadItem("MqttBroker", "ShareStackSizeKb", &share_stack_size_kb_);
-    config.ReadItem("MqttBroker", "PublishSleepTimeMs", &publish_sleep_time_ms_);
+    config.ReadItem("MqttBroker", "MaxPublishQueueSize", &max_publish_queue_size_, 128 * 1024);
+    config.ReadItem("MqttBroker", "MaxPublishLruCacheSize", &max_publish_lru_cache_size_, 16 * 1024);
+    config.ReadItem("MqttBroker", "NrPublishThread", &nr_publish_thread_, 2);
+    config.ReadItem("MqttBroker", "ShareStackSizeKb", &share_stack_size_kb_, 128);
+    config.ReadItem("MqttBroker", "PublishSleepTimeMs", &publish_sleep_time_ms_, 10);
 
     return ret;
 }

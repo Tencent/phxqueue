@@ -97,3 +97,9 @@ int MqttBrokerTool::MqttDisconnect(phxrpc::OptMap &/* opt_map */) {
     return -1;
 }
 
+int MqttBrokerTool::ProtoHttpPublish(phxrpc::OptMap &opt_map) {
+    printf("\n    *** ProtoHttpPublish unimplement ***\n");
+
+    return -1;
+}
+

@@ -27,8 +27,8 @@ PublishQueue *PublishQueue::GetInstance() {
     return s_instance.get();
 }
 
-void PublishQueue::SetInstance(PublishQueue *const default_instance) {
-    s_instance.reset(default_instance);
+void PublishQueue::SetInstance(PublishQueue *const instance) {
+    s_instance.reset(instance);
 }
 
 PublishQueue::PublishQueue(const size_t max_size) : PublishQueueBase(max_size) {
@@ -41,8 +41,8 @@ PublishLruCache *PublishLruCache::GetInstance() {
     return s_instance.get();
 }
 
-void PublishLruCache::SetInstance(PublishLruCache *const default_instance) {
-    s_instance.reset(default_instance);
+void PublishLruCache::SetInstance(PublishLruCache *const instance) {
+    s_instance.reset(instance);
 }
 
 PublishLruCache::PublishLruCache(const size_t max_size) : PublishLruCacheBase(max_size) {
