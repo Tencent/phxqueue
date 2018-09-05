@@ -37,7 +37,7 @@ class SchedulerToolImpl : public SchedulerTool {
     SchedulerToolImpl();
     virtual ~SchedulerToolImpl();
 
-    virtual int PhxEcho(phxrpc::OptMap &opt_map) override;
+    virtual int PHXEcho(phxrpc::OptMap &opt_map) override;
 
     virtual int GetAddrScale(phxrpc::OptMap &opt_map) override;
 

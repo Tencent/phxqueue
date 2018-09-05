@@ -39,11 +39,11 @@ class SchedulerServiceImpl : public SchedulerService {
     SchedulerServiceImpl(ServiceArgs_t &app_args);
     virtual ~SchedulerServiceImpl();
 
-    virtual int PhxEcho(const google::protobuf::StringValue &req,
-                        google::protobuf::StringValue *resp);
+    virtual int PHXEcho(const google::protobuf::StringValue &req,
+                        google::protobuf::StringValue *resp) override;
 
     virtual int GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,
-                             phxqueue::comm::proto::GetAddrScaleResponse *resp);
+                             phxqueue::comm::proto::GetAddrScaleResponse *resp) override;
 
   private:
     ServiceArgs_t &args_;

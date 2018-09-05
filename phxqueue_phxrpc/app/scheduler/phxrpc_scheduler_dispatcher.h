@@ -35,7 +35,7 @@ class SchedulerDispatcher {
 
     virtual ~SchedulerDispatcher();
 
-    int PhxEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int PHXEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
     int GetAddrScale(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 

@@ -28,7 +28,7 @@ enum class RetCode {
     RET_ERR_KEY_NOT_EXIST = 10104,  // key不存在(phxlock在用)
     RET_ERR_NO_MASTER = 10105,  // 一组3机内找不到master, 一般是发生master切换但租约未过时产生
     RET_ERR_NOT_READY = 10106,
-    RET_ERR_IGNORE = 10107,
+    RET_KEY_IGNORE = 10107,  // 非业务的key(phxlock在用)
     RET_ERR_SIZE_TOO_LARGE = 10108,  // 写入数据太大, 拒绝写入
 
     RET_ADD_SKIP = 10201,  // 写入数据被skip

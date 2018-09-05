@@ -120,23 +120,61 @@ message GetAddrScaleResponse {
     optional Addr redirect_addr = 101;
 }
 
+message StringInfo {
+    optional string key = 1;
+    optional uint64 version = 2;  // -1 for force set
+    optional bytes value = 3;
+    optional uint64 lease_time_ms = 4;  // -1 for infinity
+}
+
+message StringKeyInfo {
+    optional string key = 1;
+    optional uint64 version = 2;  // -1 for force set
+}
+
+message GetStringRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional string key = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message GetStringResponse {
+    optional StringInfo string_info = 2;
+
+    optional Addr redirect_addr = 101;
+}
+
+message SetStringRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional StringInfo string_info = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message SetStringResponse {
+    optional Addr redirect_addr = 101;
+}
+
+message DeleteStringRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional StringKeyInfo string_key_info = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message DeleteStringResponse {
+    optional Addr redirect_addr = 101;
+}
+
 message LockInfo {
     optional string lock_key = 1;
     optional uint64 version = 2;
     optional string client_id = 3;
     optional uint64 lease_time_ms = 4;
-}
-
-message AcquireLockRequest {
-    optional int32 topic_id = 1;
-    optional int32 lock_id = 2;
-    optional LockInfo lock_info = 3;
-
-    optional Addr master_addr = 100;
-}
-
-message AcquireLockResponse {
-    optional Addr redirect_addr = 101;
 }
 
 message GetLockInfoRequest {
@@ -149,6 +187,19 @@ message GetLockInfoRequest {
 
 message GetLockInfoResponse {
     optional LockInfo lock_info = 2;
+
+    optional Addr redirect_addr = 101;
+}
+
+message AcquireLockRequest {
+    optional int32 topic_id = 1;
+    optional int32 lock_id = 2;
+    optional LockInfo lock_info = 3;
+
+    optional Addr master_addr = 100;
+}
+
+message AcquireLockResponse {
     optional Addr redirect_addr = 101;
 }
 

@@ -19,6 +19,7 @@ SVR_OBJS = lock.pb.o \
 
 CLI_OBJS = lock.pb.o \
 		lock_client.o \
+		lock_client_uthread.o \
 		phxrpc_lock_stub.o
 
 TARGETS = liblock_client.a lock_main lock_tool_main
@@ -60,6 +61,8 @@ phxrpc_lock_stub.cpp: phxrpc_lock_stub.h
 phxrpc_lock_stub.o: phxrpc_lock_stub.h
 lock_client.cpp: phxrpc_lock_stub.h
 lock_client.o: phxrpc_lock_stub.h
+lock_client_uthread.cpp: phxrpc_lock_stub.h
+lock_client_uthread.o: phxrpc_lock_stub.h
 
 ########## service ##########
 

@@ -35,15 +35,15 @@ class CleanThread {
   private:
     void DoRun();
 
-    void CleanLock(const int paxos_group_id, const uint64_t now,
-                   int &nr_group_key, int &nr_group_clean_key);
+    void CleanRecord(const int paxos_group_id, const uint64_t now,
+                     int *const nr_group_key, int *const nr_group_clean_key);
 
     // if no request at all, we should write checkpoint sometimes
     // there are other paxos log need to be converted to mirror, such as 'try be master' paxos log
     void WriteRestartCheckpoint(const int paxos_group_id, const uint64_t now);
 
-    comm::RetCode ProposeCleanLock(const int paxos_group_id,
-                                   const std::vector<proto::LockKeyInfo> &lock_key_infos);
+    //comm::RetCode ProposeCleanLock(const int paxos_group_id,
+    //                               const std::vector<proto::LockKeyInfo> &lock_key_infos);
 
     class CleanThreadImpl;
     std::unique_ptr<CleanThreadImpl> impl_;

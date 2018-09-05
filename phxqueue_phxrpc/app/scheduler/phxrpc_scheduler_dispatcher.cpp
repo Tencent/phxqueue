@@ -37,14 +37,14 @@ SchedulerDispatcher::~SchedulerDispatcher() {}
 const phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap &
 SchedulerDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<SchedulerDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.scheduler/PhxEcho", &SchedulerDispatcher::PhxEcho},
-        {"/phxqueue_phxrpc.scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
+        {"/phxqueue_phxrpc/scheduler/PHXEcho", &SchedulerDispatcher::PHXEcho},
+        {"/phxqueue_phxrpc/scheduler/GetAddrScale", &SchedulerDispatcher::GetAddrScale}};
     return uri_func_map;
 }
 
-int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
+int SchedulerDispatcher::PHXEcho(const phxrpc::BaseRequest &req,
                                  phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
+    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
 
     int ret{-1};
 
@@ -63,7 +63,7 @@ int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // logic process
     {
-        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
+        if (0 == ret) ret = service_.PHXEcho(req_pb, &resp_pb);
     }
 
     // pack response
@@ -75,7 +75,7 @@ int SchedulerDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
 
     return ret;
 }

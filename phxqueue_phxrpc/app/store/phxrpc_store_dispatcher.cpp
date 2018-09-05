@@ -37,15 +37,15 @@ StoreDispatcher::~StoreDispatcher() {}
 const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &
 StoreDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.store/PhxEcho", &StoreDispatcher::PhxEcho},
-        {"/phxqueue_phxrpc.store/Add", &StoreDispatcher::Add},
-        {"/phxqueue_phxrpc.store/Get", &StoreDispatcher::Get}};
+        {"/phxqueue_phxrpc/store/PHXEcho", &StoreDispatcher::PHXEcho},
+        {"/phxqueue_phxrpc/store/Add", &StoreDispatcher::Add},
+        {"/phxqueue_phxrpc/store/Get", &StoreDispatcher::Get}};
     return uri_func_map;
 }
 
-int StoreDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
+int StoreDispatcher::PHXEcho(const phxrpc::BaseRequest &req,
                              phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
+    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
 
     int ret{-1};
 
@@ -64,7 +64,7 @@ int StoreDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // logic process
     {
-        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
+        if (0 == ret) ret = service_.PHXEcho(req_pb, &resp_pb);
     }
 
     // pack response
@@ -76,7 +76,7 @@ int StoreDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
 
     return ret;
 }

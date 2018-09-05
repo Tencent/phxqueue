@@ -35,6 +35,8 @@ class LockServerConfig {
     const char *GetDataDirPath() const;
     const char *GetPhxQueueGlobalConfigPath() const;
     int GetPaxosPort() const;
+    int GetNrGroup() const;
+    int GetNrPaxosIOThread() const;
 
   private:
     phxrpc::HshaServerConfig ep_server_config_;
@@ -43,5 +45,7 @@ class LockServerConfig {
     char data_dir_path_[128];
     char phxqueue_global_config_path_[128];
     int paxos_port_;
+    int nr_group_;
+    int nr_paxos_io_thread_;
 };
 

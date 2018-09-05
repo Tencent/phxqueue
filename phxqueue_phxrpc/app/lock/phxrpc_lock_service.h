@@ -28,8 +28,17 @@ class LockService {
     LockService();
     virtual ~LockService();
 
-    virtual int PhxEcho(const google::protobuf::StringValue &req,
+    virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp);
+
+    virtual int GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                          phxqueue::comm::proto::GetStringResponse *resp);
+
+    virtual int SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                          phxqueue::comm::proto::SetStringResponse *resp);
+
+    virtual int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                             phxqueue::comm::proto::DeleteStringResponse *resp);
 
     virtual int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                             phxqueue::comm::proto::GetLockInfoResponse *resp);

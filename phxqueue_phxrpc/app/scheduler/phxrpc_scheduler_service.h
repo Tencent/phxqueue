@@ -28,7 +28,7 @@ class SchedulerService {
     SchedulerService();
     virtual ~SchedulerService();
 
-    virtual int PhxEcho(const google::protobuf::StringValue &req,
+    virtual int PHXEcho(const google::protobuf::StringValue &req,
                         google::protobuf::StringValue *resp);
 
     virtual int GetAddrScale(const phxqueue::comm::proto::GetAddrScaleRequest &req,

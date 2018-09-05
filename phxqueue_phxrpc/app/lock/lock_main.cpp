@@ -58,6 +58,8 @@ static int MakeArgs(LockServerConfig &config, ServiceArgs_t &args) {
     opt.ip = config.GetHshaServerConfig().GetBindIP();
     opt.port = config.GetHshaServerConfig().GetPort();
     opt.paxos_port = config.GetPaxosPort();
+    opt.nr_paxos_io_thread = config.GetNrPaxosIOThread();
+    opt.nr_group = config.GetNrGroup();
     opt.log_func = g_log_func;
 
     string phxqueue_global_config_path(config.GetPhxQueueGlobalConfigPath());

@@ -35,7 +35,7 @@ class StoreDispatcher {
 
     virtual ~StoreDispatcher();
 
-    int PhxEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
+    int PHXEcho(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 
     int Add(const phxrpc::BaseRequest &req, phxrpc::BaseResponse *const resp);
 

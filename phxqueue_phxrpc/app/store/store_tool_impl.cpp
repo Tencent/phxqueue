@@ -30,7 +30,7 @@ StoreToolImpl::StoreToolImpl() {}
 
 StoreToolImpl::~StoreToolImpl() {}
 
-int StoreToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
+int StoreToolImpl::PHXEcho(phxrpc::OptMap &opt_map) {
     google::protobuf::StringValue req;
     google::protobuf::StringValue resp;
 
@@ -39,7 +39,7 @@ int StoreToolImpl::PhxEcho(phxrpc::OptMap &opt_map) {
     req.set_value(opt_map.Get('s'));
 
     StoreClient client;
-    int ret{client.PhxEcho(req, &resp)};
+    int ret{client.PHXEcho(req, &resp)};
     printf("%s return %d\n", __func__, ret);
     printf("resp: {\n%s}\n", resp.DebugString().c_str());
 

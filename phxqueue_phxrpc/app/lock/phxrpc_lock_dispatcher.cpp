@@ -37,15 +37,18 @@ LockDispatcher::~LockDispatcher() {}
 const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &
 LockDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc.lock/PhxEcho", &LockDispatcher::PhxEcho},
-        {"/phxqueue_phxrpc.lock/GetLockInfo", &LockDispatcher::GetLockInfo},
-        {"/phxqueue_phxrpc.lock/AcquireLock", &LockDispatcher::AcquireLock}};
+        {"/phxqueue_phxrpc/lock/PHXEcho", &LockDispatcher::PHXEcho},
+        {"/phxqueue_phxrpc/lock/GetString", &LockDispatcher::GetString},
+        {"/phxqueue_phxrpc/lock/SetString", &LockDispatcher::SetString},
+        {"/phxqueue_phxrpc/lock/DeleteString", &LockDispatcher::DeleteString},
+        {"/phxqueue_phxrpc/lock/GetLockInfo", &LockDispatcher::GetLockInfo},
+        {"/phxqueue_phxrpc/lock/AcquireLock", &LockDispatcher::AcquireLock}};
     return uri_func_map;
 }
 
-int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
+int LockDispatcher::PHXEcho(const phxrpc::BaseRequest &req,
                             phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(-1, "PhxEcho", 1);
+    dispatcher_args_->server_monitor->SvrCall(-1, "PHXEcho", 1);
 
     int ret{-1};
 
@@ -64,7 +67,7 @@ int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
 
     // logic process
     {
-        if (0 == ret) ret = service_.PhxEcho(req_pb, &resp_pb);
+        if (0 == ret) ret = service_.PHXEcho(req_pb, &resp_pb);
     }
 
     // pack response
@@ -76,14 +79,128 @@ int LockDispatcher::PhxEcho(const phxrpc::BaseRequest &req,
         }
     }
 
-    phxrpc::log(LOG_DEBUG, "RETN: PhxEcho = %d", ret);
+    phxrpc::log(LOG_DEBUG, "RETN: PHXEcho = %d", ret);
+
+    return ret;
+}
+
+int LockDispatcher::GetString(const phxrpc::BaseRequest &req,
+                              phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(11, "GetString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::GetStringRequest req_pb;
+    phxqueue::comm::proto::GetStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.GetString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        if (0 != resp->FromPb(resp_pb)) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: GetString = %d", ret);
+
+    return ret;
+}
+
+int LockDispatcher::SetString(const phxrpc::BaseRequest &req,
+                              phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(12, "SetString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::SetStringRequest req_pb;
+    phxqueue::comm::proto::SetStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.SetString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        if (0 != resp->FromPb(resp_pb)) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: SetString = %d", ret);
+
+    return ret;
+}
+
+int LockDispatcher::DeleteString(const phxrpc::BaseRequest &req,
+                                 phxrpc::BaseResponse *const resp) {
+    dispatcher_args_->server_monitor->SvrCall(13, "DeleteString", 1);
+
+    int ret{-1};
+
+    phxqueue::comm::proto::DeleteStringRequest req_pb;
+    phxqueue::comm::proto::DeleteStringResponse resp_pb;
+
+    // unpack request
+    {
+        ret = req.ToPb(&req_pb);
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "ToPb err %d", ret);
+
+            return -EINVAL;
+        }
+    }
+
+    // logic process
+    {
+        if (0 == ret) ret = service_.DeleteString(req_pb, &resp_pb);
+    }
+
+    // pack response
+    {
+        if (0 != resp->FromPb(resp_pb)) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return -ENOMEM;
+        }
+    }
+
+    phxrpc::log(LOG_DEBUG, "RETN: DeleteString = %d", ret);
 
     return ret;
 }
 
 int LockDispatcher::GetLockInfo(const phxrpc::BaseRequest &req,
                                 phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(1, "GetLockInfo", 1);
+    dispatcher_args_->server_monitor->SvrCall(21, "GetLockInfo", 1);
 
     int ret{-1};
 
@@ -121,7 +238,7 @@ int LockDispatcher::GetLockInfo(const phxrpc::BaseRequest &req,
 
 int LockDispatcher::AcquireLock(const phxrpc::BaseRequest &req,
                                 phxrpc::BaseResponse *const resp) {
-    dispatcher_args_->server_monitor->SvrCall(2, "AcquireLock", 1);
+    dispatcher_args_->server_monitor->SvrCall(22, "AcquireLock", 1);
 
     int ret{-1};
 

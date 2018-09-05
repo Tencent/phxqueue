@@ -41,6 +41,8 @@ bool LockServerConfig::Read(const char *config_file) {
     ret &= config.ReadItem("Lock", "PhxQueueGlobalConfigPath",
                            phxqueue_global_config_path_, sizeof(phxqueue_global_config_path_));
     ret &= config.ReadItem("Lock", "PaxosPort", &paxos_port_);
+    ret &= config.ReadItem("Lock", "NrGroup", &nr_group_, 100);
+    config.ReadItem("Lock", "NrPaxosIOThread", &nr_paxos_io_thread_, 3);
 
     return ret;
 }
@@ -63,5 +65,13 @@ const char *LockServerConfig::GetPhxQueueGlobalConfigPath() const {
 
 int LockServerConfig::GetPaxosPort() const {
     return paxos_port_;
+}
+
+int LockServerConfig::GetNrGroup() const {
+    return nr_group_;
+}
+
+int LockServerConfig::GetNrPaxosIOThread() const {
+    return nr_paxos_io_thread_;
 }
 

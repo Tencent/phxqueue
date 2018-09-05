@@ -28,10 +28,43 @@ LockServiceImpl::LockServiceImpl(ServiceArgs_t &app_args) : args_(app_args), loc
 
 LockServiceImpl::~LockServiceImpl() {}
 
-int LockServiceImpl::PhxEcho(const google::protobuf::StringValue &req,
+int LockServiceImpl::PHXEcho(const google::protobuf::StringValue &req,
                              google::protobuf::StringValue *resp) {
     resp->set_value(req.value());
     return 0;
+}
+
+int LockServiceImpl::GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                               phxqueue::comm::proto::GetStringResponse *resp) {
+    int ret{static_cast<int>(lock_->GetString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock GetString err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                               phxqueue::comm::proto::SetStringResponse *resp) {
+    int ret{static_cast<int>(lock_->SetString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock SetString err %d", ret);
+    }
+
+    return ret;
+}
+
+int LockServiceImpl::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                                  phxqueue::comm::proto::DeleteStringResponse *resp) {
+    int ret{static_cast<int>(lock_->DeleteString(req, *resp))};
+
+    if (0 != ret) {
+        QLErr("Lock DeleteString err %d", ret);
+    }
+
+    return ret;
 }
 
 int LockServiceImpl::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,

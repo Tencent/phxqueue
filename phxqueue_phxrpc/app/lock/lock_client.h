@@ -33,17 +33,38 @@ class LockClient {
     LockClient();
     virtual ~LockClient();
 
-    int PhxEcho(const google::protobuf::StringValue &req,
+    int PHXEcho(const google::protobuf::StringValue &req,
                 google::protobuf::StringValue *resp);
 
-    int PhxBatchEcho(const google::protobuf::StringValue &req,
+    int PHXBatchEcho(const google::protobuf::StringValue &req,
                      google::protobuf::StringValue *resp);
+
+    int GetString(const phxqueue::comm::proto::GetStringRequest &req,
+                  phxqueue::comm::proto::GetStringResponse *resp);
+
+    int SetString(const phxqueue::comm::proto::SetStringRequest &req,
+                  phxqueue::comm::proto::SetStringResponse *resp);
+
+    int DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                     phxqueue::comm::proto::DeleteStringResponse *resp);
 
     int GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                     phxqueue::comm::proto::GetLockInfoResponse *resp);
 
     int AcquireLock(const phxqueue::comm::proto::AcquireLockRequest &req,
                     phxqueue::comm::proto::AcquireLockResponse *resp);
+
+    phxqueue::comm::RetCode
+    ProtoGetString(const phxqueue::comm::proto::GetStringRequest &req,
+                   phxqueue::comm::proto::GetStringResponse &resp);
+
+    phxqueue::comm::RetCode
+    ProtoSetString(const phxqueue::comm::proto::SetStringRequest &req,
+                   phxqueue::comm::proto::SetStringResponse &resp);
+
+    phxqueue::comm::RetCode
+    ProtoDeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
+                      phxqueue::comm::proto::DeleteStringResponse &resp);
 
     phxqueue::comm::RetCode
     ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,

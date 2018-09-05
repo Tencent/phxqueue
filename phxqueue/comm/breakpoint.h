@@ -280,13 +280,16 @@ class SchedulerBP {
     virtual void OnDispose() {}
 
     virtual void OnGetAddrScale(const proto::GetAddrScaleRequest &req) {}
-    virtual void OnGetAddrScaleSucc(const proto::GetAddrScaleRequest &req, const proto::GetAddrScaleResponse &resp) {}
+    virtual void OnGetAddrScaleSucc(const proto::GetAddrScaleRequest &req,
+                                    const proto::GetAddrScaleResponse &resp) {}
     virtual void OnGetAddrScaleFail(const proto::GetAddrScaleRequest &req) {}
 
-    virtual void OnGetLockInfoSucc(const proto::GetLockInfoRequest &req, const proto::GetLockInfoResponse &resp) {}
+    virtual void OnGetLockInfoSucc(const proto::GetLockInfoRequest &req,
+                                   const proto::GetLockInfoResponse &resp) {}
     virtual void OnGetLockInfoFail(const proto::GetLockInfoRequest &req) {}
 
-    virtual void OnAcquireLockSucc(const proto::AcquireLockRequest &req, const proto::AcquireLockResponse &resp) {}
+    virtual void OnAcquireLockSucc(const proto::AcquireLockRequest &req,
+                                   const proto::AcquireLockResponse &resp) {}
     virtual void OnAcquireLockFail(const proto::AcquireLockRequest &req) {}
 };
 
@@ -307,7 +310,8 @@ class SchedulerMgrBP {
     virtual void OnGetAddrScale(const proto::GetAddrScaleRequest &req) {}
     virtual void OnConsumerNotFound(const proto::GetAddrScaleRequest &req) {}
     virtual void OnUpdateStickyLoad(const proto::GetAddrScaleRequest &req) {}
-    virtual void OnBuildTopicScaleResponseSucc(const proto::GetAddrScaleRequest &req, const proto::GetAddrScaleResponse &resp) {}
+    virtual void OnBuildTopicScaleResponseSucc(const proto::GetAddrScaleRequest &req,
+                                               const proto::GetAddrScaleResponse &resp) {}
     virtual void OnBuildTopicScaleResponseFail(const proto::GetAddrScaleRequest &req) {}
 
     virtual void OnSkipUpdateLoad(const proto::Addr &addr) {}
@@ -327,7 +331,8 @@ class SchedulerLoadBalanceBP {
 
     virtual void OnLoadBalance(const int topic_id) {}
     virtual void OnReloadConsumerConfigFail(const int topic_id) {}
-    virtual void OnReloadConsumerConfigSucc(const int topic_id, const bool consumer_conf_modified) {}
+    virtual void OnReloadConsumerConfigSucc(const int topic_id,
+                                            const bool consumer_conf_modified) {}
 
     virtual void OnConsumerAdd(const int topic_id, const proto::Addr &addr) {}
     virtual void OnConsumerRemove(const int topic_id, const proto::Addr &addr) {}
@@ -345,13 +350,17 @@ class SchedulerLoadBalanceBP {
     virtual void OnGetMeanLoadSucc(const int topic_id) {}
 
     virtual void OnCheckImbalanceFail(const int topic_id) {}
-    virtual void OnCheckImbalanceSucc(const int topic_id, const double mean_load, const bool balanced) {}
+    virtual void OnCheckImbalanceSucc(const int topic_id, const double mean_load,
+                                      const bool balanced) {}
 
     virtual void OnAdjustScaleFail(const int topic_id) {}
     virtual void OnAdjustScaleSucc(const int topic_id) {}
 
-    virtual void OnPreviewAdjustChange(const int topic_id, const proto::Addr &addr, const int init_weight, const int old_weight, const int new_weight) {}
-    virtual void OnPreviewAdjustUnchange(const int topic_id, const proto::Addr &addr, const int init_weight, const int cur_weight) {}
+    virtual void OnPreviewAdjustChange(const int topic_id, const proto::Addr &addr,
+                                       const int init_weight, const int old_weight,
+                                       const int new_weight) {}
+    virtual void OnPreviewAdjustUnchange(const int topic_id, const proto::Addr &addr,
+                                         const int init_weight, const int cur_weight) {}
 
     virtual void OnAdjustApply(const int topic_id) {}
     virtual void OnAdjustNotApply(const int topic_id) {}
@@ -369,10 +378,12 @@ class SchedulerKeepMasterBP {
 
     virtual void OnKeepMaster(const int topic_id) {}
     virtual void OnRawGetLockInfoFail(const int topic_id, const proto::GetLockInfoRequest &req) {}
-    virtual void OnRawGetLockInfoSucc(const int topic_id, const proto::GetLockInfoRequest &req, const proto::GetLockInfoResponse &resp) {}
+    virtual void OnRawGetLockInfoSucc(const int topic_id, const proto::GetLockInfoRequest &req,
+                                      const proto::GetLockInfoResponse &resp) {}
 
     virtual void OnAcquireLock(const int topic_id, const proto::AcquireLockRequest &req) {}
-    virtual void OnAcquireLockSucc(const int topic_id, const proto::AcquireLockRequest &req, const proto::AcquireLockResponse &resp) {}
+    virtual void OnAcquireLockSucc(const int topic_id, const proto::AcquireLockRequest &req,
+                                   const proto::AcquireLockResponse &resp) {}
     virtual void OnAcquireLockFail(const int topic_id, const proto::AcquireLockRequest &req) {}
 };
 
@@ -386,6 +397,18 @@ class LockBP {
     virtual void OnInit(const int topic_id) {}
     virtual void OnDispose(const int topic_id) {}
 
+    virtual void OnGetString(const proto::GetStringRequest &req) {}
+    virtual void OnGetStringRequestInvalid(const proto::GetStringRequest &req) {}
+    virtual void OnGetStringCheckMasterPass(const proto::GetStringRequest &req) {}
+
+    virtual void OnSetString(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringRequestInvalid(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringCheckMasterPass(const proto::SetStringRequest &req) {}
+
+    virtual void OnDeleteString(const proto::DeleteStringRequest &req) {}
+    virtual void OnDeleteStringRequestInvalid(const proto::DeleteStringRequest &req) {}
+    virtual void OnDeleteStringCheckMasterPass(const proto::DeleteStringRequest &req) {}
+
     virtual void OnAcquireLock(const proto::AcquireLockRequest &req) {}
     virtual void OnAcquireLockRequestInvalid(const proto::AcquireLockRequest &req) {}
     virtual void OnAcquireLockCheckMasterPass(const proto::AcquireLockRequest &req) {}
@@ -394,15 +417,36 @@ class LockBP {
     virtual void OnGetLockInfoRequestInvalid(const proto::GetLockInfoRequest &req) {}
     virtual void OnGetLockInfoCheckMasterPass(const proto::GetLockInfoRequest &req) {}
 
+    virtual void OnPaxosSetString(const proto::SetStringRequest &req) {}
     virtual void OnPaxosAcquireLock(const proto::AcquireLockRequest &req) {}
-    virtual void OnPropose(const proto::AcquireLockRequest &req) {}
-    virtual void OnProposeErr(const proto::AcquireLockRequest &req, const uint64_t used_time_ms) {}
-    virtual void OnProposeErrTimeout(const proto::AcquireLockRequest &req) {}
-    virtual void OnProposeErrTooManyThreadWaitingReject(const proto::AcquireLockRequest &req) {}
-    virtual void OnProposeErrValueSizeTooLarge(const proto::AcquireLockRequest &req) {}
-    virtual void OnProposeErrOther(const proto::AcquireLockRequest &req) {}
-    virtual void OnProposeErrResult(const proto::AcquireLockRequest &req, const uint64_t instance_id, const uint64_t used_time_ms) {}
-    virtual void OnProposeSucc(const proto::AcquireLockRequest &req, const uint64_t instance_id, const uint64_t used_time_ms) {}
+
+    virtual void OnSetStringPropose(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringProposeErr(const proto::SetStringRequest &req,
+                                       const uint64_t used_time_ms) {}
+    virtual void OnSetStringProposeErrTimeout(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringProposeErrTooManyThreadWaitingReject(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringProposeErrValueSizeTooLarge(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringProposeErrOther(const proto::SetStringRequest &req) {}
+    virtual void OnSetStringProposeErrResult(const proto::SetStringRequest &req,
+                                             const uint64_t instance_id,
+                                             const uint64_t used_time_ms) {}
+    virtual void OnSetStringProposeSucc(const proto::SetStringRequest &req,
+                                        const uint64_t instance_id,
+                                        const uint64_t used_time_ms) {}
+
+    virtual void OnAcquireLockPropose(const proto::AcquireLockRequest &req) {}
+    virtual void OnAcquireLockProposeErr(const proto::AcquireLockRequest &req,
+                                         const uint64_t used_time_ms) {}
+    virtual void OnAcquireLockProposeErrTimeout(const proto::AcquireLockRequest &req) {}
+    virtual void OnAcquireLockProposeErrTooManyThreadWaitingReject(const proto::AcquireLockRequest &req) {}
+    virtual void OnAcquireLockProposeErrValueSizeTooLarge(const proto::AcquireLockRequest &req) {}
+    virtual void OnAcquireLockProposeErrOther(const proto::AcquireLockRequest &req) {}
+    virtual void OnAcquireLockProposeErrResult(const proto::AcquireLockRequest &req,
+                                               const uint64_t instance_id,
+                                               const uint64_t used_time_ms) {}
+    virtual void OnAcquireLockProposeSucc(const proto::AcquireLockRequest &req,
+                                          const uint64_t instance_id,
+                                          const uint64_t used_time_ms) {}
 };
 
 
@@ -412,9 +456,6 @@ class LockMgrBP {
 
     LockMgrBP() {}
     virtual ~LockMgrBP() {}
-
-    virtual void OnAcquireLock(const proto::AcquireLockRequest &req) {}
-    virtual void OnGetLockInfo(const proto::GetLockInfoRequest &req) {}
 
     virtual void OnReadCheckpoint(const int topic_id, const uint32_t i) {}
     virtual void OnWriteCheckpoint(const int topic_id, const uint32_t i,
@@ -433,6 +474,8 @@ class LockDbBP {
     LockDbBP() {}
     virtual ~LockDbBP() {}
 
+    virtual void OnVersionSetString(const bool sync) {}
+    virtual void OnVersionDeleteString(const bool sync) {}
     virtual void OnAcquireLock(const bool sync) {}
 };
 

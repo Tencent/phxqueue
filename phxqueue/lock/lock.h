@@ -85,7 +85,14 @@ class Lock {
     //         if Succ:
     //             return True
     //     return False
-    
+
+    comm::RetCode GetString(const comm::proto::GetStringRequest &req,
+                            comm::proto::GetStringResponse &resp);
+    comm::RetCode SetString(const comm::proto::SetStringRequest &req,
+                            comm::proto::SetStringResponse &resp);
+    comm::RetCode DeleteString(const comm::proto::DeleteStringRequest &req,
+                               comm::proto::DeleteStringResponse &resp);
+
     // Usage please refer to phxqueue_phxrpc/app/lock/lock_service_impl.cpp
     comm::RetCode GetLockInfo(const comm::proto::GetLockInfoRequest &req,
                               comm::proto::GetLockInfoResponse &resp);
@@ -135,7 +142,13 @@ class Lock {
     // The first thing to do when a request arrived is to check if the current store instance is master, and if not, redirect to the master.
     comm::RetCode CheckMaster(const int paxos_group_id, comm::proto::Addr &redirect_addr);
 
-    // Process the pseudocode of AcquireLock mentioned above. 
+    comm::RetCode PaxosSetString(const comm::proto::SetStringRequest &req,
+                                 comm::proto::SetStringResponse &resp);
+
+    comm::RetCode PaxosDeleteString(const comm::proto::DeleteStringRequest &req,
+                                    comm::proto::DeleteStringResponse &resp);
+
+    // Process the pseudocode of AcquireLock mentioned above.
     comm::RetCode PaxosAcquireLock(const comm::proto::AcquireLockRequest &req,
                                    comm::proto::AcquireLockResponse &resp);
 

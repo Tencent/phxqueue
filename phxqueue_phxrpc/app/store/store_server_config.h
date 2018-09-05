@@ -47,6 +47,5 @@ class StoreServerConfig {
     int paxos_port_;
     int npaxos_iothread_;
     int ngroup_;
-
 };
 

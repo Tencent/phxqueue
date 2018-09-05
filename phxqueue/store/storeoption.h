@@ -23,8 +23,8 @@ namespace store {
 
 class StoreOption {
   public:
-    StoreOption() {}
-    virtual ~StoreOption() {}
+    StoreOption() = default;
+    virtual ~StoreOption() = default;
 
     std::string topic;
 
