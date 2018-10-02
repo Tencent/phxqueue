@@ -1,21 +1,26 @@
-FROM buildpack-deps:zesty
+FROM buildpack-deps
 
 COPY . /phxqueue
 
+ENV BUILD_DEPS="cmake python-pip"
+
 RUN apt-get update \
-	&& apt-get install -y cmake --no-install-recommends \
-	&& cd /phxqueue \
+        && apt-get install -y $BUILD_DEPS --no-install-recommends \
+        && pip install protobuf \
+        && cd /phxqueue \
 	&& ./build.sh \
-	&& apt-get purge -y --auto-remove cmake
+	&& find . -name "*.o" | xargs rm
 
-WORKDIR /phxqueue
+ENV WORK_DIR=/phxqueue
 
-ENV PATH="/phxqueue/bin:$PATH"
+WORKDIR $WORK_DIR
 
-COPY docker-entrypoint.sh /usr/local/bin/
+VOLUME $WORK_DIR/data
+
+ENV PATH="$WORK_DIR/bin:$PATH"
+
+#COPY docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 #EXPOSE 5100 5200 5300
-
-#VOLUME /data
 
