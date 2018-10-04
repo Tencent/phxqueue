@@ -127,6 +127,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
     /*************************** queue_info ****************************/
 
 
+	/*
     // GetQueueInfoIDRankByPub
     {
         const int queue_info_id{1};
@@ -144,6 +145,7 @@ void TestConfig::TestTopicConfig(const config::TopicConfig *topic_config) {
                topic_config->GetQueueInfoIDRankByPubID(queue_info_id, pub->pub_id(), rank));
         assert(rank == expected_rank);
     }
+	*/
 
     // GetQueueInfoIDRankByPubID
     {

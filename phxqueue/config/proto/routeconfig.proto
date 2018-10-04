@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+package phxqueue.config.proto;
+import "phxqueue/comm/proto/comm.proto";
+
+message RouteConfig {
+	optional RouteGeneral general = 1;
+	repeated Route routes = 2;
+}
+
+message RouteGeneral {
+	optional int32 conn_timeout_ms = 1[default = 500];
+}
+
+message Route {
+    optional comm.proto.Addr addr = 1;
+    optional int32 scale = 2;
+}

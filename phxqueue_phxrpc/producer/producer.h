@@ -22,7 +22,7 @@ namespace phxqueue_phxrpc {
 namespace producer {
 
 
-class Producer : public phxqueue::producer::Producer {
+class Producer : virtual public phxqueue::producer::Producer {
   public:
     Producer(const phxqueue::producer::ProducerOption &opt);
     virtual ~Producer();
@@ -33,6 +33,16 @@ class Producer : public phxqueue::producer::Producer {
   protected:
     virtual phxqueue::comm::RetCode Add(const phxqueue::comm::proto::AddRequest &req,
                                         phxqueue::comm::proto::AddResponse &resp) override;
+};
+
+class EventProducer : public phxqueue_phxrpc::producer::Producer, public phxqueue::producer::EventProducer {
+	protected:
+		EventProducer(const phxqueue::producer::ProducerOption &opt);
+		virtual ~EventProducer();
+
+		virtual phxqueue::comm::RetCode GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp);
+
+		virtual phxqueue::comm::RetCode SetStatusInfoToLock(const phxqueue::comm::proto::SetStringRequest &req, phxqueue::comm::proto::SetStringResponse &resp);
 };
 
 

@@ -20,6 +20,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/config/baseconfig.h"
 #include "phxqueue/config/proto/topicconfig.pb.h"
+#include "phxqueue/config/routeconfig.h"
 
 
 namespace phxqueue {
@@ -69,6 +70,8 @@ class TopicConfig : public BaseConfig<proto::TopicConfig> {
 	comm::RetCode GetSubIDsByPubID(const int pub_id, std::set<int> &sub_ids) const;
 
 	comm::RetCode GetTxQuerySubIDByPubID(const int pub_id, int &sub_id) const;
+
+	comm::RetCode GetRouteConfigBySubID(const int sub_id, std::shared_ptr<const config::RouteConfig> &route_config) const;
 
     // consumer_group
     comm::RetCode GetAllConsumerGroup(std::vector<std::shared_ptr<const proto::ConsumerGroup>> &consumer_groups) const;

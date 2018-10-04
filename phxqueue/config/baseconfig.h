@@ -30,6 +30,12 @@ template <typename T> class BaseConfig {
     BaseConfig() {}
     virtual ~BaseConfig() {}
 
+	void SetPathIfUnset(const std::string path) {
+		if (path_.empty() || path_.size() == 0) {
+			path_ = path;
+		}
+	}
+
     uint64_t GetLastModTime() const {return last_mod_time_;}
 
     const ProtoType & GetProto() const {
@@ -93,6 +99,7 @@ template <typename T> class BaseConfig {
     uint64_t last_mod_time_{0};
     ProtoType proto_;
     bool need_check_{false};
+	std::string path_;
 };
 
 

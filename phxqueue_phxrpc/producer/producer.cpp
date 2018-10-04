@@ -13,6 +13,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxqueue_phxrpc/producer.h"
 
 #include "phxqueue_phxrpc/app/store/store_client.h"
+#include "phxqueue_phxrpc/app/lock/lock_client.h"
 
 namespace phxqueue_phxrpc {
 
@@ -40,6 +41,31 @@ phxqueue::comm::RetCode Producer::Add(const phxqueue::comm::proto::AddRequest &r
     return ret;
 }
 
+/* EventProducer */
+EventProducer::EventProducer(const phxqueue::producer::ProducerOption &opt)
+        : phxqueue::producer::Producer(opt), phxqueue_phxrpc::producer::Producer(opt), phxqueue::producer::EventProducer(opt) {}
+
+EventProducer::~EventProducer() {}
+
+phxqueue::comm::RetCode EventProducer::GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp)
+{
+	LockClient lock_client;
+	auto ret = lock_client.ProtoGetString(req, resp);
+    if (phxqueue::comm::RetCode::RET_OK != ret) {
+        QLErr("GetString ret %d", phxqueue::comm::as_integer(ret));
+    }
+    return ret;
+}
+
+phxqueue::comm::RetCode EventProducer::SetStatusInfoToLock(const phxqueue::comm::proto::SetStringRequest &req, phxqueue::comm::proto::SetStringResponse &resp)
+{
+	LockClient lock_client;
+	auto ret = lock_client.ProtoSetString(req, resp);
+    if (phxqueue::comm::RetCode::RET_OK != ret) {
+        QLErr("SetString ret %d", phxqueue::comm::as_integer(ret));
+    }
+    return ret;
+}
 
 }  // namespace producer
 

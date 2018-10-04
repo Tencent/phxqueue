@@ -50,6 +50,8 @@ enum class RetCode {
 
     RET_ERR_NO_NEED_DUMP_CHECKPOINT = 10801,
 
+	RET_ERR_CLIENTID_DUP = 10901,
+	RET_ERR_TXSTATUS_DUP = 10902,
 
     RET_ERR_SYS = -1,  // 系统错误
     RET_ERR_ARG = -2,  // 参数错误
@@ -111,6 +113,7 @@ enum class RetCode {
     RET_ERR_SVR_BLOCK = -10601,  // 机器被屏蔽
     RET_ERR_MASTER_CLIENT_FAIL = -10602,
     RET_ERR_NO_MASTER_ADDR = -10603,
+    RET_ERR_NO_ROUTE_ADDR = -10604,
 
     RET_ERR_MMLB = -10701,
 

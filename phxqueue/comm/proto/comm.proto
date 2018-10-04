@@ -236,6 +236,8 @@ message TxQueryRequest {
 	optional uint32 count = 4;
 	optional uint64 atime = 5;
 	optional bytes buffer = 6;
+
+    optional Addr addr = 100;
 }
 
 message TxQueryResponse {
@@ -249,6 +251,8 @@ message PushRequest {
 	optional uint32 count = 4;
 	optional uint64 atime = 5;
 	optional bytes buffer = 6;
+
+    optional Addr addr = 100;
 }
 
 message PushResponse {

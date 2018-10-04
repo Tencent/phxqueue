@@ -12,13 +12,5 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./config/baseconfig.h"
-#include "./config/consumerconfig.h"
-#include "./config/globalconfig.h"
-#include "./config/lockconfig.h"
-#include "./config/schedulerconfig.h"
-#include "./config/storeconfig.h"
-#include "./config/topicconfig.h"
-#include "./config/routeconfig.h"
-#include "./config/utils.h"
+#include "./txstatus/txstatus.h"
 

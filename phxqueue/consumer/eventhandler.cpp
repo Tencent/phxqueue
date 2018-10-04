@@ -16,6 +16,38 @@ TxQueryHandler :: TxQueryHandler() {
 TxQueryHandler :: ~TxQueryHandler() {
 }
 
+void TxQueryHandler :: CheckTxStatus(const comm::proto::ConsumerContext &cc, comm::proto::QItem &item, comm::proto::StatusInfo &status_info)
+{
+	comm::RetCode ret = GetTxStatus(cc.topic_id(), item.pub_id(), item.meta().client_id(), status_info);
+	if (ret != comm::RetCode::RET_OK) {
+		QLErr("GetTxStatus ret %d pub_id %d client_id %s", comm::as_integer(ret), item.pub_id(), item.meta().client_id().c_str());
+	}
+}
+
+void TxQueryHandler :: SelectTxQuerySubscriberAddr(comm::proto::Cookies &sys_cookies, const int sub_id, const uint64_t uin, 
+									   	   		   comm::proto::TxQueryRequest &req, comm::proto::TxQueryResponse &resp)
+{
+	comm::RetCode ret;
+	shared_ptr<const config::TopicConfig> topic_config;
+	if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(req.topic_id(), topic_config))) {
+		QLErr("GetTopicConfigByTopicID ret %d topic_id %d", comm::as_integer(ret), req.topic_id());
+		return ;
+	}
+
+	shared_ptr<const config::RouteConfig> route_config;
+	if (comm::RetCode::RET_OK != (ret = topic_config->GetRouteConfigBySubID(sub_id, route_config))) {
+		QLErr("GetRouteConfigBySubID ret %d topic_id %d sub_id %d", comm::as_integer(ret), req.topic_id(), sub_id);
+		return ;
+	}
+
+	if (comm::RetCode::RET_OK != (ret = route_config->GetAddrByConsistentHash(uin, *req.mutable_addr()))) {
+		QLErr("GetAddrByConsistentHash ret %d topic_id %d sub_id %d", comm::as_integer(ret), req.topic_id(), sub_id);
+		return ;
+	}
+
+	return ;
+}
+
 comm::HandleResult TxQueryHandler :: Handle(const comm::proto::ConsumerContext &cc, comm::proto::QItem &item, std::string &uncompressed_buffer)
 {
 	comm::proto::StatusInfo status_info;
@@ -46,7 +78,8 @@ comm::HandleResult TxQueryHandler :: Handle(const comm::proto::ConsumerContext &
 		req.set_atime(item.meta().atime());
 		req.set_buffer(uncompressed_buffer);
 
-		CallTxQuerySubscriber(*item.mutable_sys_cookies(), tx_query_sub_id, item.meta().uin(), req, resp);
+		SelectTxQuerySubscriberAddr(*item.mutable_sys_cookies(), tx_query_sub_id, item.meta().uin(), req, resp);
+		CallTxQuerySubscriber(req, resp);
 
 		status_info.CopyFrom(resp.status_info());
 	}
@@ -76,6 +109,29 @@ PushHandler :: PushHandler() {
 PushHandler :: ~PushHandler() {
 }
 
+void PushHandler :: SelectSubscriberAddr(comm::proto::Cookies &sys_cookies, const int sub_id, const uint64_t uin, 
+									   	 comm::proto::PushRequest &req, comm::proto::PushResponse &resp)
+{
+	comm::RetCode ret;
+	shared_ptr<const config::TopicConfig> topic_config;
+	if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(req.topic_id(), topic_config))) {
+		QLErr("GetTopicConfigByTopicID ret %d topic_id %d", comm::as_integer(ret), req.topic_id());
+		return ;
+	}
+
+	shared_ptr<const config::RouteConfig> route_config;
+	if (comm::RetCode::RET_OK != (ret = topic_config->GetRouteConfigBySubID(sub_id, route_config))) {
+		QLErr("GetRouteConfigBySubID ret %d topic_id %d sub_id %d", comm::as_integer(ret), req.topic_id(), sub_id);
+		return ;
+	}
+
+	if (comm::RetCode::RET_OK != (ret = route_config->GetAddrByConsistentHash(uin, *req.mutable_addr()))) {
+		QLErr("GetAddrByConsistentHash ret %d topic_id %d sub_id %d", comm::as_integer(ret), req.topic_id(), sub_id);
+		return ;
+	}
+
+	return ;
+}
 
 comm::HandleResult PushHandler :: Handle(const comm::proto::ConsumerContext &cc, comm::proto::QItem &item, std::string &uncompressed_buffer)
 {
@@ -122,7 +178,10 @@ comm::HandleResult PushHandler :: Handle(const comm::proto::ConsumerContext &cc,
 	int fail_count = 0;
 	for (auto &&sub_id : sub_ids) {
 		comm::proto::PushResponse resp;
-		CallSubscriber(*item.mutable_sys_cookies(), sub_id, item.meta().uin(), req, resp);
+		req.mutable_addr()->Clear();
+
+		SelectSubscriberAddr(*item.mutable_sys_cookies(), sub_id, item.meta().uin(), req, resp);
+		CallSubscriber(req, resp);
 
 		if (resp.result() == "success") {
 			++ succ_count;

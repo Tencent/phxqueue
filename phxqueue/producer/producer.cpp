@@ -19,6 +19,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxqueue/comm.h"
 #include "phxqueue/config.h"
 #include "phxqueue/store.h"
+#include "phxqueue/txstatus.h"
 
 #include "phxqueue/producer/batchhelper.h"
 
@@ -493,6 +494,39 @@ unique_ptr<StoreSelector> Producer::NewStoreSelector(const int topic_id, const i
     return unique_ptr<StoreSelector>(new StoreSelectorDefault(topic_id, pub_id,
                                                               uin, retry_switch_store));
 }
+
+/* EventProducer  */
+EventProducer::EventProducer(const ProducerOption &opt) : Producer(opt) {
+}
+
+EventProducer::~EventProducer() {
+}
+
+comm::RetCode EventProducer::Prepare(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id) {
+    comm::RetCode ret;
+
+    shared_ptr<const config::TopicConfig> topic_config;
+    if (comm::RetCode::RET_OK != (ret = config::GlobalConfig::GetThreadInstance()->GetTopicConfigByTopicID(topic_id, topic_config))) {
+        QLErr("GetTopicConfigByTopicID client_id %s ret %d", client_id.c_str(), as_integer(ret));
+        return ret;
+    }
+
+	if (client_id.size() > 0 && IsClientIDExist(topic_id, pub_id, client_id)) {
+		return comm::RetCode::RET_ERR_CLIENTID_DUP;
+	}
+
+	ret = Producer::Enqueue(uin, topic_id, pub_id, buffer, client_id);
+
+	if (ret == comm::RetCode::RET_OK && client_id.size() > 0) {
+		auto kv_ret = CreateTxStatus(topic_id, pub_id, client_id);
+		if (kv_ret != comm::RetCode::RET_OK) {
+			QLErr("CreateTxStatus client_id %s ret %d", client_id.c_str(), as_integer(kv_ret));
+		}
+	}
+
+	return ret;
+}
+
 
 
 }  // namespace producer

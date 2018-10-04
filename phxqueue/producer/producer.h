@@ -21,6 +21,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "phxqueue/producer/selector.h"
 #include "phxqueue/producer/produceroption.h"
+#include "phxqueue/txstatus.h"
 
 
 namespace phxqueue {
@@ -43,7 +44,7 @@ class Producer {
 
     // Interface for Data first enqueue.
     // Pack argument info item, add to Store by Store::Add.
-    comm::RetCode Enqueue(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id = "");
+	comm::RetCode Enqueue(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id = "");
 
     comm::RetCode Enqueue(const int topic_id, const uint64_t uin, const int handle_id, const std::string &buffer,
                           int pub_id = -1, const std::set<int> *consumer_group_ids = nullptr, const std::set<int> *sub_ids = nullptr, 
@@ -118,6 +119,15 @@ class Producer {
     std::unique_ptr<ProducerImpl> impl_;
 
     friend class BatchHelper;
+};
+
+class EventProducer : virtual public Producer, virtual public txstatus::TxStatusWriter 
+{
+	public:
+		EventProducer(const ProducerOption &opt);
+		virtual ~EventProducer();
+
+		comm::RetCode Prepare(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id = "");
 };
 
 
