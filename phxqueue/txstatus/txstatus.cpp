@@ -16,25 +16,7 @@ TxStatusReader :: ~TxStatusReader()
 {
 }
 
-bool TxStatusReader :: IsClientIDExist(const int topic_id, const int pub_id, const std::string& client_id)
-{
-	comm::proto::StatusInfo status_info;
-	uint32_t version = 0;
-	comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	if (ret == comm::RetCode::RET_ERR_KEY_NOT_EXIST) {
-		return false;
-	}
-	return true;
-}
-
-comm::RetCode TxStatusReader :: GetTxStatus(const int topic_id, const int pub_id, const std::string& client_id, comm::proto::StatusInfo &status_info)
-{
-	uint32_t version = 0;
-	comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	return ret;
-}
-
-void TxStatusReader :: GenKey(const int topic_id, const int pub_id, const std::string& client_id, std::string &key, uint32_t &hashkey)
+void TxStatusReader :: GenKey(int topic_id, const int pub_id, const std::string& client_id, std::string &key, uint32_t &hashkey)
 {
 	char pcKey[300];
 	snprintf(pcKey, sizeof(pcKey), "txst_%d#%d#%s", topic_id, pub_id, client_id.c_str());
@@ -125,42 +107,7 @@ TxStatusWriter :: ~TxStatusWriter()
 {
 }
 
-comm::RetCode TxStatusWriter :: CreateTxStatus(const int topic_id, const int pub_id, const std::string& client_id)
-{
-	comm::proto::StatusInfo status_info;
-	uint32_t version = 0;
-	status_info.set_tx_status(comm::proto::TxStatus::TX_UNCERTAIN);
-	comm::RetCode ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	return ret;
-}
 
-comm::RetCode TxStatusWriter :: Commit(const int topic_id, const int pub_id, const std::string& client_id)
-{
-	comm::proto::StatusInfo status_info;
-	uint32_t version = 0;
-	comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	if (ret == comm::RetCode::RET_OK && status_info.tx_status() != comm::proto::TxStatus::TX_UNCERTAIN) {
-		return comm::RetCode::RET_ERR_TXSTATUS_DUP;
-	}
-
-	status_info.set_tx_status(comm::proto::TxStatus::TX_COMMIT);
-	ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	return ret;
-}
-
-comm::RetCode TxStatusWriter :: RollBack(const int topic_id, const int pub_id, const std::string& client_id)
-{
-	comm::proto::StatusInfo status_info;
-	uint32_t version = 0;
-	comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	if (ret == comm::RetCode::RET_OK && status_info.tx_status() != comm::proto::TxStatus::TX_UNCERTAIN) {
-		return comm::RetCode::RET_ERR_TXSTATUS_DUP;
-	}
-
-	status_info.set_tx_status(comm::proto::TxStatus::TX_ROLLBACK);
-	ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
-	return ret;
-}
 
 comm::RetCode TxStatusWriter :: SetStatusInfo(const int topic_id, const int pub_id, const std::string& client_id, const comm::proto::StatusInfo &status_info, const uint32_t version)
 {

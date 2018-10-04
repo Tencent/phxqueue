@@ -14,4 +14,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #include "./consumer/consumer.h"
 #include "./consumer/consumerserverconfig.h"
+#include "./consumer/subscribercaller.h"
+#include "./consumer/pushhandler.h"
+#include "./consumer/txqueryhandler.h"
 

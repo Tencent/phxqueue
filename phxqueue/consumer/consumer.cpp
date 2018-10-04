@@ -30,7 +30,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include "phxqueue/store.h"
 #include "phxqueue/producer.h"
 
-#include "phxqueue/consumer/eventhandler.h"
 #include "phxqueue/consumer/freqman.h"
 #include "phxqueue/consumer/hblock.h"
 

@@ -15,7 +15,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <memory>
 
 #include "phxqueue/producer.h"
-
+#include "phxqueue_phxrpc/txstatus.h"
 
 namespace phxqueue_phxrpc {
 
@@ -35,14 +35,10 @@ class Producer : virtual public phxqueue::producer::Producer {
                                         phxqueue::comm::proto::AddResponse &resp) override;
 };
 
-class EventProducer : public phxqueue_phxrpc::producer::Producer, public phxqueue::producer::EventProducer {
-	protected:
-		EventProducer(const phxqueue::producer::ProducerOption &opt);
-		virtual ~EventProducer();
-
-		virtual phxqueue::comm::RetCode GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp);
-
-		virtual phxqueue::comm::RetCode SetStatusInfoToLock(const phxqueue::comm::proto::SetStringRequest &req, phxqueue::comm::proto::SetStringResponse &resp);
+class EventProducer : public phxqueue_phxrpc::producer::Producer, public phxqueue::producer::EventProducer, virtual public phxqueue_phxrpc::txstatus::TxStatusWriter {
+protected:
+    EventProducer(const phxqueue::producer::ProducerOption &opt);
+    virtual ~EventProducer();
 };
 
 

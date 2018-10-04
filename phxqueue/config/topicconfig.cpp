@@ -16,6 +16,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 #include <iostream>
 
 #include "phxqueue/comm.h"
+#include "phxqueue/plugin.h"
 
 
 namespace phxqueue {
@@ -42,7 +43,7 @@ class TopicConfig::TopicConfigImpl {
 		std::map<int, int> handle_id2rank;
 		std::vector<shared_ptr<proto::FreqInfo>> freq_infos;
 		std::vector<unique_ptr<proto::ReplayInfo>> replay_infos; // read only once
-		std::map<std::string, shared_ptr<config::RouteConfig>> route_path2route_config;
+		std::map<int, shared_ptr<config::RouteConfig>> sub_id2route_config;
 };
 
 TopicConfig::TopicConfig() : impl_(new TopicConfigImpl()){}
@@ -145,7 +146,7 @@ comm::RetCode TopicConfig::Rebuild() {
     impl_->handle_id2rank.clear();
     impl_->freq_infos.clear();
     impl_->replay_infos.clear();
-	impl_->route_path2route_config.clear();
+	impl_->sub_id2route_config.clear();
 
     auto &&proto = GetProto();
 
@@ -252,13 +253,12 @@ comm::RetCode TopicConfig::Rebuild() {
         impl_->handle_id2rank.emplace(proto.topic().handle_ids(i), i);
     }
 
-	for (auto &&it : impl_->sub_id2sub) {
-		std::string path = it.second->route_conf();
-		if (impl_->route_path2route_config.find(path) == impl_->route_path2route_config.end()) {
-			std::shared_ptr<config::RouteConfig> route_config = plugin::ConfigFactory::GetInstance()->NewRouteConfig(path);
-			impl_->route_path2route_config.emplace(path, route_config);
-		}
-	}
+    for (auto &&it : impl_->sub_id2sub) {
+        auto sub_id = it.first;
+        auto &&sub = it.second;
+        if (need_check) PHX_ASSERT(impl_->sub_id2route_config.end() == impl_->sub_id2route_config.find(sub_id), ==, true);
+        std::shared_ptr<config::RouteConfig> route_config = plugin::ConfigFactory::GetInstance()->NewRouteConfig(sub->route_conf());
+    }
 
     return comm::RetCode::RET_OK;
 }
@@ -445,20 +445,10 @@ comm::RetCode TopicConfig::GetTxQuerySubIDByPubID(const int pub_id, int &sub_id)
 }
 
 comm::RetCode TopicConfig::GetRouteConfigBySubID(const int sub_id, std::shared_ptr<const config::RouteConfig> &route_config) const {
-    comm::RetCode ret;
-    shared_ptr<const proto::Sub> sub;
-    if (comm::RetCode::RET_OK != (ret = GetSubBySubID(sub_id, sub))) return ret;
-    if (!sub) return comm::RetCode::RET_ERR_RANGE_SUB;
-	auto iter = impl_->route_path2route_config.find(sub->route_conf());
-	if (iter == impl_->route_path2route_config.end()) {
-		return comm::RetCode::RET_ERR_NO_ROUTE_ADDR;
-	}
-	if (!iter->second) {
-		return comm::RetCode::RET_ERR_NO_ROUTE_ADDR;
-	}
-
-	iter->second->Load();
-	route_config = iter->second;
+    auto &&it = impl_->sub_id2route_config.find(sub_id);
+    if (impl_->sub_id2route_config.end() == it) return comm::RetCode::RET_ERR_NO_ROUTE_ADDR;
+    it->second->Load();
+    route_config = it->second;
     return comm::RetCode::RET_OK;
 }
 

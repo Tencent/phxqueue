@@ -527,6 +527,53 @@ comm::RetCode EventProducer::Prepare(const uint64_t uin, const int topic_id, con
 	return ret;
 }
 
+bool EventProducer::IsClientIDExist(const int topic_id, const int pub_id, const std::string& client_id)
+{
+    comm::proto::StatusInfo status_info;
+    uint32_t version = 0;
+    comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    if (ret == comm::RetCode::RET_ERR_KEY_NOT_EXIST) {
+        return false;
+    }
+    return true;
+}
+
+comm::RetCode EventProducer::CreateTxStatus(const int topic_id, const int pub_id, const std::string& client_id)
+{
+    comm::proto::StatusInfo status_info;
+    uint32_t version = 0;
+    status_info.set_tx_status(comm::proto::TxStatus::TX_UNCERTAIN);
+    comm::RetCode ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    return ret;
+}
+
+comm::RetCode EventProducer::Commit(const int topic_id, const int pub_id, const std::string& client_id)
+{
+    comm::proto::StatusInfo status_info;
+    uint32_t version = 0;
+    comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    if (ret == comm::RetCode::RET_OK && status_info.tx_status() != comm::proto::TxStatus::TX_UNCERTAIN) {
+        return comm::RetCode::RET_ERR_TXSTATUS_DUP;
+    }
+
+    status_info.set_tx_status(comm::proto::TxStatus::TX_COMMIT);
+    ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    return ret;
+}
+
+comm::RetCode EventProducer::RollBack(const int topic_id, const int pub_id, const std::string& client_id)
+{
+    comm::proto::StatusInfo status_info;
+    uint32_t version = 0;
+    comm::RetCode ret = GetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    if (ret == comm::RetCode::RET_OK && status_info.tx_status() != comm::proto::TxStatus::TX_UNCERTAIN) {
+        return comm::RetCode::RET_ERR_TXSTATUS_DUP;
+    }
+
+    status_info.set_tx_status(comm::proto::TxStatus::TX_ROLLBACK);
+    ret = SetStatusInfo(topic_id, pub_id, client_id, status_info, version);
+    return ret;
+}
 
 
 }  // namespace producer

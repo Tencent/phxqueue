@@ -22,43 +22,33 @@ using namespace std;
 
 class TxStatusReader
 {
-	public:
-		TxStatusReader();
-		virtual ~TxStatusReader();
+public:
+    TxStatusReader();
+    virtual ~TxStatusReader();
 
-		bool IsClientIDExist(const int topic_id, const int pub_id, const std::string& client_id);
+protected:
+    void GenKey(const int topic_id, const int pub_id, const std::string& client_id, std::string &key, uint32_t &hashkey);
+    comm::RetCode GetLockID(const int topic_id, const uint32_t hashkey, int &lock_id);
+    comm::RetCode GetStatusInfo(const int topic_id, const int pub_id, const std::string& client_id, comm::proto::StatusInfo &status_info, uint32_t &version);
 
-		comm::RetCode GetTxStatus(const int topic_id, const int pub_id, const std::string& client_id, comm::proto::StatusInfo &status_info);
-
-	protected:
-		void GenKey(const int topic_id, const int pub_id, const std::string& client_id, std::string &key, uint32_t &hashkey);
-
-		comm::RetCode GetLockID(const int topic_id, const uint32_t hashkey, int &lock_id);
-
-		comm::RetCode GetStatusInfo(const int topic_id, const int pub_id, const std::string& client_id, comm::proto::StatusInfo &status_info, uint32_t &version);
-
-		virtual comm::RetCode GetStatusInfoFromLock(const comm::proto::GetStringRequest &req, comm::proto::GetStringResponse &resp) = 0;
+protected:
+    virtual comm::RetCode GetStatusInfoFromLock(const comm::proto::GetStringRequest &req, comm::proto::GetStringResponse &resp) = 0;
 };
 
 class TxStatusWriter : public TxStatusReader
 {
-	public:
-		TxStatusWriter();
-		virtual ~TxStatusWriter();
+public:
+    TxStatusWriter();
+    virtual ~TxStatusWriter();
 
-		comm::RetCode CreateTxStatus(const int topic_id, const int pub_id, const std::string& client_id);
+protected:
+    comm::RetCode SetStatusInfo(const int topic_id, const int pub_id, const std::string& client_id, const comm::proto::StatusInfo &status_info, const uint32_t version);
 
-		comm::RetCode Commit(const int topic_id, const int pub_id, const std::string& client_id);
+protected:
+    virtual comm::RetCode SetStatusInfoToLock(const comm::proto::SetStringRequest &req, comm::proto::SetStringResponse &resp) = 0;
 
-		comm::RetCode RollBack(const int topic_id, const int pub_id, const std::string& client_id);
-
-	protected:
-		comm::RetCode SetStatusInfo(const int topic_id, const int pub_id, const std::string& client_id, const comm::proto::StatusInfo &status_info, const uint32_t version);
-
-		virtual comm::RetCode SetStatusInfoToLock(const comm::proto::SetStringRequest &req, comm::proto::SetStringResponse &resp) = 0;
-
-	private:
-		const uint64_t CLIENTID_EXPIRE_TIME = 3 * 24 * 60 * 60 * 1000;
+private:
+    const uint64_t CLIENTID_EXPIRE_TIME = 3 * 24 * 60 * 60 * 1000;
 };
 
 }
