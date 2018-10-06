@@ -166,7 +166,6 @@ comm::RetCode TopicConfig::Rebuild() {
         }
 		impl_->sub_id2sub.emplace(sub.sub_id(), make_shared<proto::Sub>(sub));
 	}
-
     for (int i{0}; proto.pubs_size() > i; ++i) {
         auto &pub(proto.pubs(i));
         if (!pub.pub_id()) continue;
@@ -257,7 +256,8 @@ comm::RetCode TopicConfig::Rebuild() {
         auto sub_id = it.first;
         auto &&sub = it.second;
         if (need_check) PHX_ASSERT(impl_->sub_id2route_config.end() == impl_->sub_id2route_config.find(sub_id), ==, true);
-        std::shared_ptr<config::RouteConfig> route_config = plugin::ConfigFactory::GetInstance()->NewRouteConfig(sub->route_conf());
+        std::shared_ptr<config::RouteConfig> route_config = plugin::ConfigFactory::GetInstance()->NewRouteConfig(proto.topic().topic_id(), sub->route_conf());
+        impl_->sub_id2route_config.emplace(sub_id, route_config);
     }
 
     return comm::RetCode::RET_OK;

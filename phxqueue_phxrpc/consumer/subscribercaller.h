@@ -1,5 +1,6 @@
 #pragma once
 #include "phxqueue/comm.h"
+#include "phxqueue/config.h"
 #include "phxqueue/consumer.h"
 
 #include "phxrpc/http.h"
@@ -14,10 +15,10 @@ template <typename Req, typename Resp>
 class SubscriberCaller : virtual public phxqueue::consumer::SubscriberCaller<Req, Resp> {
 public:
     SubscriberCaller() : phxqueue::consumer::SubscriberCaller<Req, Resp>() {}
-    virtual ~SubscriberCaller() {}
-    virtual phxqueue::comm::RetCode CallSubscriber(const Req &req, Resp &resp) {
+    virtual ~SubscriberCaller() override {}
+    virtual phxqueue::comm::RetCode CallSubscriber(const phxqueue::comm::proto::QItem &item, const int sub_id, const Req &req, Resp &resp, phxqueue::config::proto::RouteGeneral &route_general) override {
         phxrpc::BlockTcpStream socket;
-        bool open_ret = phxrpc::BlockTcpUtils::Open(&socket, req.addr().ip().c_str(), req.addr().port(), 500, nullptr, 0);
+        bool open_ret = phxrpc::BlockTcpUtils::Open(&socket, req.addr().ip().c_str(), req.addr().port(), route_general.conn_timeout_ms(), nullptr, 0);
         if (!open_ret) {
             QLErr("CallTxQuerySubscriber socket open %s:%d fail. pub %d client_id %s.",
                   req.addr().ip().c_str(), req.addr().port(), req.pub_id(), req.client_id().c_str());
@@ -30,9 +31,10 @@ public:
             QLErr("CallTxQuerySubscriber parse request fail. pub %d client_id %s.", req.pub_id(), req.client_id().c_str());
             return phxqueue::comm::RetCode::RET_ERR_ARG;
         }
+        http_req.set_uri(route_general.uri().c_str());
 
         int ret = phxrpc::HttpClient::Post(socket, http_req, &http_resp);
-        if (ret) {
+        if (0 == ret) {
             if (0 != http_resp.ToPb(&resp)) {
                 QLErr("CallTxQuerySubscriber parse response fail. pub %d client_id %s.", req.pub_id(), req.client_id().c_str());
                 return phxqueue::comm::RetCode::RET_ERR_LOGIC;

@@ -236,7 +236,7 @@ comm::RetCode Producer::MakeAddRequests(const int topic_id,
 
         int queue_info_id = 0;
 		comm::proto::QueueType queue_type;
-		if (new_item->handle_id() == comm::proto::HANDLER_TX_QUERY) {
+		if (new_item->handle_id() == comm::proto::EventHandleID::HANDLER_TX_QUERY) {
 			queue_type = comm::proto::QueueType::TX_QUERY_QUEUE;
 		} 
 		else {
@@ -496,11 +496,6 @@ unique_ptr<StoreSelector> Producer::NewStoreSelector(const int topic_id, const i
 }
 
 /* EventProducer  */
-EventProducer::EventProducer(const ProducerOption &opt) : Producer(opt) {
-}
-
-EventProducer::~EventProducer() {
-}
 
 comm::RetCode EventProducer::Prepare(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id) {
     comm::RetCode ret;

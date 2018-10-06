@@ -39,7 +39,8 @@ class ConfigFactory : public phxqueue::plugin::ConfigFactory {
     NewSchedulerConfig(const int topic_id, const std::string &path);
     virtual std::unique_ptr<phxqueue::config::LockConfig>
     NewLockConfig(const int topic_id, const std::string &path);
-
+    virtual std::unique_ptr<phxqueue::config::RouteConfig>
+    NewRouteConfig(const int topic_id, const std::string &path);
   public:
     void SetNeedCheck(bool need_check);
 

@@ -12,12 +12,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./config/baseconfig.h"
-#include "./config/consumerconfig.h"
-#include "./config/globalconfig.h"
-#include "./config/lockconfig.h"
-#include "./config/routeconfig.h"
-#include "./config/schedulerconfig.h"
-#include "./config/storeconfig.h"
-#include "./config/topicconfig.h"
+#include "phxqueue_phxrpc/config/baseconfig.h"
+#include "phxqueue/config.h"
+
+
+namespace phxqueue_phxrpc {
+
+namespace config {
+
+
+class RouteConfig : public BaseConfig<phxqueue::config::RouteConfig> {
+  public:
+    RouteConfig() : BaseConfig<phxqueue::config::RouteConfig>() {}
+    virtual ~RouteConfig() {}
+};
+
+
+}  // namespace config
+
+}  // namespace phxqueue_phxrpc
 

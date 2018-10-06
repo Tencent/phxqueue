@@ -20,15 +20,21 @@ comm::HandleResult PushHandler :: Handle(const comm::proto::ConsumerContext &cc,
     }
 
     std::set<int> sub_ids;
-    if (item.count() == 0) {
-        for (int i{0}; i < item.sub_ids_size(); i++) {
+    if (0 == item.sub_ids_size()){
+        std::set<int> tmp_sub_ids;
+        if (comm::RetCode::RET_OK != (ret = topic_config->GetSubIDsByPubID(item.pub_id(), tmp_sub_ids))) {
+            QLErr("GetSubIDsByPubID ret %d pub_id %d", comm::as_integer(ret), item.pub_id());
+            return comm::HandleResult::RES_ERROR;
+        }
+
+        for (auto &&sub_id : tmp_sub_ids) {
             shared_ptr<const config::proto::Sub> sub;
-            if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(item.sub_ids(i), sub))) {
-                QLErr("GetSubBySubID ret %d sub_id %d", comm::as_integer(ret), item.sub_ids(i));
+            if (comm::RetCode::RET_OK != (ret = topic_config->GetSubBySubID(sub_id, sub))) {
+                QLErr("GetSubBySubID ret %d sub_id %d", comm::as_integer(ret), sub_id);
                 return comm::HandleResult::RES_ERROR;
             }
             if (sub->consumer_group_id() == cc.consumer_group_id()) {
-                sub_ids.insert(item.sub_ids(i));
+                sub_ids.insert(sub_id);
             }
         }
     }
@@ -57,19 +63,20 @@ comm::HandleResult PushHandler :: Handle(const comm::proto::ConsumerContext &cc,
         comm::proto::PushResponse resp;
         req.mutable_addr()->Clear();
 
-        if (comm::RetCode::RET_OK != (ret = SelectSubscriberAddr(*item.mutable_sys_cookies(), cc.topic_id(), sub_id, item.meta().uin(), *req.mutable_addr()))) {
+        config::proto::RouteGeneral route_general;
+        if (comm::RetCode::RET_OK != (ret = SelectSubscriberAddr(item, sub_id, *req.mutable_addr(), route_general))) {
             QLErr("SelectSubscriberAddr ret %d sub_id %d", comm::as_integer(ret), sub_id);
         }
 
-        if (comm::RetCode::RET_OK == ret && comm::RetCode::RET_OK != (ret = CallSubscriber(req, resp))) {
+        if (comm::RetCode::RET_OK == ret && comm::RetCode::RET_OK != (ret = CallSubscriber(item, sub_id, req, resp, route_general))) {
             QLErr("CallSubscriber ret %d", comm::as_integer(ret));
         }
 
         if (resp.result() == "success") {
-            ++ succ_count;
+            ++succ_count;
         }
         else {
-            ++ fail_count;
+            ++fail_count;
             retry_sub_ids.insert(sub_id);
         }
     }

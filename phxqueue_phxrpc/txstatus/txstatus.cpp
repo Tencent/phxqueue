@@ -6,6 +6,8 @@ namespace phxqueue_phxrpc {
 
 namespace txstatus {
 
+using namespace std;
+
 /***   TxStatusReader      ***/
 
 phxqueue::comm::RetCode TxStatusReader::GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp)

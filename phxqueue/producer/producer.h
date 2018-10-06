@@ -124,8 +124,8 @@ class Producer {
 class EventProducer : virtual public Producer, virtual public txstatus::TxStatusWriter 
 {
 public:
-    EventProducer(const ProducerOption &opt);
-    virtual ~EventProducer();
+    EventProducer(const ProducerOption &opt) : Producer(opt), txstatus::TxStatusWriter() {}
+    virtual ~EventProducer() {}
 
     comm::RetCode Prepare(const uint64_t uin, const int topic_id, const int pub_id, const std::string &buffer, const std::string client_id = "");
     comm::RetCode Commit(const int topic_id, const int pub_id, const std::string& client_id);

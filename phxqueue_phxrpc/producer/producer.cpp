@@ -21,11 +21,6 @@ namespace producer {
 
 using namespace std;
 
-Producer::Producer(const phxqueue::producer::ProducerOption &opt)
-        : phxqueue::producer::Producer(opt) {}
-
-Producer::~Producer() {}
-
 void Producer::CompressBuffer(const string &buffer, string &compressed_buffer, int &buffer_type) {
     compressed_buffer = buffer;
     buffer_type = 0;
@@ -42,10 +37,6 @@ phxqueue::comm::RetCode Producer::Add(const phxqueue::comm::proto::AddRequest &r
 }
 
 /* EventProducer */
-EventProducer::EventProducer(const phxqueue::producer::ProducerOption &opt)
-    : phxqueue::producer::Producer(opt), phxqueue_phxrpc::producer::Producer(opt), phxqueue::producer::EventProducer(opt), phxqueue_phxrpc::txstatus::TxStatusWriter() {}
-
-EventProducer::~EventProducer() {}
 
 
 }  // namespace producer

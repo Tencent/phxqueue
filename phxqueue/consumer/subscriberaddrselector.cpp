@@ -8,8 +8,10 @@ namespace consumer {
 
 using namespace std;
 
-comm::RetCode SubscriberAddrSelector:: SelectSubscriberAddr(comm::proto::Cookies &sys_cookies, const int topic_id, const int sub_id, const uint64_t uin, comm::proto::Addr &addr) {
+comm::RetCode SubscriberAddrSelector:: SelectSubscriberAddr(const comm::proto::QItem &item, const int sub_id, comm::proto::Addr &addr, config::proto::RouteGeneral &route_general) {
     addr.Clear();
+
+    auto topic_id = item.meta().topic_id();
 
     comm::RetCode ret;
     shared_ptr<const config::TopicConfig> topic_config;
@@ -24,10 +26,12 @@ comm::RetCode SubscriberAddrSelector:: SelectSubscriberAddr(comm::proto::Cookies
         return ret;
     }
 
-    if (comm::RetCode::RET_OK != (ret = route_config->GetAddrByConsistentHash(uin, addr))) {
+    if (comm::RetCode::RET_OK != (ret = route_config->GetAddrByConsistentHash(item.meta().uin(), addr))) {
         QLErr("GetAddrByConsistentHash ret %d topic_id %d sub_id %d", comm::as_integer(ret), topic_id, sub_id);
         return ret;
     }
+
+    route_general.CopyFrom(route_config->GetProto().general());
 
     return comm::RetCode::RET_OK;
 }

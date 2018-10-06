@@ -25,7 +25,13 @@ extern char *program_invocation_short_name;
 
 void ShowUsage(const char *program) {
     printf("\n");
-    printf("Usage: %s\n", program);
+    printf("Usage:\n");
+    printf("--------- normal msg ----------\n");
+    printf("%s -f enqueue\n", program);
+    printf("----------- tx msg ------------\n");
+    printf("%s -f prepare\n", program);
+    printf("%s -f rollback -c <client_id>\n", program);
+    printf("%s -f commit -c <client_id>\n", program);
     printf("\n");
 
     exit(0);
@@ -46,6 +52,17 @@ void GenRandomString(char *s, const int len) {
 }
 
 int main(int argc, char **argv) {
+    string func, client_id;
+    extern char *optarg ;
+    int c;
+    while (EOF != (c = getopt(argc, argv, "f:c:"))) {
+        switch (c) {
+            case 'f': func = optarg; break;
+            case 'c': client_id = optarg; break;
+            default: ShowUsage(argv[0]); break;
+        }
+    }
+
     const char *module_name{program_invocation_short_name};
 
     if (argc < 1) {
@@ -66,24 +83,43 @@ int main(int argc, char **argv) {
     string buf(random_str);
 
     phxqueue::producer::ProducerOption opt;
-    unique_ptr<phxqueue::producer::Producer> producer;
-    producer.reset(new phxqueue_phxrpc::producer::Producer(opt));
+    unique_ptr<phxqueue::producer::EventProducer> producer;
+    producer.reset(new phxqueue_phxrpc::producer::EventProducer(opt));
     producer->Init();
 
     const int topic_id{1000};
     const uint64_t uin{0};
-    const int handle_id{2};
     const int pub_id{1};
+    const int tx_pub_id{2};
 
-    phxqueue::comm::RetCode ret{producer->Enqueue(topic_id, uin, handle_id, buf, pub_id)};
+
+    phxqueue::comm::RetCode ret{phxqueue::comm::RetCode::RET_OK};
+
+    if ("enqueue" == func) {
+        ret = producer->Enqueue(topic_id, uin, phxqueue::comm::proto::EventHandleID::HANDLER_PUSH, buf, pub_id);
+    } else if ("prepare" == func) {
+        {
+            std::ostringstream oss;
+            oss << time(nullptr) << "_" << buf;
+            client_id = oss.str();
+        }
+        ret = producer->Prepare(uin, topic_id, tx_pub_id, buf, client_id);
+    } else if ("rollback" == func) {
+        ret = producer->RollBack(topic_id, tx_pub_id, client_id);
+    } else if ("commit" == func) {
+        ret = producer->Commit(topic_id, tx_pub_id, client_id);
+    } else {
+        ShowUsage(module_name);
+        exit(0);
+    }
 
     if (phxqueue::comm::RetCode::RET_OK == ret) {
-        printf("produce echo \"%s\" succeeded!\n", buf.c_str());
-        fflush(stdout);
+        printf("succeeded! func %s client_id %s buf %s\n", func.c_str(), client_id.c_str(), buf.c_str());
     } else {
-        printf("produce echo \"%s\" failed return %d!\n", buf.c_str(), phxqueue::comm::as_integer(ret));
+        printf("failed! ret %d\n",  phxqueue::comm::as_integer(ret));
         fflush(stdout);
     }
+    fflush(stdout);
 
     return 0;
 }

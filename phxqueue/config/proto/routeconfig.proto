@@ -10,6 +10,7 @@ message RouteConfig {
 
 message RouteGeneral {
 	optional int32 conn_timeout_ms = 1[default = 500];
+	optional string uri = 10;
 }
 
 message Route {

@@ -11,7 +11,7 @@ namespace consumer {
 
 class PushHandler :
     public comm::Handler,
-    public SubscriberAddrSelector,
+    virtual public SubscriberAddrSelector,
     virtual public SubscriberCaller<comm::proto::PushRequest, comm::proto::PushResponse> {
 public:
     PushHandler() : comm::Handler(), SubscriberAddrSelector(), SubscriberCaller<comm::proto::PushRequest, comm::proto::PushResponse>() {}

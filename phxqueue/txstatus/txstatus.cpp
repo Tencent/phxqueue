@@ -6,6 +6,8 @@
 namespace phxqueue {
 namespace txstatus {
 
+using namespace std;
+
 /***   TxStatusReader      ***/
 
 TxStatusReader :: TxStatusReader()
@@ -99,7 +101,7 @@ comm::RetCode TxStatusReader :: GetStatusInfo(const int topic_id, const int pub_
 
 /***   TxStatusWriter      ***/
 
-TxStatusWriter :: TxStatusWriter()
+TxStatusWriter :: TxStatusWriter() : TxStatusReader()
 {
 }
 

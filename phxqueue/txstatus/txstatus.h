@@ -18,7 +18,6 @@ namespace phxqueue {
 
 namespace txstatus {
 
-using namespace std;
 
 class TxStatusReader
 {
@@ -35,7 +34,7 @@ protected:
     virtual comm::RetCode GetStatusInfoFromLock(const comm::proto::GetStringRequest &req, comm::proto::GetStringResponse &resp) = 0;
 };
 
-class TxStatusWriter : public TxStatusReader
+class TxStatusWriter : virtual public TxStatusReader
 {
 public:
     TxStatusWriter();

@@ -71,9 +71,10 @@ class ConfigFactory {
                                                               const std::string &path) {
         return std::unique_ptr<config::LockConfig>(new config::LockConfig());
     }
-	virtual std::unique_ptr<config::RouteConfig> NewRouteConfig(const std::string &path) {
+    virtual std::unique_ptr<config::RouteConfig> NewRouteConfig(const int topic_id,
+                                                                const std::string &path) {
         return std::unique_ptr<config::RouteConfig>(new config::RouteConfig());
-	}
+    }
 
   private:
     static ConfigFactoryCreateFunc config_factory_create_func_;

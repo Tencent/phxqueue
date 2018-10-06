@@ -42,11 +42,12 @@ comm::HandleResult TxQueryHandler :: Handle(const comm::proto::ConsumerContext &
         req.set_atime(item.meta().atime());
         req.set_buffer(uncompressed_buffer);
 
-        if (comm::RetCode::RET_OK != (ret = SelectSubscriberAddr(*item.mutable_sys_cookies(), cc.topic_id(), tx_query_sub_id, item.meta().uin(), *req.mutable_addr()))) {
+        config::proto::RouteGeneral route_general;
+        if (comm::RetCode::RET_OK != (ret = SelectSubscriberAddr(item, tx_query_sub_id, *req.mutable_addr(), route_general))) {
             QLErr("SelectSubscriberAddr ret %d sub_id %d", comm::as_integer(ret), tx_query_sub_id);
         }
 
-        if (comm::RetCode::RET_OK == ret && comm::RetCode::RET_OK != (ret = CallSubscriber(req, resp))) {
+        if (comm::RetCode::RET_OK == ret && comm::RetCode::RET_OK != (ret = CallSubscriber(item, tx_query_sub_id, req, resp, route_general))) {
             QLErr("CallSubscriber ret %d", comm::as_integer(ret));
         } else {
             status_info.CopyFrom(resp.status_info());

@@ -7,26 +7,24 @@ namespace phxqueue_phxrpc {
 
 namespace txstatus {
 
-using namespace std;
-
 class TxStatusReader : virtual public phxqueue::txstatus::TxStatusReader
 {
 public:
     TxStatusReader() : phxqueue::txstatus::TxStatusReader() {}
-    virtual ~TxStatusReader() {}
+    virtual ~TxStatusReader() override {}
 
 protected:
-    virtual phxqueue::comm::RetCode GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp);
+    virtual phxqueue::comm::RetCode GetStatusInfoFromLock(const phxqueue::comm::proto::GetStringRequest &req, phxqueue::comm::proto::GetStringResponse &resp) override;
 };
 
-class TxStatusWriter : public phxqueue_phxrpc::txstatus::TxStatusReader, virtual public phxqueue::txstatus::TxStatusWriter
+class TxStatusWriter : virtual public phxqueue::txstatus::TxStatusWriter, public phxqueue_phxrpc::txstatus::TxStatusReader
 {
 public:
-    TxStatusWriter() : phxqueue_phxrpc::txstatus::TxStatusReader(), phxqueue::txstatus::TxStatusWriter() {}
-    virtual ~TxStatusWriter() {}
+    TxStatusWriter() : phxqueue::txstatus::TxStatusWriter(), phxqueue_phxrpc::txstatus::TxStatusReader() {}
+    virtual ~TxStatusWriter() override {}
 
 protected:
-    virtual phxqueue::comm::RetCode SetStatusInfoToLock(const phxqueue::comm::proto::SetStringRequest &req, phxqueue::comm::proto::SetStringResponse &resp);
+    virtual phxqueue::comm::RetCode SetStatusInfoToLock(const phxqueue::comm::proto::SetStringRequest &req, phxqueue::comm::proto::SetStringResponse &resp) override;
 };
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "phxqueue/comm.h"
+#include "phxqueue/config.h"
 
 namespace phxqueue {
 
@@ -10,7 +11,7 @@ class SubscriberCaller {
 public:
     SubscriberCaller() {}
     virtual ~SubscriberCaller() {}
-    virtual comm::RetCode CallSubscriber(const Req &req, Resp &resp) = 0;
+    virtual comm::RetCode CallSubscriber(const comm::proto::QItem &item, const int sub_id, const Req &req, Resp &resp, config::proto::RouteGeneral &route_general) = 0;
 };
 
 }

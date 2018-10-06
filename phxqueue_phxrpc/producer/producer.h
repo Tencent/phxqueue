@@ -23,9 +23,9 @@ namespace producer {
 
 
 class Producer : virtual public phxqueue::producer::Producer {
-  public:
-    Producer(const phxqueue::producer::ProducerOption &opt);
-    virtual ~Producer();
+public:
+    Producer(const phxqueue::producer::ProducerOption &opt) : phxqueue::producer::Producer(opt) {}
+    virtual ~Producer() {}
 
     virtual void CompressBuffer(const std::string &buffer, std::string &compressed_buffer,
                                 int &buffer_type) override;
@@ -35,10 +35,10 @@ class Producer : virtual public phxqueue::producer::Producer {
                                         phxqueue::comm::proto::AddResponse &resp) override;
 };
 
-class EventProducer : public phxqueue_phxrpc::producer::Producer, public phxqueue::producer::EventProducer, virtual public phxqueue_phxrpc::txstatus::TxStatusWriter {
-protected:
-    EventProducer(const phxqueue::producer::ProducerOption &opt);
-    virtual ~EventProducer();
+class EventProducer : virtual public phxqueue::producer::Producer, public phxqueue::producer::EventProducer, virtual public phxqueue_phxrpc::txstatus::TxStatusWriter, public phxqueue_phxrpc::producer::Producer {
+public:
+    EventProducer(const phxqueue::producer::ProducerOption &opt) : phxqueue::producer::Producer(opt), phxqueue::producer::EventProducer(opt), phxqueue_phxrpc::txstatus::TxStatusWriter(), phxqueue_phxrpc::producer::Producer(opt) {}
+    virtual ~EventProducer() {}
 };
 
 

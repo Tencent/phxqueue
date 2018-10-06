@@ -113,6 +113,18 @@ ConfigFactory::NewLockConfig(const int topic_id, const string &path) {
     return unique_ptr<config::LockConfig>(conf);
 }
 
+unique_ptr<phxqueue::config::RouteConfig>
+ConfigFactory::NewRouteConfig(const int topic_id, const string &path) {
+    QLVerb("topic_id %d path %s", topic_id, path.c_str());
+
+    auto &&conf(new config::RouteConfig());
+    conf->SetNeedCheck(impl_->need_check);
+    conf->SetFileIfUnset(path);
+    if (conf) conf->LoadIfModified();
+
+    return unique_ptr<config::RouteConfig>(conf);
+}
+
 void ConfigFactory::SetNeedCheck(bool need_check) {
     impl_->need_check = need_check;
 }

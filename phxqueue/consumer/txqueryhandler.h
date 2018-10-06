@@ -13,7 +13,7 @@ namespace consumer {
 class TxQueryHandler :
     public comm::Handler,
     virtual public txstatus::TxStatusReader,
-    public SubscriberAddrSelector,
+    virtual public SubscriberAddrSelector,
     virtual public SubscriberCaller<comm::proto::TxQueryRequest, comm::proto::TxQueryResponse> {
 public:
     TxQueryHandler() : comm::Handler(), txstatus::TxStatusReader(), SubscriberAddrSelector(), SubscriberCaller<comm::proto::TxQueryRequest, comm::proto::TxQueryResponse>() {}

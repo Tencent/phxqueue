@@ -25,8 +25,9 @@ BIN_TARGETS := phxqueue/test/test_config_main phxqueue/test/test_consumer_main p
                            phxqueue_phxrpc/app/consumer/consumer_main \
                            phxqueue_phxrpc/test/test_load_config_main phxqueue_phxrpc/test/test_rpc_config_main \
 			   phxqueue_phxrpc/test/producer_benchmark_main \
-			   phxqueue_phxrpc/test/test_producer_echo_main phxqueue_phxrpc/test/config_check_main \
-			   phxqueue_phxrpc/test/test_selector_main phxqueue_phxrpc/test/test_get_main
+			   phxqueue_phxrpc/test/config_check_main \
+			   phxqueue_phxrpc/test/test_selector_main phxqueue_phxrpc/test/test_get_main \
+                           phxqueue_phxrpc/test/test_enqueue_main
 
 SUB_MAKE_LIB_TARGETS := phxqueue_phxrpc/app/store/libstore_client.a \
 						phxqueue_phxrpc/app/lock/liblock_client.a \

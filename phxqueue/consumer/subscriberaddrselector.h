@@ -1,5 +1,6 @@
 #pragma once
 #include "phxqueue/comm.h"
+#include "phxqueue/config.h"
 
 namespace phxqueue {
 
@@ -9,7 +10,7 @@ class SubscriberAddrSelector {
 public:
     SubscriberAddrSelector() {}
     virtual ~SubscriberAddrSelector() {}
-    virtual comm::RetCode SelectSubscriberAddr(comm::proto::Cookies &sys_cookies, const int topic_id, const int sub_id, const uint64_t uin, comm::proto::Addr &addr);
+    virtual comm::RetCode SelectSubscriberAddr(const comm::proto::QItem &item, const int sub_id, comm::proto::Addr &addr, config::proto::RouteGeneral &route_general);
 };
 
 }

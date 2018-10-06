@@ -11,7 +11,7 @@ namespace consumer {
 
 class PushHandler :
     public phxqueue::consumer::PushHandler,
-    public phxqueue_phxrpc::consumer::SubscriberCaller<phxqueue::comm::proto::PushRequest, phxqueue::comm::proto::PushResponse> {
+    virtual public phxqueue_phxrpc::consumer::SubscriberCaller<phxqueue::comm::proto::PushRequest, phxqueue::comm::proto::PushResponse> {
 public:
     PushHandler() : phxqueue::consumer::PushHandler(), phxqueue_phxrpc::consumer::SubscriberCaller<phxqueue::comm::proto::PushRequest, phxqueue::comm::proto::PushResponse>() {}
     virtual ~PushHandler() {}

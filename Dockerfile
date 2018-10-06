@@ -2,10 +2,10 @@ FROM buildpack-deps
 
 COPY . /phxqueue
 
-ENV BUILD_DEPS="cmake python-pip"
 
 RUN apt-get update \
-        && apt-get install -y $BUILD_DEPS --no-install-recommends \
+        && apt-get install -y cmake --no-install-recommends \
+        && apt-get install -y python-pip \
         && pip install protobuf \
         && cd /phxqueue \
 	&& ./build.sh \
