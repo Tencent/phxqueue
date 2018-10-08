@@ -12,9 +12,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./consumer/consumer.h"
-#include "./consumer/consumeroption.h"
-#include "./consumer/subscribercaller.h"
-#include "./consumer/subscriberaddrselector.h"
-#include "./consumer/pushhandler.h"
-#include "./consumer/txqueryhandler.h"
+#include "phxqueue/consumer/consumer.h"
+#include "phxqueue/consumer/consumeroption.h"
+#include "phxqueue/consumer/subscribercaller.h"
+#include "phxqueue/consumer/subscriberaddrselector.h"
+#include "phxqueue/consumer/pushhandler.h"
+#include "phxqueue/consumer/txqueryhandler.h"

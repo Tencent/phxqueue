@@ -12,7 +12,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./scheduler/scheduler.h"
-#include "./scheduler/schedulermasterclient.h"
-#include "./scheduler/scheduleroption.h"
+#include "phxqueue/scheduler/scheduler.h"
+#include "phxqueue/scheduler/schedulermasterclient.h"
+#include "phxqueue/scheduler/scheduleroption.h"
 

@@ -12,8 +12,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./comm/fileconfig.h"
-#include "./comm/fileloader.h"
-#include "./comm/ini2pb.h"
-#include "./comm/iniparser.h"
+#include "phxqueue_phxrpc/comm/fileconfig.h"
+#include "phxqueue_phxrpc/comm/fileloader.h"
+#include "phxqueue_phxrpc/comm/ini2pb.h"
+#include "phxqueue_phxrpc/comm/iniparser.h"
 

@@ -12,14 +12,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./comm/errdef.h"
-#include "./comm/logger.h"
-#include "./comm/breakpoint.h"
-#include "./comm/masterclient.h"
-#include "./comm/multiproc.h"
-#include "./comm/utils.h"
-#include "./comm/handler.h"
-#include "./comm/resourcepool.h"
-#include "./comm/notifierpool.h"
-#include "./comm/proto/comm.pb.h"
+#include "phxqueue/comm/errdef.h"
+#include "phxqueue/comm/logger.h"
+#include "phxqueue/comm/breakpoint.h"
+#include "phxqueue/comm/masterclient.h"
+#include "phxqueue/comm/multiproc.h"
+#include "phxqueue/comm/utils.h"
+#include "phxqueue/comm/handler.h"
+#include "phxqueue/comm/resourcepool.h"
+#include "phxqueue/comm/notifierpool.h"
+#include "phxqueue/comm/proto/comm.pb.h"
 
