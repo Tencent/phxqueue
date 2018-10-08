@@ -12,8 +12,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./plugin/breakpointfactory.h"
-#include "./plugin/configfactory.h"
-#include "./plugin/logger_google.h"
-#include "./plugin/logger_sys.h"
+#include "phxqueue/plugin/breakpointfactory.h"
+#include "phxqueue/plugin/configfactory.h"
+#include "phxqueue/plugin/logger_google.h"
+#include "phxqueue/plugin/logger_sys.h"
 

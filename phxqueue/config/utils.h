@@ -12,6 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./utils/pub_util.h"
-#include "./utils/consumer_group_util.h"
+#include "phxqueue/config/utils/pub_util.h"
+#include "phxqueue/config/utils/consumer_group_util.h"
 

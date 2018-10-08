@@ -12,7 +12,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./lock/lock.h"
-#include "./lock/lockmasterclient.h"
-#include "./lock/lockoption.h"
+#include "phxqueue/lock/lock.h"
+#include "phxqueue/lock/lockmasterclient.h"
+#include "phxqueue/lock/lockoption.h"
 

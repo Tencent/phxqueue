@@ -12,5 +12,5 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./plugin/configfactory.h"
+#include "phxqueue_phxrpc/plugin/configfactory.h"
 
