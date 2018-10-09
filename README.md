@@ -153,28 +153,45 @@ tail -f log/consumer.1/consumer_main.INFO
 tail -f log/consumer.2/consumer_main.INFO
 ```
 
+### Starting the Subscriber node
+
+Start 1 Subscriber node:
+
+```sh
+python phxqueue_phxrpc/test/subscriber/subscriber.py
+```
+
+```subscriber.py``` is a simple http server implemented by Python, to receive requests pushed from consumer.
+
 ### Sending test requests
 
 Now that both Store and Consumer nodes have been deployed, you can use the benchmark tool 
 to send some test requests:
 
 ```sh
-bin/test_producer_echo_main
+bin/test_enqueue_main -f enqueue
 ```
 
 You will get the output from test Producer:
 
 ```sh
-produce echo succeeded!
+succeeded! func prepare client_id 1538966846_5aCaiJS5lB buf 5aCaiJS5lB
 ```
 
-Now let's see the output of Consumer (only 1 of 3 Consumer nodes):
+Now let's see the output of Subscriber:
 
-```sh
-consume echo succeeed! ...
+```
+request_path /push
+topic_id 1000
+pub_id 2
+client_id 1538966846_5aCaiJS5lB
+count 0
+atime 1538966846
+buffer 5aCaiJS5lB
+127.0.0.1 - - [08/Oct/2018 02:47:34] "POST /push HTTP/1.0" 200 -
 ```
 
-### Running benchmarks
+### Running benchmarks without Subscriber
 
 ```sh
 bin/producer_benchmark_main 10 5 5 10
@@ -218,6 +235,7 @@ storeconfig.conf ................. Store config
 consumerconfig.conf ...............Consumer config
 schedulerconfig.conf ..............Scheduler config
 lockconfig.conf ...................Lock config
+routeconfig.conf ..................Route config
 ```
 
 Deloy and modify these files on all target machines.
@@ -250,7 +268,9 @@ bin/consumer_main -c etc/consumer_server.2.conf -d
 
 Lock is a distributed lock module. You can deploy Lock independently, providing a common distributed lock service.
 
-Set `skip_lock = 1` in `topicconfig.conf` to disable distributed Lock.
+To disable distributed Lock, conditions needed belows:
+1. Set `skip_lock = 1` in `topicconfig.conf` .
+2. Stop using pub with transation. (See Pub.is_transaction in ```topicconfig.conf```)
 
 Deploy these configs to 3 Lock nodes and start each node:
 

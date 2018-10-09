@@ -38,7 +38,7 @@ int ProducerBenchMark::TaskFunc(const int vtid) {
 
     const int topic_id{1000};
     const uint64_t uin{0};
-    const int handle_id{1};
+    const int handle_id{3};
     const int pub_id{1};
 
     ret = producer_->Enqueue(topic_id, uin, handle_id, buf_, pub_id);
