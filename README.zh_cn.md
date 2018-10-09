@@ -152,24 +152,41 @@ tail -f log/consumer.1/consumer_main.INFO
 tail -f log/consumer.2/consumer_main.INFO
 ```
 
+### 启动Subscriber
+
+启动1个Subscriber节点：
+
+```sh
+python phxqueue_phxrpc/test/subscriber/subscriber.py
+```
+
+```subscriber.py``` 是一个Python实现的简单的HTTP服务，用于接收Consumer推送过来的请求
+
 ### 发送测试请求
 
 现在简单的PhxQueue已经部署完成！使用工具就可以发送测试请求了：
 
 ```sh
-bin/test_producer_echo_main
+bin/test_enqueue_main -f enqueue
 ```
 
 你会看到Producer的输出：
 
 ```sh
-produce echo succeeded!
+succeeded! func prepare client_id 1538966846_5aCaiJS5lB buf 5aCaiJS5lB
 ```
 
-我们回到Consumer看输出（3个中只有1个会处理请求并输出）
+我们回到Subscriber看输出
 
 ```sh
-consume echo succeeed! ...
+request_path /push
+topic_id 1000
+pub_id 2
+client_id 1538966846_5aCaiJS5lB
+count 0
+atime 1538966846
+buffer 5aCaiJS5lB
+127.0.0.1 - - [08/Oct/2018 02:47:34] "POST /push HTTP/1.0" 200 -
 ```
 
 ### 运行压测
@@ -211,6 +228,7 @@ storeconfig.conf ................. Store配置
 consumerconfig.conf ...............Consumer配置
 schedulerconfig.conf ..............Scheduler配置
 lockconfig.conf ...................Lock配置
+routeconfig.conf ..................Route config
 ```
 
 将这些文件部署在所有目标机器上，并做相应的修改。
@@ -243,7 +261,9 @@ bin/consumer_main -c etc/consumer_server.2.conf -d
 
 Lock是一个分布式锁，其接口设计非常通用化，使用者可以选择将Lock独立部署，提供通用分布式锁服务。部署Lock可以避免队列的重复消费。
 
-如果不使用Lock，`topicconfig.conf`中需要设置`skip_lock = 1`。
+如果想简化部署不使用Lock，需要满足如下条件：
+1. `topicconfig.conf`中需要设置`skip_lock = 1`。
+2. 避免使用事务消息（不可使用```topicconfig.conf``` 中 ```is_transaction = 1``` 的 pub）
 
 将以下3个配置文件分别部署到3个Lock节点并启动：
 

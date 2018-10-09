@@ -270,7 +270,7 @@ Lock is a distributed lock module. You can deploy Lock independently, providing 
 
 To disable distributed Lock, conditions needed belows:
 1. Set `skip_lock = 1` in `topicconfig.conf` .
-2. Stop using pub with transation. (See Pub.is_transaction in ```topicconfig.conf```)
+2. Stop using pub with transation. (CAN NOT use pub with ```is_transaction = 1``` in ```topicconfig.conf```)
 
 Deploy these configs to 3 Lock nodes and start each node:
 
