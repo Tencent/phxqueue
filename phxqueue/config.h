@@ -12,12 +12,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./config/baseconfig.h"
-#include "./config/consumerconfig.h"
-#include "./config/globalconfig.h"
-#include "./config/lockconfig.h"
-#include "./config/schedulerconfig.h"
-#include "./config/storeconfig.h"
-#include "./config/topicconfig.h"
-#include "./config/utils.h"
+#include "phxqueue/config/baseconfig.h"
+#include "phxqueue/config/consumerconfig.h"
+#include "phxqueue/config/globalconfig.h"
+#include "phxqueue/config/lockconfig.h"
+#include "phxqueue/config/schedulerconfig.h"
+#include "phxqueue/config/storeconfig.h"
+#include "phxqueue/config/topicconfig.h"
+#include "phxqueue/config/utils.h"
 

@@ -12,6 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include "./consumer/consumer.h"
-#include "./consumer/consumerserverconfig.h"
+#include "phxqueue_phxrpc/consumer/consumer.h"
+#include "phxqueue_phxrpc/consumer/consumerserverconfig.h"
 
