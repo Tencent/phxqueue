@@ -45,7 +45,7 @@ class StoreServerConfig {
     char data_dir_path_[128];
     char phxqueue_global_config_path_[128];
     int paxos_port_;
-    int npaxos_iothread_;
-    int ngroup_;
+    int npaxos_iothread_{3};
+    int ngroup_{100};
 };
 

@@ -66,7 +66,7 @@ StoreClient::~StoreClient() {}
 
 int StoreClient::PHXEcho(const google::protobuf::StringValue &req,
                          google::protobuf::StringValue *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclient_config_.GetRandom()};
 
     if (ep != nullptr) {
         phxrpc::BlockTcpStream socket;
@@ -115,7 +115,7 @@ int StoreClient::PHXBatchEcho(const google::protobuf::StringValue &req,
 
 int StoreClient::Add(const phxqueue::comm::proto::AddRequest &req,
                      phxqueue::comm::proto::AddResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclient_config_.GetRandom()};
 
     if (ep != nullptr) {
         phxrpc::BlockTcpStream socket;
@@ -136,7 +136,7 @@ int StoreClient::Add(const phxqueue::comm::proto::AddRequest &req,
 
 int StoreClient::Get(const phxqueue::comm::proto::GetRequest &req,
                      phxqueue::comm::proto::GetResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclient_config_.GetRandom()};
 
     if (ep != nullptr) {
         phxrpc::BlockTcpStream socket;
@@ -161,9 +161,9 @@ StoreClient::ProtoAdd(const phxqueue::comm::proto::AddRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -198,9 +198,9 @@ StoreClient::ProtoGet(const phxqueue::comm::proto::GetRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());

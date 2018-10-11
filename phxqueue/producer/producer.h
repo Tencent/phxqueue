@@ -80,7 +80,7 @@ class Producer {
   protected:
 
     // Return ProducerOption.
-    const ProducerOption * GetProducerOption() const;
+    const ProducerOption *GetProducerOption() const;
 
     // Implement customize StoreSelector to determine which store to add.
     virtual std::unique_ptr<QueueSelector> NewQueueSelector(const int topic_id, const int pub_id,

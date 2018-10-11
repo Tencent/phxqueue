@@ -67,7 +67,7 @@ StoreClientUThread::~StoreClientUThread() {}
 
 int StoreClientUThread::PHXEcho(const google::protobuf::StringValue &req,
                                 google::protobuf::StringValue *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -117,7 +117,7 @@ int StoreClientUThread::PHXBatchEcho(const google::protobuf::StringValue &req,
 
 int StoreClientUThread::Add(const phxqueue::comm::proto::AddRequest &req,
                             phxqueue::comm::proto::AddResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;
@@ -138,7 +138,7 @@ int StoreClientUThread::Add(const phxqueue::comm::proto::AddRequest &req,
 
 int StoreClientUThread::Get(const phxqueue::comm::proto::GetRequest &req,
                             phxqueue::comm::proto::GetResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_storeclientuthread_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_storeclientuthread_config_.GetRandom()};
 
     if (uthread_scheduler_ != nullptr && ep != nullptr) {
         phxrpc::UThreadTcpStream socket;

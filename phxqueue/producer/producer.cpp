@@ -72,7 +72,8 @@ comm::RetCode Producer::Init() {
     return comm::RetCode::RET_OK;
 }
 
-static uint64_t ConsumerGroupIDs2Mask(const config::TopicConfig *topic_config, const set<int> *consumer_group_ids) {
+static uint64_t ConsumerGroupIDs2Mask(const config::TopicConfig *topic_config,
+                                      const set<int> *consumer_group_ids) {
     uint64_t mask(-1);
     if (consumer_group_ids) {
         mask = 0;
@@ -305,7 +306,8 @@ comm::RetCode Producer::MakeAddRequests(const int topic_id,
 }
 
 
-comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp, StoreSelector *ss, QueueSelector *qs) {
+comm::RetCode Producer::SelectAndAdd(comm::proto::AddRequest &req, comm::proto::AddResponse &resp,
+                                     StoreSelector *ss, QueueSelector *qs) {
     QLVerb("SelectAndAdd");
 
     comm::ProducerBP::GetThreadInstance()->OnSelectAndAdd(req);

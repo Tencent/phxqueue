@@ -2,6 +2,8 @@
 bin/
 lib/
 build/
+data/
+log/
 
 # Protocol Buffers
 *.pb.cc

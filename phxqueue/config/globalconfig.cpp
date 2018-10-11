@@ -28,11 +28,11 @@ using namespace std;
 struct GlobalConfig::GlobalConfigImpl_t {
     map<string, int> topic_name2topic_id;
     map<int, int> handle_id2topic_id;
-    map<int, shared_ptr<TopicConfig> > topic_id2topic_config;
-    map<int, shared_ptr<ConsumerConfig> > topic_id2consumer_config;
-    map<int, shared_ptr<StoreConfig> > topic_id2store_config;
-    map<int, shared_ptr<SchedulerConfig> > topic_id2scheduler_config;
-    map<int, shared_ptr<LockConfig> > topic_id2lock_config;
+    map<int, shared_ptr<TopicConfig>> topic_id2topic_config;
+    map<int, shared_ptr<ConsumerConfig>> topic_id2consumer_config;
+    map<int, shared_ptr<StoreConfig>> topic_id2store_config;
+    map<int, shared_ptr<SchedulerConfig>> topic_id2scheduler_config;
+    map<int, shared_ptr<LockConfig>> topic_id2lock_config;
 };
 
 GlobalConfig::GlobalConfig() : impl_(new GlobalConfigImpl_t()) {

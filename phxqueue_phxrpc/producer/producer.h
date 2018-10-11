@@ -12,8 +12,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 #pragma once
 
-#include <memory>
-
 #include "phxqueue/producer.h"
 
 
@@ -25,7 +23,7 @@ namespace producer {
 class Producer : public phxqueue::producer::Producer {
   public:
     Producer(const phxqueue::producer::ProducerOption &opt);
-    virtual ~Producer();
+    virtual ~Producer() override;
 
     virtual void CompressBuffer(const std::string &buffer, std::string &compressed_buffer,
                                 int &buffer_type) override;

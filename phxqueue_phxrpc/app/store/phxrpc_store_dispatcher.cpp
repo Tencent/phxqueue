@@ -37,9 +37,9 @@ StoreDispatcher::~StoreDispatcher() {}
 const phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap &
 StoreDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<StoreDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc/store/PHXEcho", &StoreDispatcher::PHXEcho},
-        {"/phxqueue_phxrpc/store/Add", &StoreDispatcher::Add},
-        {"/phxqueue_phxrpc/store/Get", &StoreDispatcher::Get}};
+            {"/phxqueue_phxrpc/store/PHXEcho", &StoreDispatcher::PHXEcho},
+            {"/phxqueue_phxrpc/store/Add", &StoreDispatcher::Add},
+            {"/phxqueue_phxrpc/store/Get", &StoreDispatcher::Get}};
     return uri_func_map;
 }
 

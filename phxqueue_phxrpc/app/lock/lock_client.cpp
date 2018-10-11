@@ -116,7 +116,7 @@ int LockClient::PHXBatchEcho(const google::protobuf::StringValue &req,
 
 int LockClient::GetString(const phxqueue::comm::proto::GetStringRequest &req,
                           phxqueue::comm::proto::GetStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
     if (nullptr != ep) {
         phxrpc::BlockTcpStream socket;
@@ -137,7 +137,7 @@ int LockClient::GetString(const phxqueue::comm::proto::GetStringRequest &req,
 
 int LockClient::SetString(const phxqueue::comm::proto::SetStringRequest &req,
                           phxqueue::comm::proto::SetStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
     if (nullptr != ep) {
         phxrpc::BlockTcpStream socket;
@@ -158,7 +158,7 @@ int LockClient::SetString(const phxqueue::comm::proto::SetStringRequest &req,
 
 int LockClient::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &req,
                              phxqueue::comm::proto::DeleteStringResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
     if (nullptr != ep) {
         phxrpc::BlockTcpStream socket;
@@ -179,7 +179,7 @@ int LockClient::DeleteString(const phxqueue::comm::proto::DeleteStringRequest &r
 
 int LockClient::GetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &req,
                             phxqueue::comm::proto::GetLockInfoResponse *resp) {
-    const phxrpc::Endpoint_t *ep = global_lockclient_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_lockclient_config_.GetRandom()};
 
     if (nullptr != ep) {
         phxrpc::BlockTcpStream socket;
@@ -225,9 +225,9 @@ LockClient::ProtoGetString(const phxqueue::comm::proto::GetStringRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -262,9 +262,9 @@ LockClient::ProtoSetString(const phxqueue::comm::proto::SetStringRequest &req,
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -299,9 +299,9 @@ LockClient::ProtoDeleteString(const phxqueue::comm::proto::DeleteStringRequest &
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -336,9 +336,9 @@ LockClient::ProtoGetLockInfo(const phxqueue::comm::proto::GetLockInfoRequest &re
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
     if (nullptr == socket.get()) {
         socket.reset(new phxrpc::BlockTcpStream());
@@ -373,9 +373,9 @@ LockClient::ProtoAcquireLock(const phxqueue::comm::proto::AcquireLockRequest &re
     const char *ip{req.master_addr().ip().c_str()};
     const int port{req.master_addr().port()};
 
-    auto &&socket_pool = phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
-    auto &&key = phxqueue::comm::utils::EncodeAddr(req.master_addr());
-    auto socket = move(socket_pool->Get(key));
+    auto &&socket_pool(phxqueue::comm::ResourcePool<uint64_t, phxrpc::BlockTcpStream>::GetInstance());
+    auto &&key(phxqueue::comm::utils::EncodeAddr(req.master_addr()));
+    auto socket(move(socket_pool->Get(key)));
 
 
     if (nullptr == socket.get()) {

@@ -37,12 +37,12 @@ LockDispatcher::~LockDispatcher() {}
 const phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap &
 LockDispatcher::GetURIFuncMap() {
     static phxrpc::BaseDispatcher<LockDispatcher>::URIFuncMap uri_func_map = {
-        {"/phxqueue_phxrpc/lock/PHXEcho", &LockDispatcher::PHXEcho},
-        {"/phxqueue_phxrpc/lock/GetString", &LockDispatcher::GetString},
-        {"/phxqueue_phxrpc/lock/SetString", &LockDispatcher::SetString},
-        {"/phxqueue_phxrpc/lock/DeleteString", &LockDispatcher::DeleteString},
-        {"/phxqueue_phxrpc/lock/GetLockInfo", &LockDispatcher::GetLockInfo},
-        {"/phxqueue_phxrpc/lock/AcquireLock", &LockDispatcher::AcquireLock}};
+            {"/phxqueue_phxrpc/lock/PHXEcho", &LockDispatcher::PHXEcho},
+            {"/phxqueue_phxrpc/lock/GetString", &LockDispatcher::GetString},
+            {"/phxqueue_phxrpc/lock/SetString", &LockDispatcher::SetString},
+            {"/phxqueue_phxrpc/lock/DeleteString", &LockDispatcher::DeleteString},
+            {"/phxqueue_phxrpc/lock/GetLockInfo", &LockDispatcher::GetLockInfo},
+            {"/phxqueue_phxrpc/lock/AcquireLock", &LockDispatcher::AcquireLock}};
     return uri_func_map;
 }
 

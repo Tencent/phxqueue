@@ -45,7 +45,7 @@ class LockServerConfig {
     char data_dir_path_[128];
     char phxqueue_global_config_path_[128];
     int paxos_port_;
-    int nr_group_;
-    int nr_paxos_io_thread_;
+    int nr_group_{100};
+    int nr_paxos_io_thread_{3};
 };
 
