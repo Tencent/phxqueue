@@ -207,9 +207,9 @@ comm::RetCode Consumer::MakeHandleBuckets() {
         auto handle_id(impl_->items[i]->meta().handle_id());
 
         int bucket_idx{-1};
-        bool update_uin2bucket_idx = false;
+        bool update_uin2bucket_idx{false};
         if (key && !queue_info->handle_by_random_uin()) {
-            auto &&it = uin2bucket_idx.find(key);
+            auto &&it(uin2bucket_idx.find(key));
             if (uin2bucket_idx.end() != it) {
                 bucket_idx = it->second;
             } else {
@@ -278,7 +278,7 @@ void Consumer::TaskDispatch() {
             }
         }
 
-        while (1) {
+        while (true) {
             if (IsAllTaskFinish()) break;
         }
 
@@ -377,9 +377,9 @@ static void *DispatchRoutineRun(void *arg) {
 static void *HandleRoutineRun(void *arg) {
     co_enable_hook_sys();
 
-    ConsumeCtx_t *ctx = static_cast<ConsumeCtx_t*>(arg);
+    ConsumeCtx_t *ctx{static_cast<ConsumeCtx_t *>(arg)};
 
-    while (1) {
+    while (true) {
         if (ctx->consumer->HasHandleTasks(ctx->cid)) {
             co_yield_ct();
             continue;
@@ -392,9 +392,9 @@ static void *HandleRoutineRun(void *arg) {
 static void *BatchHandleRoutineRun(void *arg) {
     co_enable_hook_sys();
 
-    ConsumeCtx_t *ctx = static_cast<ConsumeCtx_t *>(arg);
+    ConsumeCtx_t *ctx{static_cast<ConsumeCtx_t *>(arg)};
 
-    while (1) {
+    while (true) {
         if (ctx->consumer->HasBatchHandleTasks(ctx->cid)) {
             co_yield_ct();
             continue;
@@ -434,8 +434,8 @@ void Consumer::ConsumeThreadRun(const int vpid) {
     OnConsumeThreadRun(vpid);
     comm::ConsumerConsumeBP::GetThreadInstance()->OnConsumeThreadRun(impl_->cc);
 
-    //stShareStack_t *share_stack= co_alloc_sharestack(impl_->opt.nshare_stack,
-    //                                                 1024 * impl_->opt.share_stack_size_kb);
+    //stShareStack_t *share_stack = co_alloc_sharestack(impl_->opt.nshare_stack,
+    //                                                  1024 * impl_->opt.share_stack_size_kb);
     stCoRoutineAttr_t attr;
     //attr.stack_size = 0;
     attr.stack_size = 1024 * impl_->opt.share_stack_size_kb;
@@ -929,7 +929,7 @@ comm::RetCode Consumer::Handle(const comm::proto::ConsumerContext &cc,
         return ret;
     }
 
-    auto &&handler = GetHandler(item.meta().handle_id());
+    auto &&handler(GetHandler(item.meta().handle_id()));
     if (!handler) {
         QLErr("GetHandler return null handle_id %d", item.meta().handle_id());
         handle_result = comm::HandleResult::RES_ERROR;
@@ -1127,12 +1127,4 @@ void Consumer::AfterConsume(const comm::proto::ConsumerContext &cc,
 }  // namespace consumer
 
 }  // namespace phxqueue
-
-
-//gzrd_Lib_CPP_Version_ID--start
-#ifndef GZRD_SVN_ATTR
-#define GZRD_SVN_ATTR "0"
-#endif
-static char gzrd_Lib_CPP_Version_ID[] __attribute__((used))="$HeadURL$ $Id$ " GZRD_SVN_ATTR "__file__";
-// gzrd_Lib_CPP_Version_ID--end
 

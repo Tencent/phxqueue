@@ -119,7 +119,6 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     comm::ProducerConsumerGroupBP::GetThreadInstance()->
             OnConsumerGroupDistribute(topic_id, pub_id, handle_id, uin, consumer_group_ids);
 
-
     auto now(comm::utils::Time::GetTimestampMS());
 
     auto item(make_shared<comm::proto::QItem>());
@@ -138,7 +137,6 @@ comm::RetCode Producer::Enqueue(const int topic_id, const uint64_t uin, const in
     item->set_count(0);
     SetSysCookies(*item->mutable_sys_cookies());
     item->set_cursor_id(-1);
-
 
     meta->set_topic_id(topic_id);
     meta->set_handle_id(handle_id);
